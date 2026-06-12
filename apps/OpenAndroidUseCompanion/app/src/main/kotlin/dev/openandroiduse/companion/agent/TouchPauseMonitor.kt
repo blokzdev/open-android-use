@@ -12,8 +12,13 @@ package dev.openandroiduse.companion.agent
  */
 object TouchPauseMonitor {
 
-    /** How long after an agent gesture its ripple of events is still "ours". */
-    const val AGENT_ACTION_WINDOW_MS = 2_500L
+    /**
+     * How long after an agent gesture its ripple of events is still "ours".
+     * Generous because slow devices dispatch the agent's own click/text events
+     * well after the action returns; false pauses are worse than a slightly
+     * late real one.
+     */
+    const val AGENT_ACTION_WINDOW_MS = 4_000L
 
     @Volatile
     private var lastAgentActionAtMs = 0L
@@ -23,8 +28,12 @@ object TouchPauseMonitor {
         lastAgentActionAtMs = nowMs
     }
 
-    fun reset() {
-        lastAgentActionAtMs = 0L
+    /**
+     * Opens a fresh window at task start. Stamping "now" (not 0) prevents a
+     * stray event between Send and the first gesture from instantly pausing.
+     */
+    fun reset(nowMs: Long = System.currentTimeMillis()) {
+        lastAgentActionAtMs = nowMs
     }
 
     /**

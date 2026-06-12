@@ -8,6 +8,7 @@ import com.anthropic.models.messages.Base64ImageSource
 import com.anthropic.models.messages.CacheControlEphemeral
 import com.anthropic.models.messages.ContentBlockParam
 import com.anthropic.models.messages.ImageBlockParam
+import com.anthropic.models.messages.Message
 import com.anthropic.models.messages.MessageCreateParams
 import com.anthropic.models.messages.MessageParam
 import com.anthropic.models.messages.OutputConfig
@@ -17,6 +18,7 @@ import com.anthropic.models.messages.TextBlockParam
 import com.anthropic.models.messages.ThinkingConfigAdaptive
 import com.anthropic.models.messages.ToolResultBlockParam
 import com.anthropic.models.messages.ToolUseBlock
+import dev.openandroiduse.companion.BuildConfig
 import dev.openandroiduse.companion.CompanionService
 import org.json.JSONObject
 
@@ -33,19 +35,26 @@ import org.json.JSONObject
  */
 object AgentController {
 
+    /**
+     * The transcript ([transcriptSnapshot]) is the single source of truth for
+     * the UI. The listener only signals that it advanced (so the chat renders
+     * incrementally) and that the running state changed — there is no second,
+     * drift-prone per-event render path.
+     */
     interface Listener {
         fun onTaskStateChanged(running: Boolean)
-        fun onAssistantDelta(text: String)
-        fun onThinkingDelta(text: String)
-        fun onToolCall(name: String, summary: String)
-        fun onToolResult(name: String, isError: Boolean)
-        fun onTaskFinished(reason: String)
-        fun onError(message: String)
+        fun onTranscriptChanged()
     }
 
-    /** One history entry; [pruned] replaces [full] once it leaves the recent-image window. */
-    private class HistoryEntry(val full: MessageParam, val pruned: MessageParam?, var usePruned: Boolean = false) {
-        fun param(): MessageParam = if (usePruned && pruned != null) pruned else full
+    /**
+     * One history entry. [param] is mutated in place when an image-bearing
+     * tool result leaves the recent-image window: the screenshot is stripped
+     * and the heavy full variant is dropped (it is never sent again), bounding
+     * heap growth on an always-on service. [hadImage] records that the entry
+     * originally carried a screenshot, so pruning counts only those.
+     */
+    private class HistoryEntry(var param: MessageParam, val hadImage: Boolean = false) {
+        var pruned = false
     }
 
     private const val MAX_TOKENS = 64_000L
@@ -98,17 +107,18 @@ object AgentController {
                 transcript.add(kind to StringBuilder(text))
             }
         }
+        listener?.onTranscriptChanged()
     }
 
     @Synchronized
     fun startTask(userText: String, settings: AgentSettings): Boolean {
         if (isRunning) return false
         val service = CompanionService.instance ?: run {
-            listener?.onError("The companion accessibility service is not running. Enable it first.")
+            log(KIND_NOTE, "⚠ The companion accessibility service is not running. Enable it first.")
             return false
         }
         val apiKey = settings.loadApiKey() ?: run {
-            listener?.onError("No API key configured. Add your Anthropic API key in settings.")
+            log(KIND_NOTE, "⚠ No API key configured. Add your Anthropic API key in settings.")
             return false
         }
         cancelRequested = false
@@ -116,20 +126,30 @@ object AgentController {
         isRunning = true
         listener?.onTaskStateChanged(true)
         log(KIND_USER, userText)
-        history.add(HistoryEntry(userMessage(userText), pruned = null))
+        history.add(HistoryEntry(userMessage(userText)))
         TouchPauseMonitor.reset()
+        // Inversion: the control surface (CompanionService) exposes a neutral
+        // interaction hook; the agent registers here. This keeps the
+        // dependency-free control surface from importing the agent/SDK.
+        service.interactionListener = { eventPackage, ownPackage ->
+            onInteractionEvent(eventPackage, ownPackage)
+        }
         GestureTrail.attach(service)
         speakNarration = settings.speakNarration
         if (speakNarration) {
             VoiceNarrator.ensureInitialized(service)
         }
         val confirmActions = settings.confirmActions
-        val baseUrl = settings.baseUrlOverride
+        // The loopback base-URL override is a debug-only test hook: honoring a
+        // persisted pref in release would let anything that can write prefs
+        // redirect the API-key-bearing client. Release ignores it entirely.
+        val baseUrl = if (BuildConfig.DEBUG) loopbackOrNull(settings.baseUrlOverride) else null
         worker = Thread(
             {
                 try {
                     runLoop(service, apiKey, settings.model, confirmActions, baseUrl)
                 } finally {
+                    service.interactionListener = null
                     GestureTrail.detach(service)
                     VoiceNarrator.stop()
                 }
@@ -139,11 +159,20 @@ object AgentController {
         return true
     }
 
+    /** Accepts only http loopback URLs; anything else (incl. https/remote) is rejected. */
+    private fun loopbackOrNull(url: String?): String? {
+        if (url == null) return null
+        return if (url.startsWith("http://127.0.0.1:") || url.startsWith("http://localhost:")) url else null
+    }
+
     @Volatile
     private var speakNarration = false
 
     fun requestStop() {
         cancelRequested = true
+        // Release a loop thread parked in the consent sheet so Stop is
+        // responsive even mid-confirmation.
+        ConfirmationSheet.cancel()
         try {
             activeStream?.close()
         } catch (_: Exception) {
@@ -222,7 +251,6 @@ object AgentController {
                         val refusalText = "The request was declined by the model's safety system$category. " +
                             "Rephrase the task rather than retrying it as-is."
                         log(KIND_NOTE, "⚠ $refusalText")
-                        listener?.onError(refusalText)
                         return finish("refusal")
                     }
                     StopReason.TOOL_USE -> {
@@ -231,21 +259,38 @@ object AgentController {
                         val denied = confirmActions && needsConfirmation(toolUses) &&
                             !ConfirmationSheet.ask(service, batchSummary(toolUses))
                         val results = mutableListOf<ContentBlockParam>()
+                        var interrupted = false
                         for (toolUse in toolUses) {
-                            if (cancelRequested) return finish(stopReasonLabel())
+                            if (cancelRequested) {
+                                interrupted = true
+                                break
+                            }
                             results.add(
                                 if (denied) deniedResult(toolUse) else executeTool(executor, toolUse),
                             )
                         }
+                        // Every tool_use must get a tool_result or the next
+                        // request 400s ("tool_use without tool_result"); fill
+                        // any the interruption skipped so the conversation
+                        // stays resumable.
+                        for (index in results.size until toolUses.size) {
+                            results.add(interruptedResult(toolUses[index]))
+                        }
+                        appendToolResults(results)
                         if (denied) {
                             log(KIND_NOTE, "Action batch denied by the user.")
                         }
-                        appendToolResults(results)
+                        if (interrupted) return finish(stopReasonLabel())
                     }
                     StopReason.PAUSE_TURN -> {
                         // Server-side pause: re-send and the API resumes the turn.
                     }
-                    StopReason.MAX_TOKENS -> return finish("max_tokens")
+                    StopReason.MAX_TOKENS -> {
+                        // A truncated turn may end in a tool_use; close it out
+                        // so "continue" doesn't 400.
+                        fillDanglingToolUses(message)
+                        return finish("max_tokens")
+                    }
                     else -> return finish("end_turn")
                 }
             }
@@ -268,6 +313,10 @@ object AgentController {
         val builder = MessageCreateParams.builder()
             .model(model)
             .maxTokens(MAX_TOKENS)
+            // Cache the whole conversation prefix, not just tools+system: the
+            // tree-text and (windowed) screenshots dominate input tokens, and
+            // auto-caching the last block lets every turn read the prior prefix.
+            .cacheControl(CacheControlEphemeral.builder().build())
             .thinking(
                 ThinkingConfigAdaptive.builder()
                     .display(ThinkingConfigAdaptive.Display.SUMMARIZED)
@@ -289,7 +338,7 @@ object AgentController {
         }
         synchronized(this) {
             for (entry in history) {
-                builder.addMessage(entry.param())
+                builder.addMessage(entry.param)
             }
         }
         return builder.build()
@@ -302,11 +351,9 @@ object AgentController {
             if (speakNarration) {
                 VoiceNarrator.onAssistantDelta(it.text())
             }
-            listener?.onAssistantDelta(it.text())
         }
         delta.thinking().orElse(null)?.let {
             log(KIND_THINKING, it.thinking(), append = true)
-            listener?.onThinkingDelta(it.thinking())
         }
     }
 
@@ -319,41 +366,50 @@ object AgentController {
     private fun needsConfirmation(toolUses: List<ToolUseBlock>): Boolean =
         toolUses.any { it.name() in mutatingTools }
 
+    /** Single decode of a tool_use's input, shared by the summary and execution paths. */
+    private fun argsOf(toolUse: ToolUseBlock): JSONObject = try {
+        @Suppress("UNCHECKED_CAST")
+        JSONObject(toolUse._input().convert(Map::class.java) as Map<String, Any?>)
+    } catch (_: Exception) {
+        JSONObject()
+    }
+
     private fun batchSummary(toolUses: List<ToolUseBlock>): String =
         toolUses.joinToString("\n") { toolUse ->
-            val args = try {
-                @Suppress("UNCHECKED_CAST")
-                JSONObject(toolUse._input().convert(Map::class.java) as Map<String, Any?>)
-            } catch (_: Exception) {
-                JSONObject()
-            }
-            "• ${toolUse.name()} ${summarizeArgs(toolUse.name(), args)}".trimEnd()
+            "• ${toolUse.name()} ${summarizeArgs(toolUse.name(), argsOf(toolUse))}".trimEnd()
         }
 
     private fun deniedResult(toolUse: ToolUseBlock): ContentBlockParam =
+        errorResult(toolUse, "The user declined this action. Ask how they would like to proceed instead of retrying.")
+
+    private fun interruptedResult(toolUse: ToolUseBlock): ContentBlockParam =
+        errorResult(toolUse, "This action was not performed because the task was interrupted.")
+
+    private fun errorResult(toolUse: ToolUseBlock, text: String): ContentBlockParam =
         ContentBlockParam.ofToolResult(
             ToolResultBlockParam.builder()
                 .toolUseId(toolUse.id())
-                .content("The user declined this action. Ask how they would like to proceed instead of retrying.")
+                .content(text)
                 .isError(true)
                 .build(),
         )
 
-    private fun executeTool(executor: ToolExecutor, toolUse: ToolUseBlock): ContentBlockParam {
-        val args = try {
-            @Suppress("UNCHECKED_CAST")
-            JSONObject(toolUse._input().convert(Map::class.java) as Map<String, Any?>)
-        } catch (_: Exception) {
-            JSONObject()
+    /** Closes out any tool_use blocks in [message] with interrupted results. */
+    private fun fillDanglingToolUses(message: Message) {
+        val toolUses = message.content().mapNotNull { it.toolUse().orElse(null) }
+        if (toolUses.isNotEmpty()) {
+            appendToolResults(toolUses.map { interruptedResult(it) })
         }
+    }
+
+    private fun executeTool(executor: ToolExecutor, toolUse: ToolUseBlock): ContentBlockParam {
+        val args = argsOf(toolUse)
         val summary = summarizeArgs(toolUse.name(), args)
         log(KIND_TOOL, "▸ ${toolUse.name()} $summary".trimEnd())
-        listener?.onToolCall(toolUse.name(), summary)
         val outcome = executor.callTool(toolUse.name(), args)
         if (outcome.isError) {
-            log(KIND_TOOL, "✗ ${toolUse.name()} failed")
+            log(KIND_TOOL, "✗ ${toolUse.name()} failed — the agent will see the error and adapt")
         }
-        listener?.onToolResult(toolUse.name(), outcome.isError)
 
         val blocks = mutableListOf(
             ToolResultBlockParam.Content.Block.ofText(
@@ -397,21 +453,45 @@ object AgentController {
 
     @Synchronized
     private fun appendAssistant(param: MessageParam) {
-        history.add(HistoryEntry(param, pruned = null))
+        history.add(HistoryEntry(param))
     }
 
     /**
-     * Appends a tool-result user message, keeping screenshots only in the
-     * [RECENT_IMAGE_WINDOW] most recent tool results. Older entries swap to a
-     * text-only variant with a stable placeholder — the same screenshot-pruning
-     * pattern Anthropic's computer-use reference uses to bound context growth.
+     * Appends a tool-result user message. Only entries that actually carry a
+     * screenshot count toward [RECENT_IMAGE_WINDOW]; older image-bearing
+     * entries are rewritten in place to drop the screenshot (and the heavy
+     * full param with it), bounding context and heap growth.
      */
     @Synchronized
     private fun appendToolResults(blocks: List<ContentBlockParam>) {
-        val prunedBlocks = blocks.map { block ->
+        val hadImage = blocks.any { block ->
+            block.toolResult().orElse(null)
+                ?.content()?.orElse(null)?.blocks()?.orElse(null)
+                ?.any { it.image().isPresent } == true
+        }
+        val message = MessageParam.builder()
+            .role(MessageParam.Role.USER)
+            .contentOfBlockParams(blocks)
+            .build()
+        history.add(HistoryEntry(message, hadImage))
+
+        val live = history.filter { it.hadImage && !it.pruned }
+        if (live.size > RECENT_IMAGE_WINDOW) {
+            for (entry in live.dropLast(RECENT_IMAGE_WINDOW)) {
+                entry.param = stripScreenshots(entry.param)
+                entry.pruned = true
+            }
+        }
+    }
+
+    /** Rewrites a tool-result message without image blocks, noting the removal only where one occurred. */
+    private fun stripScreenshots(param: MessageParam): MessageParam {
+        val content = param.content().blockParams().orElse(null) ?: return param
+        val rewritten = content.map { block ->
             val toolResult = block.toolResult().orElse(null) ?: return@map block
-            val sourceBlocks = toolResult.content().orElse(null)?.blocks()?.orElse(null) ?: emptyList()
-            val textOnly = sourceBlocks.filter { it.text().isPresent }.toMutableList()
+            val source = toolResult.content().orElse(null)?.blocks()?.orElse(null) ?: return@map block
+            if (source.none { it.image().isPresent }) return@map block
+            val textOnly = source.filter { it.text().isPresent }.toMutableList()
             textOnly.add(
                 ToolResultBlockParam.Content.Block.ofText(
                     TextBlockParam.builder().text("(screenshot omitted to save context)").build(),
@@ -425,22 +505,7 @@ object AgentController {
                     .build(),
             )
         }
-        val full = MessageParam.builder()
-            .role(MessageParam.Role.USER)
-            .contentOfBlockParams(blocks)
-            .build()
-        val pruned = MessageParam.builder()
-            .role(MessageParam.Role.USER)
-            .contentOfBlockParams(prunedBlocks)
-            .build()
-        history.add(HistoryEntry(full, pruned))
-
-        val imageBearing = history.filter { it.pruned != null }
-        if (imageBearing.size > RECENT_IMAGE_WINDOW) {
-            for (entry in imageBearing.dropLast(RECENT_IMAGE_WINDOW)) {
-                entry.usePruned = true
-            }
-        }
+        return MessageParam.builder().role(MessageParam.Role.USER).contentOfBlockParams(rewritten).build()
     }
 
     private fun userMessage(text: String): MessageParam =
@@ -457,12 +522,9 @@ object AgentController {
             "stopped" -> log(KIND_NOTE, "Stopped.")
             "max_tokens" -> log(KIND_NOTE, "The turn hit its output limit; say \"continue\" to resume.")
         }
-        listener?.onTaskFinished(reason)
     }
 
     private fun fail(message: String) {
         log(KIND_NOTE, "⚠ $message")
-        listener?.onError(message)
-        listener?.onTaskFinished("error")
     }
 }

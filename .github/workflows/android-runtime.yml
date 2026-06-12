@@ -61,6 +61,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+      - name: companion unit tests
+        run: (cd apps/OpenAndroidUseCompanion && gradle testDebugUnitTest --no-daemon)
       - name: build companion APK
         run: ./scripts/build-open-android-use-companion.sh
       - uses: actions/upload-artifact@v4

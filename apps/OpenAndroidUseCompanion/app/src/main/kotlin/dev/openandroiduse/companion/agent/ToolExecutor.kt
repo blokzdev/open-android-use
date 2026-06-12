@@ -28,6 +28,7 @@ class ToolExecutor(private val service: CompanionService) {
     data class Outcome(val text: String, val screenshotPngBase64: String? = null, val isError: Boolean = false)
 
     private val snapshots = mutableMapOf<String, AppSnapshot>()
+    private var cachedLaunchableApps: List<Pair<String, String>>? = null
 
     fun callTool(name: String, args: JSONObject): Outcome = try {
         when (name) {
@@ -49,15 +50,11 @@ class ToolExecutor(private val service: CompanionService) {
     // --- read tools ---
 
     private fun listApps(): Outcome {
-        val pm = service.packageManager
-        val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-        val activities = pm.queryIntentActivities(launcherIntent, 0)
-        if (activities.isEmpty()) {
+        val apps = launchableApps()
+        if (apps.isEmpty()) {
             return error("No launchable apps are visible to this Android runtime.")
         }
-        val lines = activities
-            .map { it.activityInfo.packageName to it.loadLabel(pm).toString() }
-            .distinctBy { it.first }
+        val lines = apps
             .sortedBy { it.second.lowercase() }
             .map { (pkg, label) -> "$label — $pkg" }
         return Outcome(lines.joinToString("\n"))
@@ -117,9 +114,7 @@ class ToolExecutor(private val service: CompanionService) {
         if ("long-click" !in element.actions) {
             return error("Element ${element.index} does not expose a long-click action.")
         }
-        val frame = element.frame!!
-        val x = deviceCoordinate(frame.centerX(), snapshot.coordinateScale)
-        val y = deviceCoordinate(frame.centerY(), snapshot.coordinateScale)
+        val (x, y) = elementPoint(element.frame!!, snapshot.coordinateScale)
         perform(JSONObject().put("type", "longPress").put("x", x).put("y", y))?.let { return it }
         return settleAndSnapshot(app, snapshot)
     }
@@ -183,9 +178,7 @@ class ToolExecutor(private val service: CompanionService) {
         if ("set_value" !in element.actions) {
             return error("Element ${element.index} is not a settable text element.")
         }
-        val frame = element.frame!!
-        val x = deviceCoordinate(frame.centerX(), snapshot.coordinateScale)
-        val y = deviceCoordinate(frame.centerY(), snapshot.coordinateScale)
+        val (x, y) = elementPoint(element.frame!!, snapshot.coordinateScale)
         perform(JSONObject().put("type", "tap").put("x", x).put("y", y))?.let { return it }
         sleep(250)
         perform(JSONObject().put("type", "setText").put("text", args.optString("value")))
@@ -212,15 +205,20 @@ class ToolExecutor(private val service: CompanionService) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return error("Return/Enter requires Android 11 or newer.")
         }
+        // Stamp so the resulting TYPE_VIEW_TEXT_CHANGED/CLICKED from the target
+        // app is recognized as agent-initiated, not a user touch.
+        TouchPauseMonitor.noteAgentAction()
         val performed = service.onMainThread {
             val focused = service.rootInActiveWindow
                 ?.findFocus(AccessibilityNodeInfo.FOCUS_INPUT) ?: return@onMainThread false
             focused.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_IME_ENTER.id)
         }
+        TouchPauseMonitor.noteAgentAction()
         return if (performed == true) null else error("Could not press Enter: no focused field accepted the IME action.")
     }
 
     private fun deleteBackward(): Outcome? {
+        TouchPauseMonitor.noteAgentAction()
         val result = service.onMainThread {
             val focused = service.rootInActiveWindow
                 ?.findFocus(AccessibilityNodeInfo.FOCUS_INPUT) ?: return@onMainThread "no input-focused element"
@@ -236,6 +234,7 @@ class ToolExecutor(private val service: CompanionService) {
             if (focused.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments)) null
             else "ACTION_SET_TEXT was rejected by the focused element"
         }
+        TouchPauseMonitor.noteAgentAction()
         return when (result) {
             null -> null
             else -> error("Could not delete: $result")
@@ -280,9 +279,10 @@ class ToolExecutor(private val service: CompanionService) {
         val snapshotPkg = tree.optString("package").ifEmpty { pkg }
         val flattened = SnapshotFlattener.flatten(tree.optJSONObject("tree"), downscaled.scale)
         return AppSnapshot(
+            // Android gives apps no window title; renderedText() falls back to
+            // appName, so leave windowTitle empty rather than duplicate the label.
             appName = packageLabel(snapshotPkg),
             packageName = snapshotPkg,
-            windowTitle = packageLabel(snapshotPkg),
             screenshotPngBase64 = Base64.encodeToString(downscaled.png, Base64.NO_WRAP),
             treeLines = flattened.treeLines,
             elements = flattened.elements,
@@ -315,16 +315,28 @@ class ToolExecutor(private val service: CompanionService) {
     }
 
     private fun matchPackage(query: String): String? {
-        val pm = service.packageManager
-        val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-        val candidates = pm.queryIntentActivities(launcherIntent, 0)
-            .map { it.activityInfo.packageName to it.loadLabel(pm).toString() }
-            .distinctBy { it.first }
+        val candidates = launchableApps()
         val lowered = query.lowercase()
         return candidates.firstOrNull { it.first.equals(query, ignoreCase = true) }?.first
             ?: candidates.firstOrNull { it.second.equals(query, ignoreCase = true) }?.first
             ?: candidates.firstOrNull { it.second.lowercase().contains(lowered) }?.first
             ?: candidates.firstOrNull { it.first.lowercase().contains(lowered) }?.first
+    }
+
+    /**
+     * (packageName, label) for every launchable app, cached for this executor's
+     * lifetime (one per task) — the query is an IPC plus a label load per app,
+     * and both list_apps and app resolution hit it every turn.
+     */
+    private fun launchableApps(): List<Pair<String, String>> {
+        cachedLaunchableApps?.let { return it }
+        val pm = service.packageManager
+        val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        val apps = pm.queryIntentActivities(launcherIntent, 0)
+            .map { it.activityInfo.packageName to it.loadLabel(pm).toString() }
+            .distinctBy { it.first }
+        cachedLaunchableApps = apps
+        return apps
     }
 
     private fun foregroundPackage(): String? =
@@ -340,7 +352,11 @@ class ToolExecutor(private val service: CompanionService) {
     private fun current(app: String): AppSnapshot? = snapshots[app.trim().lowercase()]
 
     private fun remember(query: String, snapshot: AppSnapshot) {
-        for (key in listOf(query, snapshot.appName, snapshot.packageName, "foreground")) {
+        // Keyed by query/label/package only — matching the Go bridge. We do NOT
+        // alias under "foreground": a later app:"foreground" action must take a
+        // fresh snapshot rather than resolve a stale one for whatever app moved
+        // to the foreground.
+        for (key in listOf(query, snapshot.appName, snapshot.packageName)) {
             val normalized = key.trim().lowercase()
             if (normalized.isNotEmpty()) {
                 snapshots[normalized] = snapshot
@@ -354,15 +370,17 @@ class ToolExecutor(private val service: CompanionService) {
     private fun targetPoint(args: JSONObject, snapshot: AppSnapshot): Pair<Int, Int>? {
         val elementIndex = args.optString("element_index")
         if (elementIndex.isNotBlank()) {
-            val element = snapshot.lookupElement(elementIndex) ?: return null
-            val frame = element.frame ?: return null
-            return deviceCoordinate(frame.centerX(), snapshot.coordinateScale) to
-                deviceCoordinate(frame.centerY(), snapshot.coordinateScale)
+            val frame = snapshot.lookupElement(elementIndex)?.frame ?: return null
+            return elementPoint(frame, snapshot.coordinateScale)
         }
         if (!args.has("x") || !args.has("y")) return null
         return deviceCoordinate(args.getDouble("x"), snapshot.coordinateScale) to
             deviceCoordinate(args.getDouble("y"), snapshot.coordinateScale)
     }
+
+    /** Element center in device pixels (the CoordinateScale invariant, one place). */
+    private fun elementPoint(frame: ElementFrame, scale: Double): Pair<Int, Int> =
+        deviceCoordinate(frame.centerX(), scale) to deviceCoordinate(frame.centerY(), scale)
 
     private fun sleep(ms: Long) {
         try {

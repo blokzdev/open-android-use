@@ -54,27 +54,13 @@ class AgentLoopEmulatorTest {
             settings.speakNarration = false
 
             val finished = CountDownLatch(1)
-            var finishReason = ""
-            var sawToolCall = false
-            var errorMessage: String? = null
             AgentController.resetConversation()
             AgentController.listener = object : AgentController.Listener {
-                override fun onTaskStateChanged(running: Boolean) {}
-                override fun onAssistantDelta(text: String) {}
-                override fun onThinkingDelta(text: String) {}
-                override fun onToolCall(name: String, summary: String) {
-                    if (name == "get_app_state") sawToolCall = true
+                override fun onTaskStateChanged(running: Boolean) {
+                    if (!running) finished.countDown()
                 }
 
-                override fun onToolResult(name: String, isError: Boolean) {}
-                override fun onTaskFinished(reason: String) {
-                    finishReason = reason
-                    finished.countDown()
-                }
-
-                override fun onError(message: String) {
-                    errorMessage = message
-                }
+                override fun onTranscriptChanged() {}
             }
 
             assertTrue(
@@ -82,12 +68,15 @@ class AgentLoopEmulatorTest {
                 AgentController.startTask("Look at the current screen.", settings),
             )
             assertTrue(
-                "agent loop should finish within 90s (error: $errorMessage)",
+                "agent loop should finish within 90s",
                 finished.await(90, TimeUnit.SECONDS),
             )
 
-            assertEquals("loop should end normally, error: $errorMessage", "end_turn", finishReason)
-            assertTrue("get_app_state should have executed", sawToolCall)
+            val transcript = AgentController.transcriptSnapshot()
+            assertTrue(
+                "get_app_state should have executed",
+                transcript.any { it.first == AgentController.KIND_TOOL && it.second.contains("get_app_state") },
+            )
             assertEquals("stub should have served two turns", 2, stub.requestBodies.size)
 
             val first = stub.requestBodies[0]
@@ -102,7 +91,6 @@ class AgentLoopEmulatorTest {
             assertTrue("tool result should include a screenshot image block",
                 second.contains("\"image/png\""))
 
-            val transcript = AgentController.transcriptSnapshot()
             assertTrue(
                 "transcript should contain the final narration",
                 transcript.any { it.first == AgentController.KIND_ASSISTANT && it.second.contains("Done") },

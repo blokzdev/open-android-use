@@ -74,6 +74,12 @@ class AgentSettings(context: Context) {
             )
             String(cipher.doFinal(Base64.decode(ciphertext, Base64.NO_WRAP)), Charsets.UTF_8)
         } catch (_: Exception) {
+            // The stored key can no longer be decrypted (e.g. the Keystore key
+            // was invalidated by a device credential change or restore). Clear
+            // it so hasApiKey() and the UI stop claiming it is configured and
+            // the user is prompted to re-enter, instead of looping on
+            // "no API key" while settings say otherwise.
+            clearApiKey()
             null
         }
     }

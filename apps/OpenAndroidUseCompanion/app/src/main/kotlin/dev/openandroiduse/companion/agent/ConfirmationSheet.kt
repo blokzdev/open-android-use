@@ -28,6 +28,18 @@ object ConfirmationSheet {
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
+    @Volatile
+    private var activeLatch: CountDownLatch? = null
+
+    @Volatile
+    private var activeDismiss: (() -> Unit)? = null
+
+    /** Releases a loop thread parked in [ask] (Stop pressed). Treated as a deny. */
+    fun cancel() {
+        activeDismiss?.invoke()
+        activeLatch?.countDown()
+    }
+
     /** Called on the agent loop thread. Returns true only on explicit Allow. */
     fun ask(service: CompanionService, summary: String): Boolean {
         val latch = CountDownLatch(1)
@@ -46,6 +58,8 @@ object ConfirmationSheet {
                 sheet = null
             }
         }
+        activeLatch = latch
+        activeDismiss = ::dismiss
 
         mainHandler.post {
             val density = service.resources.displayMetrics.density
@@ -110,9 +124,12 @@ object ConfirmationSheet {
             Thread.currentThread().interrupt()
             false
         }
+        activeLatch = null
+        activeDismiss = null
         if (!decided) {
             dismiss()
         }
+        // A cancel() counts the latch down without setting allowed → deny.
         return decided && allowed.get()
     }
 }

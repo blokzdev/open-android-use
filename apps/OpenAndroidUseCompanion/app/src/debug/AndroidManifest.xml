@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug-only: permit cleartext to the loopback stub model server used by the
+     emulator agent-loop smoke. The release manifest has no networkSecurityConfig,
+     so the platform default (cleartext blocked) applies in shipped builds. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:networkSecurityConfig="@xml/network_security_config" />
+</manifest>

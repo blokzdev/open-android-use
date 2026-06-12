@@ -76,4 +76,18 @@ class TouchPauseMonitorTest {
             ),
         )
     }
+
+    @Test
+    fun resetOpensAFreshWindowSoEarlyEventsDoNotPause() {
+        // A stray event right after Send (before the first gesture) must not pause.
+        TouchPauseMonitor.reset(nowMs = 5_000)
+        assertFalse(
+            TouchPauseMonitor.shouldPause(
+                agentRunning = true,
+                eventPackage = "com.android.settings",
+                ownPackage = own,
+                nowMs = 5_500,
+            ),
+        )
+    }
 }

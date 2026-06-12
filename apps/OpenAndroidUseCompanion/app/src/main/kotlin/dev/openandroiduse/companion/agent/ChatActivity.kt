@@ -36,9 +36,8 @@ class ChatActivity : Activity(), AgentController.Listener {
     private var speechRecognizer: android.speech.SpeechRecognizer? = null
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    /** The bubble currently receiving streamed text; null starts a new one. */
-    private var activeBubble: TextView? = null
-    private var activeThinking: TextView? = null
+    /** One view per transcript entry, parallel to AgentController.transcriptSnapshot(). */
+    private val renderedViews = mutableListOf<android.view.View>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -96,17 +95,14 @@ class ChatActivity : Activity(), AgentController.Listener {
         root.addView(composer)
 
         setContentView(root)
-        addSystemNote(
-            "The agent sees the screen and acts through the accessibility service. " +
-                "Press Stop at any time; disabling the service in system settings is the hard kill switch.",
-        )
     }
 
     override fun onResume() {
         super.onResume()
         AgentController.listener = this
         refreshControls(AgentController.isRunning)
-        renderTranscript()
+        resetTranscriptViews()
+        syncTranscript()
         if (!CompanionService.isRunning) {
             addSystemNote("The companion accessibility service is OFF — enable it before starting a task.")
         }
@@ -116,28 +112,41 @@ class ChatActivity : Activity(), AgentController.Listener {
     }
 
     /**
-     * Rebuilds the transcript from the controller's log. The Activity is
-     * backgrounded while the agent drives other apps, so resume re-renders
-     * everything it missed.
+     * Renders the controller's transcript incrementally: one view per entry,
+     * the tail view updated in place as the last entry streams. The transcript
+     * is the single source of truth, so live updates and resume-replay use this
+     * one path — no second formatter to drift, no double-append race.
      */
-    private fun renderTranscript() {
-        transcript.removeAllViews()
-        activeBubble = null
-        activeThinking = null
-        for ((kind, text) in AgentController.transcriptSnapshot()) {
-            when (kind) {
-                AgentController.KIND_USER -> addBubble(text, user = true)
-                AgentController.KIND_ASSISTANT -> activeBubble = addBubble(text, user = false)
-                AgentController.KIND_THINKING -> activeThinking = addThinkingView().also { it.text = text }
-                AgentController.KIND_TOOL -> addToolChip(text)
-                AgentController.KIND_NOTE -> addSystemNote(text)
-            }
+    private fun syncTranscript() {
+        val snapshot = AgentController.transcriptSnapshot()
+        // The previously-last entry may have grown while streaming.
+        val tail = renderedViews.size - 1
+        if (tail in snapshot.indices) {
+            (renderedViews[tail] as? TextView)?.text = snapshot[tail].second
         }
-        // Only the last entry may still be streaming; older views are final.
-        val last = AgentController.transcriptSnapshot().lastOrNull()?.first
-        if (last != AgentController.KIND_ASSISTANT) activeBubble = null
-        if (last != AgentController.KIND_THINKING) activeThinking = null
+        for (index in renderedViews.size until snapshot.size) {
+            val (kind, text) = snapshot[index]
+            renderedViews.add(viewForEntry(kind, text))
+        }
         scrollToBottom()
+    }
+
+    private fun viewForEntry(kind: String, text: String): android.view.View = when (kind) {
+        AgentController.KIND_USER -> addBubble(text, user = true)
+        AgentController.KIND_ASSISTANT -> addBubble(text, user = false)
+        AgentController.KIND_THINKING -> addThinkingView().also { it.text = text }
+        AgentController.KIND_TOOL -> addToolChip(text)
+        else -> addSystemNote(text)
+    }
+
+    private fun resetTranscriptViews() {
+        transcript.removeAllViews()
+        renderedViews.clear()
+        // Re-show the intro note; it is not part of the controller transcript.
+        addSystemNote(
+            "The agent sees the screen and acts through the accessibility service. " +
+                "Press Stop at any time; disabling the service in system settings is the hard kill switch.",
+        )
     }
 
     override fun onPause() {
@@ -151,12 +160,8 @@ class ChatActivity : Activity(), AgentController.Listener {
         val text = input.text.toString().trim()
         if (text.isEmpty()) return
         input.setText("")
-        activeBubble = null
-        activeThinking = null
-        if (AgentController.startTask(text, settings)) {
-            addBubble(text, user = true)
-            scrollToBottom()
-        }
+        AgentController.startTask(text, settings)
+        // startTask logs the user message → onTranscriptChanged renders it.
     }
 
     // --- AgentController.Listener (loop thread → main) ---
@@ -165,51 +170,8 @@ class ChatActivity : Activity(), AgentController.Listener {
         mainHandler.post { refreshControls(running) }
     }
 
-    override fun onAssistantDelta(text: String) {
-        mainHandler.post {
-            val bubble = activeBubble ?: addBubble("", user = false).also { activeBubble = it }
-            bubble.append(text)
-            activeThinking = null
-            scrollToBottom()
-        }
-    }
-
-    override fun onThinkingDelta(text: String) {
-        mainHandler.post {
-            val view = activeThinking ?: addThinkingView().also { activeThinking = it }
-            view.append(text)
-            scrollToBottom()
-        }
-    }
-
-    override fun onToolCall(name: String, summary: String) {
-        mainHandler.post {
-            activeBubble = null
-            activeThinking = null
-            addToolChip("▸ $name ${summary.ifEmpty { "" }}".trimEnd())
-            scrollToBottom()
-        }
-    }
-
-    override fun onToolResult(name: String, isError: Boolean) {
-        if (!isError) return
-        mainHandler.post {
-            addToolChip("✗ $name failed — the agent will see the error and adapt")
-            scrollToBottom()
-        }
-    }
-
-    override fun onTaskFinished(reason: String) {
-        // The controller logs the user-facing note; re-render to pick it up
-        // along with anything missed while backgrounded.
-        mainHandler.post { renderTranscript() }
-    }
-
-    override fun onError(message: String) {
-        mainHandler.post {
-            addSystemNote("⚠ $message")
-            scrollToBottom()
-        }
+    override fun onTranscriptChanged() {
+        mainHandler.post { syncTranscript() }
     }
 
     // --- UI helpers ---
@@ -250,29 +212,27 @@ class ChatActivity : Activity(), AgentController.Listener {
         return view
     }
 
-    private fun addToolChip(text: String) {
-        transcript.addView(
-            TextView(this).apply {
-                this.text = text
-                textSize = 13f
-                setTextColor(0xFF555555.toInt())
-                setTypeface(Typeface.MONOSPACE)
-                setPadding(dp(10), dp(2), dp(10), dp(2))
-            },
-            marginParams(),
-        )
+    private fun addToolChip(text: String): TextView {
+        val view = TextView(this).apply {
+            this.text = text
+            textSize = 13f
+            setTextColor(0xFF555555.toInt())
+            setTypeface(Typeface.MONOSPACE)
+            setPadding(dp(10), dp(2), dp(10), dp(2))
+        }
+        transcript.addView(view, marginParams())
+        return view
     }
 
-    private fun addSystemNote(text: String) {
-        transcript.addView(
-            TextView(this).apply {
-                this.text = text
-                textSize = 13f
-                setTextColor(0xFF777777.toInt())
-                setPadding(dp(4), dp(6), dp(4), dp(6))
-            },
-            marginParams(),
-        )
+    private fun addSystemNote(text: String): TextView {
+        val view = TextView(this).apply {
+            this.text = text
+            textSize = 13f
+            setTextColor(0xFF777777.toInt())
+            setPadding(dp(4), dp(6), dp(4), dp(6))
+        }
+        transcript.addView(view, marginParams())
+        return view
     }
 
     private fun marginParams() = LinearLayout.LayoutParams(
