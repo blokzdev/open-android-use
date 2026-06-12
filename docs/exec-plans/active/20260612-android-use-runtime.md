@@ -28,7 +28,9 @@ build script, and docs synced.
   - On-device companion app (Kotlin `AccessibilityService` + MediaProjection) that
     removes the ADB cable and unlocks IME-quality text input. (Phase 2)
   - On-device agent loop / chat-voice UI talking to a model API. (Phase 3)
-  - npm distribution of the Android binary, smoke fixture app, CI wiring. (Phase 1.x)
+  - npm distribution of the Android binary, smoke fixture app. (Phase 1.x)
+  - (Pulled into this plan after all: `.github/workflows/android-runtime.yml`
+    runs gofmt/vet/tests and cross-compiles all three host targets.)
 
 ## Background
 
