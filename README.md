@@ -48,8 +48,14 @@ Environment: `OPEN_ANDROID_USE_SERIAL` selects a device when several are attache
 `_MAX_DIMENSION` / `_MIN_SCALE` tune screenshots (same model as macOS below).
 Notable mappings: `mouse_button: "right"` → long-press, `press_key: "Back"` /
 `"Menu"` → Android navigation keys, `app: "foreground"` → whatever is on screen.
-Text input over ADB is ASCII-only today; the planned on-device companion removes
-that limit (see [the roadmap](docs/exec-plans/active/20260612-android-use-runtime.md)).
+
+**On-device companion (optional):** `make companion-build` produces
+`dist/companion/open-android-use-companion.apk` — a zero-dependency
+AccessibilityService that exposes a loopback-only control endpoint
+([design](docs/design-docs/on-device-companion.md)). Install it, enable the
+service, and set `OPEN_ANDROID_USE_COMPANION=1` to unlock full-Unicode
+`type_text` (plain ADB is ASCII-only). Hardware verification steps:
+[VERIFICATION.md](VERIFICATION.md).
 
 ---
 

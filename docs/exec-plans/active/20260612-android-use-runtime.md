@@ -89,7 +89,18 @@ build script, and docs synced.
 - [x] Build script + Makefile targets.
 - [x] Docs synced (ARCHITECTURE, QUALITY_SCORE, README, CLAUDE.md, AGENTS.md).
 - [x] History record + push to `claude/open-android-use-arch-c1xqtu`.
-- [ ] Device smoke on real hardware (needs founder's device; blocked in container).
+- [x] Phase 2.0: companion design doc + zero-dependency Kotlin app
+  (`apps/OpenAndroidUseCompanion`, protocol v1: health/snapshot/screenshot/action);
+  APK builds in container and CI (`make companion-build`, artifact uploaded).
+- [x] Phase 2.0 bridge integration: companion detection in `doctor`, Unicode
+  `type_text` via `OPEN_ANDROID_USE_COMPANION=1` with ASCII-safe ADB fallback;
+  covered by httptest-backed unit tests.
+- [x] `VERIFICATION.md` ledger created (V1–V19 bridge, V20–V28 companion) — to be
+  cleared after hardware verification.
+- [ ] Device smoke on real hardware: run `VERIFICATION.md` (needs founder's
+  device; blocked in container).
+- [ ] Phase 2.1: companion-backed snapshots/gestures/screenshots through the
+  bridge (protocol already carries them).
 
 ## Decisions
 
@@ -102,3 +113,10 @@ build script, and docs synced.
   KEYCODE_BACK) so every MCP host that already speaks Computer Use works unchanged.
 - 2026-06-12: New documentation is English-first; inherited Chinese docs remain
   authoritative until migrated. Recorded in CLAUDE.md.
+- 2026-06-12: Companion is zero-third-party-dependency Kotlin (platform org.json,
+  hand-rolled loopback HTTP server, programmatic UI, no androidx) to minimize the
+  supply-chain/review surface; server binds 127.0.0.1 only so the sole remote
+  path is `adb forward` behind USB-debugging trust.
+- 2026-06-12: Bridge treats the companion as opt-in (`OPEN_ANDROID_USE_COMPANION=1`)
+  rather than auto-on: predictable behavior until hardware verification; `doctor`
+  always reports availability so users discover it.

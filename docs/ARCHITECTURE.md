@@ -164,9 +164,20 @@
   runtime rejects non-ASCII with an actionable error instead of mangling it;
   `uiautomator dump` cannot see secure surfaces; device selection requires
   `OPEN_ANDROID_USE_SERIAL` when several devices are attached
-  (`OPEN_ANDROID_USE_ADB` overrides the adb path). The planned Phase 2 on-device
-  companion (`AccessibilityService` + MediaProjection + IME) removes the cable and
-  the ASCII limit; see `docs/exec-plans/active/20260612-android-use-runtime.md`.
+  (`OPEN_ANDROID_USE_ADB` overrides the adb path).
+- **On-device companion** (`apps/OpenAndroidUseCompanion`, Kotlin, zero
+  third-party dependencies): an `AccessibilityService` hosting a loopback-only
+  HTTP server (port 8355, reachable from the host via `adb forward`) that exposes
+  protocol v1 — `/health`, `/snapshot` (live `rootInActiveWindow` tree),
+  `/screenshot` (Android 11+), and `/action` (`dispatchGesture` tap/long-press/
+  swipe, `ACTION_SET_TEXT`, global back/home/recents). Spec:
+  `docs/design-docs/on-device-companion.md`. The bridge integrates it today for
+  `doctor` detection and — with `OPEN_ANDROID_USE_COMPANION=1` — full-Unicode
+  `type_text` (falling back to ADB for ASCII when unreachable); companion-backed
+  snapshots/gestures through the bridge are Phase 2.1. Build:
+  `make companion-build` → `dist/companion/open-android-use-companion.apk`
+  (debug-signed; requires Android SDK + Gradle). On-device verification steps
+  live in `VERIFICATION.md` until hardware-verified.
 
 ## 关键边界
 
@@ -194,6 +205,8 @@
 - Android runtime 单测：`make android-test`（即 `cd apps/OpenAndroidUse && go test ./...`）
 - Android bridge 构建：`make android-build`（即 `./scripts/build-open-android-use.sh`）
 - Android 手工诊断：`open-android-use doctor` / `open-android-use devices` / `open-android-use snapshot foreground`
+- Companion APK 构建：`make companion-build`（需要 Android SDK；CI 会上传 APK artifact）
+- Android 真机验证清单：`VERIFICATION.md`（硬件验证完成后删除并归档到 history）
 - 对比样本：`artifacts/tool-comparisons/20260417-focus-behavior/`
 - 手工诊断：
   - `open-computer-use doctor`
