@@ -109,5 +109,6 @@ jobs:
             # loop — SDK streaming, ToolExecutor, real snapshot/screenshot —
             # against an on-device stub model server. The smoke script above
             # leaves the companion's accessibility service enabled.
-            (cd apps/OpenAndroidUseCompanion && gradle connectedDebugAndroidTest --no-daemon \
-              -Pandroid.testInstrumentationRunnerArguments.requireCompanion=true)
+            # NOTE: must stay on one line — the emulator-runner executes each
+            # script line as a separate `sh -c`.
+            (cd apps/OpenAndroidUseCompanion && gradle connectedDebugAndroidTest --no-daemon -Pandroid.testInstrumentationRunnerArguments.requireCompanion=true)
