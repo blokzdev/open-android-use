@@ -1,7 +1,7 @@
 PROJECT ?=
 SLUG ?=
 
-.PHONY: init build app test smoke android-build android-test check-docs check-repo ci release-package npm-build npm-publish new-history new-plan
+.PHONY: init build app test smoke android-build android-test companion-build check-docs check-repo ci release-package npm-build npm-publish new-history new-plan
 
 init:
 	@if [ -z "$(PROJECT)" ]; then echo "用法: make init PROJECT=项目名"; exit 1; fi
@@ -24,6 +24,9 @@ android-build:
 
 android-test:
 	cd apps/OpenAndroidUse && go test ./...
+
+companion-build:
+	./scripts/build-open-android-use-companion.sh
 
 check-docs:
 	./scripts/check-docs.sh
