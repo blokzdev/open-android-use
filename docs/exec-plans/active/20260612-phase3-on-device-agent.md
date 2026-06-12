@@ -1,6 +1,7 @@
 # Phase 3.1a — on-device agent loop (chat UI + Claude API + in-process tools)
 
-> Status: planned and decision-complete; implementation starts next session.
+> Status: 3.1a implemented and unit-tested in container; awaiting hardware
+> verification (V33–V37).
 > Parent design: `docs/design-docs/phase3-agent-loop.md`. Phase 1/2 runtime plan:
 > `20260612-android-use-runtime.md` (bridge + companion shipped, PR #1 merged,
 > emulator CI green).
@@ -92,4 +93,33 @@ complete Second Pair of Hands.
 ## Progress
 
 - [x] Decisions captured from the claude-api skill (this doc).
-- [ ] Milestone 1 spike.
+- [x] Milestone 1 spike: `anthropic-java` 2.40.1 resolves and `assembleDebug`
+  passes in the container (Android SDK 35; META-INF merge excludes needed for
+  the SDK's transitive license metadata — recorded in build.gradle.kts).
+- [x] Milestone 2: `agent` package — Snapshot model/flattener, ImageBudget,
+  ToolExecutor, KeyMapper; 17 JVM unit tests green; companion build script now
+  runs them in CI.
+- [x] Milestone 3: AgentController (manual streaming loop), AgentSettings
+  (Keystore), ChatActivity; wired from MainActivity.
+- [ ] Milestone 4: emulator smoke extension — deferred (API key handling in CI;
+  manual V33–V37 acceptable per plan).
+- [x] Milestone 5: docs sync (ARCHITECTURE §8, QUALITY_SCORE, VERIFICATION
+  V33–V37, supply-chain register), history record.
+
+## Decisions (amended during implementation)
+
+- 2026-06-12: **Package, not separate Gradle module.** The agent lives in the
+  `agent` package of the existing `app` module; isolation from the control
+  surface is by convention (no `com.anthropic` imports outside `agent/`),
+  recorded in build.gradle.kts and the supply-chain register. A second module
+  bought no real isolation for one APK and doubled the build plumbing.
+- 2026-06-12: **No foreground service.** The agent loop thread lives in the
+  companion process, which the bound accessibility service keeps alive — no
+  new permission or service type needed for 3.1a.
+- 2026-06-12: **press_key surface on-device** = IME enter, Back/Escape, Home,
+  Recents, Notifications, BackSpace/Delete; everything else fails loud with
+  guidance to use type_text/set_value (accessibility services cannot inject
+  raw key events).
+- 2026-06-12: **Screenshot pruning**: tool-result screenshots outside the two
+  most recent results are swapped for a stable text placeholder (the
+  computer-use reference pattern) to bound context growth.

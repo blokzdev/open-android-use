@@ -134,6 +134,32 @@ With the service enabled and `OPEN_ANDROID_USE_COMPANION=1` exported:
   V29/V30. Pass: snapshots and gestures silently fall back to the
   uiautomator/ADB path (slower but correct); only non-ASCII typing errors out.
 
+### Phase 3.1a — on-device agent
+
+With the companion installed, the accessibility service enabled, and an
+Anthropic API key at hand (Android 11+ device):
+
+- [ ] **V33. Agent settings**: open the companion app → "Open Agent Chat" →
+  Settings; enter the API key and keep the default model.
+  Pass: dialog reports the key as configured on reopen; the key survives an
+  app restart (Keystore-encrypted prefs) and never appears in `adb logcat`.
+- [ ] **V34. First agent turn**: ask "Open Settings and tell me the Android
+  version".
+  Pass: the agent narrates intent, a `get_app_state` tool chip appears,
+  Settings comes to the foreground, the agent taps/scrolls to About phone,
+  and the final message states the correct Android version.
+- [ ] **V35. Stop button**: start a multi-step task ("open three different
+  apps one after another") and press Stop mid-task.
+  Pass: the loop halts within one action (no further gestures land), the UI
+  shows "Stopped.", and Send re-enables.
+- [ ] **V36. Error surfaces**: enter a deliberately bad API key and send a
+  task. Pass: a clear authentication error appears in the transcript (no
+  crash, no retry loop).
+- [ ] **V37. Unicode typing through the agent**: ask the agent to type
+  "héllo 🚀 你好" into a notes app.
+  Pass: exact text lands (set_value/ACTION_SET_TEXT path), and the next
+  turn's screenshot confirms it.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |
