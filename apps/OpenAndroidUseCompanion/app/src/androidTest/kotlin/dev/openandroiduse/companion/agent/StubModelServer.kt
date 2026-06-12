@@ -25,7 +25,10 @@ class StubModelServer {
     val port: Int get() = serverSocket.localPort
 
     fun start() {
-        serverSocket = ServerSocket(0, 4, InetAddress.getLoopbackAddress())
+        // Explicitly IPv4: Android's getLoopbackAddress() prefers ::1, but the
+        // SDK client dials the 127.0.0.1 base URL — a family mismatch is an
+        // instant ECONNREFUSED even within one process.
+        serverSocket = ServerSocket(0, 4, InetAddress.getByName("127.0.0.1"))
         running = true
         Thread({
             while (running) {

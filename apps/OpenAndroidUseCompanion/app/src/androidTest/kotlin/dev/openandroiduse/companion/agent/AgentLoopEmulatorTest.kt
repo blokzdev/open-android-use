@@ -75,6 +75,16 @@ class AgentLoopEmulatorTest {
         val stub = StubModelServer()
         stub.start()
         try {
+            // Self-check before driving the loop: the stub must be reachable
+            // at the exact address the SDK client will dial.
+            java.net.Socket().use { probe ->
+                try {
+                    probe.connect(java.net.InetSocketAddress("127.0.0.1", stub.port), 3_000)
+                } catch (e: Exception) {
+                    org.junit.Assert.fail("stub server not reachable on 127.0.0.1:${stub.port}: $e")
+                }
+            }
+
             val settings = AgentSettings(context)
             settings.storeApiKey("stub-key-for-emulator-smoke")
             settings.baseUrlOverride = "http://127.0.0.1:${stub.port}"
