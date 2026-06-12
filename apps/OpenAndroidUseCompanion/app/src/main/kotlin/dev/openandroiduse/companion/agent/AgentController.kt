@@ -298,7 +298,11 @@ object AgentController {
         } catch (error: Exception) {
             if (!cancelRequested) {
                 Log.w(CompanionService.TAG, "agent loop failed", error)
-                fail(error.message ?: error.javaClass.simpleName)
+                // Surface the whole cause chain: SDK wrappers like
+                // "Request failed" are useless to the user on their own.
+                val chain = generateSequence<Throwable>(error) { it.cause }
+                    .joinToString(" ← ") { "${it.javaClass.simpleName}: ${it.message ?: ""}".trim(' ', ':') }
+                fail(chain)
             } else {
                 finish(stopReasonLabel())
             }

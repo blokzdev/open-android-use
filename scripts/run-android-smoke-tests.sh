@@ -173,12 +173,17 @@ if [[ -n "${agent_test_apk}" ]]; then
   # accessibility service; the test itself toggles the secure setting via
   # UiAutomation shell to force a rebind into the instrumented process.
   # `am instrument -w` exits 0 even when tests fail; assert on the output.
+  adb logcat -c || true
   instrument_output="$(adb shell am instrument -w -e requireCompanion true \
     dev.openandroiduse.companion.test/androidx.test.runner.AndroidJUnitRunner 2>&1)"
   echo "${instrument_output}"
-  grep -q "FAILURES!!!" <<<"${instrument_output}" && fail "agent loop instrumentation reported failures"
-  grep -q "INSTRUMENTATION_FAILED" <<<"${instrument_output}" && fail "instrumentation did not run"
-  grep -Eq "OK \([0-9]+ test" <<<"${instrument_output}" || fail "instrumentation output missing OK marker"
+  dump_agent_logcat() {
+    echo "--- companion logcat (full stacks) ---"
+    adb logcat -d -s "OpenAndroidUse:*" "TestRunner:*" "AndroidRuntime:E" || true
+  }
+  grep -q "FAILURES!!!" <<<"${instrument_output}" && { dump_agent_logcat; fail "agent loop instrumentation reported failures"; }
+  grep -q "INSTRUMENTATION_FAILED" <<<"${instrument_output}" && { dump_agent_logcat; fail "instrumentation did not run"; }
+  grep -Eq "OK \([0-9]+ test" <<<"${instrument_output}" || { dump_agent_logcat; fail "instrumentation output missing OK marker"; }
   pass "agent loop smoke"
 fi
 
