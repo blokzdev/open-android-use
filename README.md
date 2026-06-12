@@ -60,6 +60,17 @@ go through `dispatchGesture`, and `type_text`/`set_value` carry full Unicode
 companion is disabled mid-session. Hardware verification steps:
 [VERIFICATION.md](VERIFICATION.md).
 
+**On-device agent (Phase 3.1 — no computer, no cable):** the companion app
+also ships a complete agent. Open the app → *Open Agent Chat*, add your
+Anthropic API key (stored Keystore-encrypted, sent only to
+api.anthropic.com), type or dictate a task, and Claude operates the phone
+through the same 9-tool surface — narrating before it acts, drawing a visible
+gesture trail, pausing the moment you touch the screen, and (optionally)
+asking for confirmation before every action batch and speaking its narration
+aloud. Stop is one tap; disabling the accessibility service remains the hard
+kill switch. Requires Android 11+. Design:
+[phase3-agent-loop](docs/design-docs/phase3-agent-loop.md).
+
 ---
 
 The inherited desktop runtimes below still work — macOS, Linux, and Windows via
