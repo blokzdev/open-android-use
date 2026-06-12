@@ -113,6 +113,109 @@ func (c *companionClient) setText(text string) error {
 	return nil
 }
 
+type companionNode struct {
+	ClassName     string          `json:"className"`
+	Text          string          `json:"text"`
+	ContentDesc   string          `json:"contentDesc"`
+	ResourceID    string          `json:"resourceId"`
+	Bounds        []int           `json:"bounds"`
+	Clickable     bool            `json:"clickable"`
+	LongClickable bool            `json:"longClickable"`
+	Scrollable    bool            `json:"scrollable"`
+	Editable      bool            `json:"editable"`
+	Focusable     bool            `json:"focusable"`
+	Focused       bool            `json:"focused"`
+	Checkable     bool            `json:"checkable"`
+	Checked       bool            `json:"checked"`
+	Selected      bool            `json:"selected"`
+	Password      bool            `json:"password"`
+	Enabled       *bool           `json:"enabled"`
+	Children      []companionNode `json:"children"`
+}
+
+func (n companionNode) isEnabled() bool {
+	return n.Enabled == nil || *n.Enabled
+}
+
+type companionSnapshot struct {
+	OK       bool           `json:"ok"`
+	Error    string         `json:"error"`
+	Protocol int            `json:"protocol"`
+	Package  string         `json:"package"`
+	Tree     *companionNode `json:"tree"`
+}
+
+// snapshotTree fetches the live accessibility tree of the active window.
+func (c *companionClient) snapshotTree() (*companionSnapshot, error) {
+	if _, err := c.connect(); err != nil {
+		return nil, err
+	}
+	response, err := c.http.Get(c.url("/snapshot"))
+	if err != nil {
+		return nil, fmt.Errorf("Companion snapshot failed: %s", err)
+	}
+	defer response.Body.Close()
+	var snapshot companionSnapshot
+	if err := json.NewDecoder(response.Body).Decode(&snapshot); err != nil {
+		return nil, fmt.Errorf("Companion returned an invalid snapshot: %s", err)
+	}
+	if !snapshot.OK {
+		return nil, fmt.Errorf("Companion snapshot failed: %s", snapshot.Error)
+	}
+	if snapshot.Tree == nil {
+		return nil, fmt.Errorf("Companion snapshot is missing the tree.")
+	}
+	return &snapshot, nil
+}
+
+// screenshotPNG fetches a full-resolution screenshot. A (nil, nil) return means
+// the companion cannot take screenshots on this Android version.
+func (c *companionClient) screenshotPNG() ([]byte, error) {
+	if _, err := c.connect(); err != nil {
+		return nil, err
+	}
+	response, err := c.http.Get(c.url("/screenshot"))
+	if err != nil {
+		return nil, fmt.Errorf("Companion screenshot failed: %s", err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode == http.StatusNotImplemented {
+		return nil, nil
+	}
+	if response.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Companion screenshot failed with status %d", response.StatusCode)
+	}
+	var buffer bytes.Buffer
+	if _, err := buffer.ReadFrom(response.Body); err != nil {
+		return nil, err
+	}
+	return buffer.Bytes(), nil
+}
+
+// gesture posts a protocol-v1 action (tap, longPress, swipe, global).
+func (c *companionClient) gesture(action map[string]any) error {
+	if _, err := c.connect(); err != nil {
+		return err
+	}
+	payload, err := json.Marshal(action)
+	if err != nil {
+		return err
+	}
+	response, err := c.http.Post(c.url("/action"), "application/json", bytes.NewReader(payload))
+	if err != nil {
+		return fmt.Errorf("Companion action failed: %s", err)
+	}
+	defer response.Body.Close()
+	var result companionActionResponse
+	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
+		return fmt.Errorf("Companion returned an invalid action response: %s", err)
+	}
+	if !result.OK {
+		return fmt.Errorf("Companion action failed: %s", result.Error)
+	}
+	return nil
+}
+
 // describe returns a one-line doctor status for the companion.
 func (c *companionClient) describe() string {
 	health, err := c.connect()

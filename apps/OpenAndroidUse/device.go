@@ -330,6 +330,14 @@ func (b *adbBridge) appState(app string) (*appSnapshot, error) {
 }
 
 func (b *adbBridge) captureSnapshot(pkg string) (*appSnapshot, error) {
+	if companionEnabled() {
+		if snapshot, err := b.captureSnapshotViaCompanion(pkg); err == nil {
+			return snapshot, nil
+		}
+		// Companion problems fall back to the uiautomator path: a worse
+		// snapshot beats no snapshot, and doctor reports the companion state.
+	}
+
 	_, activity, _ := b.foregroundApp()
 
 	// Capture the screenshot first: its downsampling scale defines the
@@ -423,6 +431,54 @@ func (b *adbBridge) packagePID(pkg string) int {
 func packageLabel(pkg string) string {
 	segments := strings.Split(pkg, ".")
 	return segments[len(segments)-1]
+}
+
+// captureSnapshotViaCompanion builds an appSnapshot from the companion's live
+// accessibility tree and (where supported) its screenshot, with adb screencap
+// as the image fallback. Output format matches the uiautomator path exactly.
+func (b *adbBridge) captureSnapshotViaCompanion(pkg string) (*appSnapshot, error) {
+	companion := b.companionLink()
+	tree, err := companion.snapshotTree()
+	if err != nil {
+		return nil, err
+	}
+
+	png, screenshotErr := companion.screenshotPNG()
+	if screenshotErr != nil || len(png) == 0 {
+		png, _ = b.execOut("screencap", "-p")
+	}
+	scale := 1.0
+	screenshot := ""
+	var windowBounds *frame
+	if len(png) > 0 {
+		if scaled, appliedScale, width, height, encodeErr := downscalePNG(png, imageConfigFromEnv()); encodeErr == nil {
+			screenshot = base64.StdEncoding.EncodeToString(scaled)
+			scale = appliedScale
+			windowBounds = &frame{X: 0, Y: 0, Width: float64(width), Height: float64(height)}
+		}
+	}
+
+	treeLines, elements, focused := flattenCompanionTree(tree.Tree, scale)
+	snapshotPkg := tree.Package
+	if snapshotPkg == "" {
+		snapshotPkg = pkg
+	}
+	_, activity, _ := b.foregroundApp()
+
+	return &appSnapshot{
+		App: appDescriptor{
+			Name:             packageLabel(snapshotPkg),
+			BundleIdentifier: snapshotPkg,
+			PID:              b.packagePID(snapshotPkg),
+		},
+		WindowTitle:         activity,
+		WindowBounds:        windowBounds,
+		ScreenshotPNGBase64: screenshot,
+		TreeLines:           treeLines,
+		Elements:            elements,
+		FocusedSummary:      focused,
+		CoordinateScale:     scale,
+	}, nil
 }
 
 // --- uiautomator XML parsing ---
@@ -530,6 +586,59 @@ func interestingNode(node uiNode) bool {
 	return strings.TrimSpace(nodeLabel(node)) != ""
 }
 
+// snapshotTreeBuilder renders element records into the indexed tree-line
+// format shared by the uiautomator and companion snapshot sources.
+type snapshotTreeBuilder struct {
+	treeLines []string
+	elements  []elementRecord
+	focused   string
+	nextIndex int
+}
+
+func newSnapshotTreeBuilder() *snapshotTreeBuilder {
+	return &snapshotTreeBuilder{nextIndex: 1}
+}
+
+func (builder *snapshotTreeBuilder) add(record elementRecord, depth int, selected bool) {
+	if len(builder.treeLines) >= maxTreeLines || record.Frame == nil {
+		return
+	}
+	line := strings.Repeat("  ", depth)
+	if len(record.Actions) > 0 && len(builder.elements) < maxElements {
+		record.Index = builder.nextIndex
+		builder.nextIndex++
+		builder.elements = append(builder.elements, record)
+		line += fmt.Sprintf("[%d] ", record.Index)
+	} else {
+		line += "- "
+	}
+	line += record.ControlType
+	if record.Name != "" {
+		line += fmt.Sprintf(" %q", record.Name)
+	}
+	if record.ResourceID != "" {
+		line += " (id: " + record.ResourceID + ")"
+	}
+	line += " " + record.Frame.renderedLocalFrame()
+	if len(record.Actions) > 0 {
+		line += " [" + strings.Join(record.Actions, " ") + "]"
+	}
+	if selected {
+		line += " (selected)"
+	}
+	builder.treeLines = append(builder.treeLines, line)
+	if record.Focused {
+		summary := record.ControlType
+		if record.Name != "" {
+			summary += fmt.Sprintf(" %q", record.Name)
+		}
+		if record.Index > 0 {
+			summary += fmt.Sprintf(" (element %d)", record.Index)
+		}
+		builder.focused = summary
+	}
+}
+
 // parseUIHierarchy renders the uiautomator dump into indexed tree lines and
 // element records. Frames are converted from device pixels into screenshot
 // pixel space using scale, so what the model sees matches the PNG.
@@ -542,14 +651,13 @@ func parseUIHierarchy(dump, pkg string, scale float64) (treeLines []string, elem
 		scale = 1
 	}
 
-	nextIndex := 1
+	builder := newSnapshotTreeBuilder()
 	var walk func(node uiNode, depth int)
 	walk = func(node uiNode, depth int) {
 		frame := scaleFrame(parseBounds(node.Bounds), scale)
 		include := interestingNode(node) && frame != nil && (pkg == "" || node.Package == "" || node.Package == pkg)
-		if include && len(treeLines) < maxTreeLines {
-			line := strings.Repeat("  ", depth)
-			record := elementRecord{
+		if include {
+			builder.add(elementRecord{
 				ResourceID:  node.ResourceID,
 				Name:        nodeLabel(node),
 				ControlType: shortClass(node.Class),
@@ -557,40 +665,7 @@ func parseUIHierarchy(dump, pkg string, scale float64) (treeLines []string, elem
 				Frame:       frame,
 				Actions:     nodeActions(node),
 				Focused:     isTrue(node.Focused),
-			}
-			if len(record.Actions) > 0 && len(elements) < maxElements {
-				record.Index = nextIndex
-				nextIndex++
-				elements = append(elements, record)
-				line += fmt.Sprintf("[%d] ", record.Index)
-			} else {
-				line += "- "
-			}
-			line += record.ControlType
-			if record.Name != "" {
-				line += fmt.Sprintf(" %q", record.Name)
-			}
-			if record.ResourceID != "" {
-				line += " (id: " + record.ResourceID + ")"
-			}
-			line += " " + frame.renderedLocalFrame()
-			if len(record.Actions) > 0 {
-				line += " [" + strings.Join(record.Actions, " ") + "]"
-			}
-			if isTrue(node.Checked) || isTrue(node.Selected) {
-				line += " (selected)"
-			}
-			treeLines = append(treeLines, line)
-			if record.Focused {
-				summary := record.ControlType
-				if record.Name != "" {
-					summary += fmt.Sprintf(" %q", record.Name)
-				}
-				if record.Index > 0 {
-					summary += fmt.Sprintf(" (element %d)", record.Index)
-				}
-				focusedSummary = summary
-			}
+			}, depth, isTrue(node.Checked) || isTrue(node.Selected))
 		}
 		childDepth := depth
 		if include {
@@ -603,7 +678,93 @@ func parseUIHierarchy(dump, pkg string, scale float64) (treeLines []string, elem
 	for _, node := range hierarchy.Nodes {
 		walk(node, 0)
 	}
-	return treeLines, elements, focusedSummary, nil
+	return builder.treeLines, builder.elements, builder.focused, nil
+}
+
+// flattenCompanionTree renders a companion protocol-v1 tree into the same
+// indexed tree-line format as parseUIHierarchy.
+func flattenCompanionTree(root *companionNode, scale float64) (treeLines []string, elements []elementRecord, focusedSummary string) {
+	if scale <= 0 {
+		scale = 1
+	}
+	builder := newSnapshotTreeBuilder()
+	var walk func(node companionNode, depth int)
+	walk = func(node companionNode, depth int) {
+		frame := companionFrame(node.Bounds, scale)
+		include := companionInteresting(node) && frame != nil
+		if include {
+			builder.add(elementRecord{
+				ResourceID:  node.ResourceID,
+				Name:        companionLabel(node),
+				ControlType: shortClass(node.ClassName),
+				Value:       node.Text,
+				Frame:       frame,
+				Actions:     companionActions(node),
+				Focused:     node.Focused,
+			}, depth, node.Checked || node.Selected)
+		}
+		childDepth := depth
+		if include {
+			childDepth++
+		}
+		for _, child := range node.Children {
+			walk(child, childDepth)
+		}
+	}
+	if root != nil {
+		walk(*root, 0)
+	}
+	return builder.treeLines, builder.elements, builder.focused
+}
+
+func companionFrame(bounds []int, scale float64) *frame {
+	if len(bounds) != 4 || bounds[2] <= bounds[0] || bounds[3] <= bounds[1] {
+		return nil
+	}
+	device := &frame{
+		X:      float64(bounds[0]),
+		Y:      float64(bounds[1]),
+		Width:  float64(bounds[2] - bounds[0]),
+		Height: float64(bounds[3] - bounds[1]),
+	}
+	return scaleFrame(device, scale)
+}
+
+func companionLabel(node companionNode) string {
+	if strings.TrimSpace(node.Text) != "" {
+		return node.Text
+	}
+	return node.ContentDesc
+}
+
+func companionActions(node companionNode) []string {
+	var actions []string
+	if node.Clickable {
+		actions = append(actions, "click")
+	}
+	if node.LongClickable {
+		actions = append(actions, "long-click")
+	}
+	if node.Scrollable {
+		actions = append(actions, "scroll")
+	}
+	if node.Checkable {
+		actions = append(actions, "check")
+	}
+	if node.Editable {
+		actions = append(actions, "set_value")
+	}
+	return actions
+}
+
+func companionInteresting(node companionNode) bool {
+	if !node.isEnabled() {
+		return false
+	}
+	if node.Clickable || node.LongClickable || node.Scrollable || node.Checkable || node.Focused || node.Editable {
+		return true
+	}
+	return strings.TrimSpace(companionLabel(node)) != ""
 }
 
 // --- actions ---
@@ -666,6 +827,35 @@ func deviceCoordinates(x, y, scale float64) (int, int) {
 	return int(math.Round(x / scale)), int(math.Round(y / scale))
 }
 
+// companionGesture tries the companion when enabled; true means it handled the
+// gesture. Errors fall back to ADB input synthesis, which covers the same
+// gesture surface.
+func (b *adbBridge) companionGesture(action map[string]any) bool {
+	if !companionEnabled() {
+		return false
+	}
+	return b.companionLink().gesture(action) == nil
+}
+
+func (b *adbBridge) tap(x, y int) error {
+	if b.companionGesture(map[string]any{"type": "tap", "x": x, "y": y}) {
+		return nil
+	}
+	_, err := b.shell("input", "tap", strconv.Itoa(x), strconv.Itoa(y))
+	return err
+}
+
+func (b *adbBridge) swipeGesture(fromX, fromY, toX, toY, durationMs int) error {
+	if b.companionGesture(map[string]any{
+		"type": "swipe", "fromX": fromX, "fromY": fromY, "toX": toX, "toY": toY, "durationMs": durationMs,
+	}) {
+		return nil
+	}
+	_, err := b.shell("input", "swipe",
+		strconv.Itoa(fromX), strconv.Itoa(fromY), strconv.Itoa(toX), strconv.Itoa(toY), strconv.Itoa(durationMs))
+	return err
+}
+
 func (b *adbBridge) performClick(request actionRequest) error {
 	x, y, err := actionPoint(request)
 	if err != nil {
@@ -681,7 +871,7 @@ func (b *adbBridge) performClick(request actionRequest) error {
 			if tap > 0 {
 				b.sleep(120 * time.Millisecond)
 			}
-			if _, err := b.shell("input", "tap", strconv.Itoa(x), strconv.Itoa(y)); err != nil {
+			if err := b.tap(x, y); err != nil {
 				return err
 			}
 		}
@@ -694,6 +884,9 @@ func (b *adbBridge) performClick(request actionRequest) error {
 }
 
 func (b *adbBridge) longPress(x, y int) error {
+	if b.companionGesture(map[string]any{"type": "longPress", "x": x, "y": y}) {
+		return nil
+	}
 	point := []string{strconv.Itoa(x), strconv.Itoa(y)}
 	_, err := b.shell(append([]string{"input", "swipe"}, append(point, append(point, "600")...)...)...)
 	return err
@@ -767,8 +960,7 @@ func (b *adbBridge) performScroll(request actionRequest) error {
 	for pages > 0 && swipes < maxSwipes {
 		fraction := math.Min(pages, 1)
 		fromX, fromY, toX, toY := scrollSwipe(*request.Element.Frame, request.Scale, request.Direction, fraction)
-		if _, err := b.shell("input", "swipe",
-			strconv.Itoa(fromX), strconv.Itoa(fromY), strconv.Itoa(toX), strconv.Itoa(toY), "300"); err != nil {
+		if err := b.swipeGesture(fromX, fromY, toX, toY, 300); err != nil {
 			return err
 		}
 		pages -= fraction
@@ -786,6 +978,11 @@ func (b *adbBridge) performDrag(request actionRequest) error {
 	}
 	fromX, fromY := deviceCoordinates(*request.FromX, *request.FromY, request.Scale)
 	toX, toY := deviceCoordinates(*request.ToX, *request.ToY, request.Scale)
+	if b.companionGesture(map[string]any{
+		"type": "swipe", "fromX": fromX, "fromY": fromY, "toX": toX, "toY": toY, "durationMs": 800,
+	}) {
+		return nil
+	}
 	coordinates := []string{strconv.Itoa(fromX), strconv.Itoa(fromY), strconv.Itoa(toX), strconv.Itoa(toY), "800"}
 	if _, err := b.shell(append([]string{"input", "draganddrop"}, coordinates...)...); err == nil {
 		return nil
@@ -867,16 +1064,26 @@ func (b *adbBridge) performSetValue(request actionRequest) error {
 	if !containsAction(request.Element.Actions, "set_value") {
 		return fmt.Errorf("Element %d is not a settable text element.", request.Element.Index)
 	}
+	f := request.Element.Frame
+	x, y := deviceCoordinates(f.X+f.Width/2, f.Y+f.Height/2, request.Scale)
+	if err := b.tap(x, y); err != nil {
+		return err
+	}
+	b.sleep(250 * time.Millisecond)
+	if companionEnabled() {
+		// ACTION_SET_TEXT replaces the whole value and carries full Unicode.
+		companionErr := b.companionLink().setText(request.Value)
+		if companionErr == nil {
+			return nil
+		}
+		if _, asciiErr := escapeInputText(request.Value); asciiErr != nil {
+			return companionErr
+		}
+	}
 	escaped, err := escapeInputText(request.Value)
 	if err != nil {
 		return err
 	}
-	f := request.Element.Frame
-	x, y := deviceCoordinates(f.X+f.Width/2, f.Y+f.Height/2, request.Scale)
-	if _, err := b.shell("input", "tap", strconv.Itoa(x), strconv.Itoa(y)); err != nil {
-		return err
-	}
-	b.sleep(250 * time.Millisecond)
 	// Best-effort clear: select-all (ctrl+a, Android 13+) then delete. On older
 	// devices the combination fails silently and the value is appended instead.
 	_, _ = b.shell("input", "keycombination", "113", "29")
