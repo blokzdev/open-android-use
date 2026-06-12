@@ -105,9 +105,16 @@ build script, and docs synced.
 - [x] Emulator smoke: `scripts/run-android-smoke-tests.sh` (`make android-smoke`)
   + CI `emulator-smoke` job on a real API-30 emulator with companion
   install/enable via adb settings. First green run = first true e2e validation.
-- [ ] Device smoke on real hardware: run `VERIFICATION.md` (needs founder's
-  device; blocked in container).
+- [x] Phase 3.1a–c: on-device agent (chat UI + Anthropic SDK loop + in-process
+  9-tool executor), safety surfaces (touch-to-pause, gesture trail,
+  confirmation sheet), voice (TTS narration + push-to-talk), code-review
+  hardening, and a keyless emulator agent-loop smoke in CI. Merged in PR #2.
+  Sub-plan: `docs/exec-plans/completed/20260612-phase3-on-device-agent.md`.
+- [ ] Device smoke on real hardware: run `VERIFICATION.md` V1–V41 (needs
+  founder's device; blocked in container).
 - [ ] npm distribution of the Android bridge binary (Phase 1.x).
+- [ ] Phase 3.x backlog: models-API-driven model list, per-action consent
+  granularity, task memory (opt-in), release signing / distribution.
 
 ## Decisions
 

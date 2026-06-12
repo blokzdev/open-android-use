@@ -42,7 +42,7 @@ are registered here, one entry per dependency, with the reasoning:
 
 | Dependency | Where | Why | Added |
 |---|---|---|---|
-| `com.anthropic:anthropic-java` 2.40.1 (Maven Central) | `apps/OpenAndroidUseCompanion` `agent` package only | First-party Anthropic SDK for the on-device agent's Claude API access; hand-rolled HTTP against a streaming LLM API is a larger risk than a pinned official SDK. Decision record: `docs/exec-plans/active/20260612-phase3-on-device-agent.md`. | 2026-06-12 |
+| `com.anthropic:anthropic-java` 2.40.1 (Maven Central) | `apps/OpenAndroidUseCompanion` `agent` package only | First-party Anthropic SDK for the on-device agent's Claude API access; hand-rolled HTTP against a streaming LLM API is a larger risk than a pinned official SDK. Decision record: `docs/exec-plans/completed/20260612-phase3-on-device-agent.md`. | 2026-06-12 |
 
 Rules for the register: pin exact versions, never ranges; the control-surface
 packages must not import any of these; bumping a version is a reviewed change
