@@ -58,14 +58,19 @@ to a protocol it does not know.
 - Build: `make companion-build` → `dist/companion/open-android-use-companion.apk`
   (debug-signed for now; release signing is a release-pipeline task).
 
-## Bridge integration (Phase 2.0 — minimal)
+## Bridge integration
 
-The Go bridge gains a companion client used when `OPEN_ANDROID_USE_COMPANION=1`:
+The Go bridge holds a companion client (auto `adb forward` + protocol-checked
+`/health`). `doctor` always probes and reports availability. With
+`OPEN_ANDROID_USE_COMPANION=1` (port override: `OPEN_ANDROID_USE_COMPANION_PORT`),
+the bridge goes companion-first across the board, degrading to the ADB path on
+any companion failure:
 
-- `doctor` always probes (`adb forward` + `/health`) and reports availability.
-- `type_text` routes through `setText` — removing the ASCII limit — and falls
-  back to the ADB path (with its ASCII guard) when the companion is unreachable.
-- Port override: `OPEN_ANDROID_USE_COMPANION_PORT` (default 8355).
-
-Companion-backed snapshots, gestures, and screenshots through the bridge are
-Phase 2.1 (see the execution plan); the protocol above already carries them.
+- `get_app_state` → `/snapshot` live tree (+ `/screenshot`, falling back to adb
+  `screencap` below Android 11), rendered in exactly the uiautomator format via
+  a shared tree builder, so the model sees no difference between sources.
+- `click` / long-press / `scroll` / `drag` → `/action` tap/longPress/swipe
+  gestures; ADB `input` remains the fallback.
+- `type_text` and `set_value` → `setText` (full Unicode, whole-value replace).
+  Fallback to ADB only when the text is ASCII-representable; otherwise the
+  companion error (which names the fix) is surfaced.

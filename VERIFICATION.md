@@ -106,12 +106,26 @@ artifact by `.github/workflows/android-runtime.yml`).
   "Companion is not reachable" error; ASCII text still works (silent fallback to
   the ADB path); `$OAU doctor` reports `companion: not available`.
 
-### Phase 2.1 — not implemented yet, do NOT test
+### Phase 2.1 — companion mode through the bridge
 
-Companion-backed `get_app_state` snapshots, element clicks/gestures, and
-screenshots *through the bridge* are designed (protocol already carries them)
-but not wired into the Go bridge. Tracked in
-`docs/exec-plans/active/20260612-android-use-runtime.md`.
+With the service enabled and `OPEN_ANDROID_USE_COMPANION=1` exported:
+
+- [ ] **V29. Companion-backed snapshot through the bridge**:
+  `OPEN_ANDROID_USE_COMPANION=1 $OAU snapshot foreground`
+  Pass: same output shape as V4 but sourced from the companion's live tree — no
+  `uiautomator dump` lag, and it works while a text field has IME focus
+  (uiautomator's weakness). Confirm via `adb logcat -s OpenAndroidUse` that the
+  snapshot came from the companion.
+- [ ] **V30. Companion-backed gestures through the bridge**: repeat V7 (element
+  click), V9 (long-press), V10 (scroll), and V11 (drag) with companion mode on.
+  Pass: identical or better behavior; gestures land mid-animation too.
+- [ ] **V31. Companion set_value with Unicode**: on an EditText element index,
+  `set_value` with `"héllo 🚀 你好"`.
+  Pass: prior text fully replaced (ACTION_SET_TEXT) with the exact Unicode value
+  on any Android version — no ctrl+a dependency.
+- [ ] **V32. Degradation matrix**: kill the companion mid-session and repeat
+  V29/V30. Pass: snapshots and gestures silently fall back to the
+  uiautomator/ADB path (slower but correct); only non-ASCII typing errors out.
 
 ## Results log
 

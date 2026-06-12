@@ -171,10 +171,13 @@
   protocol v1 — `/health`, `/snapshot` (live `rootInActiveWindow` tree),
   `/screenshot` (Android 11+), and `/action` (`dispatchGesture` tap/long-press/
   swipe, `ACTION_SET_TEXT`, global back/home/recents). Spec:
-  `docs/design-docs/on-device-companion.md`. The bridge integrates it today for
-  `doctor` detection and — with `OPEN_ANDROID_USE_COMPANION=1` — full-Unicode
-  `type_text` (falling back to ADB for ASCII when unreachable); companion-backed
-  snapshots/gestures through the bridge are Phase 2.1. Build:
+  `docs/design-docs/on-device-companion.md`. With `OPEN_ANDROID_USE_COMPANION=1`
+  the bridge goes companion-first end to end: live-tree snapshots (rendered via a
+  shared builder so the format matches uiautomator exactly), tap/long-press/swipe
+  gestures, companion screenshots (Android 11+), and full-Unicode
+  `type_text`/`set_value` — each degrading to the ADB path on companion failure
+  (non-ASCII typing surfaces the companion error instead). `doctor` always
+  reports availability. Build:
   `make companion-build` → `dist/companion/open-android-use-companion.apk`
   (debug-signed; requires Android SDK + Gradle). On-device verification steps
   live in `VERIFICATION.md` until hardware-verified.

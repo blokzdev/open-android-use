@@ -49,12 +49,15 @@ Environment: `OPEN_ANDROID_USE_SERIAL` selects a device when several are attache
 Notable mappings: `mouse_button: "right"` → long-press, `press_key: "Back"` /
 `"Menu"` → Android navigation keys, `app: "foreground"` → whatever is on screen.
 
-**On-device companion (optional):** `make companion-build` produces
+**On-device companion (optional, recommended):** `make companion-build` produces
 `dist/companion/open-android-use-companion.apk` — a zero-dependency
 AccessibilityService that exposes a loopback-only control endpoint
 ([design](docs/design-docs/on-device-companion.md)). Install it, enable the
-service, and set `OPEN_ANDROID_USE_COMPANION=1` to unlock full-Unicode
-`type_text` (plain ADB is ASCII-only). Hardware verification steps:
+service, and set `OPEN_ANDROID_USE_COMPANION=1`: snapshots come from the live
+accessibility tree (faster than uiautomator, works during IME focus), gestures
+go through `dispatchGesture`, and `type_text`/`set_value` carry full Unicode
+(plain ADB is ASCII-only). Everything degrades back to the ADB path if the
+companion is disabled mid-session. Hardware verification steps:
 [VERIFICATION.md](VERIFICATION.md).
 
 ---

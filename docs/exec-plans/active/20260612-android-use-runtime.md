@@ -97,10 +97,12 @@ build script, and docs synced.
   covered by httptest-backed unit tests.
 - [x] `VERIFICATION.md` ledger created (V1–V19 bridge, V20–V28 companion) — to be
   cleared after hardware verification.
+- [x] Phase 2.1: companion-first `get_app_state` (live tree + companion
+  screenshot with screencap fallback, shared tree renderer), companion-first
+  tap/long-press/swipe/drag, Unicode `set_value`; all with ADB degradation and
+  httptest-pinned tests (V29–V32 added to `VERIFICATION.md`).
 - [ ] Device smoke on real hardware: run `VERIFICATION.md` (needs founder's
   device; blocked in container).
-- [ ] Phase 2.1: companion-backed snapshots/gestures/screenshots through the
-  bridge (protocol already carries them).
 
 ## Decisions
 
