@@ -23,23 +23,51 @@ import java.util.concurrent.TimeUnit
 @RunWith(AndroidJUnit4::class)
 class AgentLoopEmulatorTest {
 
-    @Test
-    fun agentLoopExecutesToolTurnAgainstStubModel() {
-        // The test APK install rebinds the already-enabled service; give it a
-        // moment. With -e requireCompanion true (CI), absence is a failure —
-        // never a vacuous skip.
-        val deadline = System.currentTimeMillis() + 30_000
+    /**
+     * `am instrument` force-restarts the app process, which unbinds the
+     * enabled accessibility service — and the accessibility manager does not
+     * rebind it into the instrumented process on its own. Toggling the secure
+     * setting off and back on (via shell, with DONT_SUPPRESS so UiAutomation
+     * does not displace other services) forces a rebind into this process.
+     */
+    private fun ensureServiceRunning(): Boolean {
+        if (awaitService(5_000)) return true
+        val automation = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+            .getUiAutomation(android.app.UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
+        fun shell(command: String) {
+            automation.executeShellCommand(command).use { fd ->
+                android.os.ParcelFileDescriptor.AutoCloseInputStream(fd).readBytes()
+            }
+        }
+        val component = "dev.openandroiduse.companion/dev.openandroiduse.companion.CompanionService"
+        shell("settings delete secure enabled_accessibility_services")
+        Thread.sleep(1_000)
+        shell("settings put secure enabled_accessibility_services $component")
+        shell("settings put secure accessibility_enabled 1")
+        return awaitService(30_000)
+    }
+
+    private fun awaitService(timeoutMs: Long): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMs
         while (!CompanionService.isRunning && System.currentTimeMillis() < deadline) {
             Thread.sleep(500)
         }
+        return CompanionService.isRunning
+    }
+
+    @Test
+    fun agentLoopExecutesToolTurnAgainstStubModel() {
+        // With -e requireCompanion true (CI), an absent service is a failure —
+        // never a vacuous skip.
+        val running = ensureServiceRunning()
         val required = androidx.test.platform.app.InstrumentationRegistry.getArguments()
             .getString("requireCompanion") == "true"
         if (required) {
-            assertTrue("companion accessibility service must be running in CI", CompanionService.isRunning)
+            assertTrue("companion accessibility service must be running in CI", running)
         } else {
             assumeTrue(
                 "companion accessibility service must be enabled (CI smoke enables it)",
-                CompanionService.isRunning,
+                running,
             )
         }
 

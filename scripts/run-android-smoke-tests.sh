@@ -169,13 +169,9 @@ if [[ -n "${agent_test_apk}" ]]; then
   pass "test APK installed"
 
   run_step "agent loop smoke via am instrument (stub model server, no API key)"
-  # `am instrument` restarts the companion process; re-assert the secure
-  # settings so the accessibility manager re-binds the service into the
-  # instrumented process (the test itself also polls up to 30s for it).
-  adb shell settings put secure enabled_accessibility_services \
-    dev.openandroiduse.companion/dev.openandroiduse.companion.CompanionService
-  adb shell settings put secure accessibility_enabled 1
-  sleep 2
+  # `am instrument` restarts the companion process, unbinding the enabled
+  # accessibility service; the test itself toggles the secure setting via
+  # UiAutomation shell to force a rebind into the instrumented process.
   # `am instrument -w` exits 0 even when tests fail; assert on the output.
   instrument_output="$(adb shell am instrument -w -e requireCompanion true \
     dev.openandroiduse.companion.test/androidx.test.runner.AndroidJUnitRunner 2>&1)"
