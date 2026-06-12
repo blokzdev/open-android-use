@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Open Android Use Companion</string>
+    <string name="accessibility_service_label">Open Android Use Companion</string>
+    <string name="accessibility_service_description">Lets the Open Android Use agent see the screen and perform UI actions on your behalf. The control endpoint listens on this device only (127.0.0.1) and is reachable from a computer solely through USB debugging. Disable this service at any time to cut the agent off.</string>
+</resources>

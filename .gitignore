@@ -8,3 +8,8 @@ artifacts/codex-dumps/
 research/
 __pycache__/
 *.pyc
+
+# Android (companion app)
+.gradle/
+apps/OpenAndroidUseCompanion/**/build/
+apps/OpenAndroidUseCompanion/local.properties

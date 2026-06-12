@@ -3,8 +3,13 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-skill_name="open-computer-use"
+skill_name="${1:-open-computer-use}"
 skill_dir="${repo_root}/skills/${skill_name}"
+
+if [[ ! -d "${skill_dir}" ]]; then
+  echo "Unknown skill: ${skill_name} (no ${skill_dir})" >&2
+  exit 1
+fi
 dist_dir="${repo_root}/dist/skills"
 zip_path="${dist_dir}/${skill_name}-skill.zip"
 skill_path="${dist_dir}/${skill_name}.skill"
@@ -30,18 +35,19 @@ if [[ ! -f "${skill_dir}/SKILL.md" ]]; then
   exit 1
 fi
 
-node - "${skill_dir}/SKILL.md" <<'NODE'
+node - "${skill_dir}/SKILL.md" "${skill_name}" <<'NODE'
 const fs = require("fs");
 
 const skillPath = process.argv[2];
+const skillName = process.argv[3];
 const content = fs.readFileSync(skillPath, "utf8");
 const errors = [];
 
 if (!content.startsWith("---\n")) {
   errors.push("SKILL.md must start with YAML frontmatter");
 }
-if (!/^name:\s*open-computer-use\s*$/m.test(content)) {
-  errors.push("SKILL.md frontmatter must include name: open-computer-use");
+if (!new RegExp(`^name:\\s*${skillName}\\s*$`, "m").test(content)) {
+  errors.push(`SKILL.md frontmatter must include name: ${skillName}`);
 }
 if (!/^description:\s*\S/m.test(content)) {
   errors.push("SKILL.md frontmatter must include a non-empty description");
@@ -64,19 +70,20 @@ mkdir -p "${dist_dir}"
 )
 cp "${zip_path}" "${skill_path}"
 
-node - "${zip_path}" "${skill_path}" "${manifest_path}" <<'NODE'
+node - "${zip_path}" "${skill_path}" "${manifest_path}" "${skill_name}" <<'NODE'
 const crypto = require("crypto");
 const fs = require("fs");
 
 const zipPath = process.argv[2];
 const skillPath = process.argv[3];
 const manifestPath = process.argv[4];
+const skillName = process.argv[5];
 const zip = fs.readFileSync(zipPath);
 const skill = fs.readFileSync(skillPath);
 
 const payload = {
-  name: "open-computer-use",
-  rootDirectory: "open-computer-use",
+  name: skillName,
+  rootDirectory: skillName,
   artifacts: {
     zip: zipPath,
     skill: skillPath
@@ -89,14 +96,14 @@ const payload = {
 };
 
 if (payload.sha256.zip !== payload.sha256.skill) {
-  throw new Error("open-computer-use-skill.zip and open-computer-use.skill must contain identical bytes");
+  throw new Error(`${skillName}-skill.zip and ${skillName}.skill must contain identical bytes`);
 }
 
 fs.writeFileSync(manifestPath, `${JSON.stringify(payload, null, 2)}\n`);
 NODE
 
 if ! cmp -s "${zip_path}" "${skill_path}"; then
-  echo "open-computer-use-skill.zip and open-computer-use.skill differ" >&2
+  echo "${skill_name}-skill.zip and ${skill_name}.skill differ" >&2
   exit 1
 fi
 

@@ -1,6 +1,6 @@
 # 架构总览
 
-这个仓库当前已经从模板收敛成一个本地 `computer-use` 项目。主线仍是 Swift 实现的 macOS automation MCP server，同时新增了实验性的 Windows 和 Linux runtime，用独立 Go 二进制暴露同一组 9 个 Computer Use tools。
+这个仓库当前已经从模板收敛成一个本地 `computer-use` 项目，并作为 `open-android-use` fork 转向 Android（愿景见 `docs/design-docs/second-pair-of-hands.md`）。继承的主线是 Swift 实现的 macOS automation MCP server，加上实验性的 Windows 和 Linux runtime；本 fork 新增了 Android runtime（见第 8 节，英文撰写），所有 runtime 都用同一组 9 个 Computer Use tools。
 
 ## 当前目录结构
 
@@ -14,6 +14,8 @@
   实验性 Windows runtime。它不依赖 Swift 或 `.app` bundle，Go CLI/MCP 入口会嵌入 PowerShell UI Automation bridge，构建产物是 `open-computer-use.exe`，并随已有 npm 包的 `dist/windows/<arch>/` bundled artifacts 分发。
 - `apps/OpenComputerUseLinux`
   实验性 Linux runtime。它不依赖 Swift 或 `.app` bundle，Go CLI/MCP 入口会嵌入 Python AT-SPI bridge，构建产物是 `open-computer-use`，并随已有 npm 包的 `dist/linux/<arch>/` bundled artifacts 分发。
+- `apps/OpenAndroidUse`
+  本 fork 的主线：Android runtime（host-side ADB bridge）。Go CLI/MCP 入口直接驱动 adb（uiautomator snapshot + screencap + input synthesis），构建产物是 `open-android-use`（host 二进制，输出到 `dist/android-bridge/<os>/<arch>/`）。详见第 8 节。
 - `packages/OpenComputerUseKit`
   核心库，包含：
   - MCP stdio transport 与 tool registry
@@ -29,7 +31,7 @@
 - `scripts/`
   仓库级自动化命令，包括 smoke test、`.app` 打包入口、Windows `.exe` / Linux binary 构建入口、npm 分发脚本，以及 `scripts/computer-use-cli/` 这个用于探测官方 bundled `computer-use` 的 Go helper。
 - `skills/`
-  面向 agent runtime 的可安装 skill。当前 `skills/open-computer-use/SKILL.md` 只作为轻量入口和目录，安装、MCP/CLI 使用、排障等细节拆到相邻 `references/` 文件里按需加载；`scripts/package-skill.sh` 负责校验并打包 `.zip` / `.skill` 制品。
+  面向 agent runtime 的可安装 skill。`skills/open-computer-use/`（桌面）和 `skills/open-android-use/`（Android，含 companion mode 指引）都采用同一结构：`SKILL.md` 作为轻量入口，安装、MCP/CLI 使用、排障细节拆到相邻 `references/` 文件按需加载；`scripts/package-skill.sh [skill-name]` 负责校验并打包 `.zip` / `.skill` 制品（默认仍为 open-computer-use）。
 - `docs/`
   逆向分析、执行计划、history 和项目约束。
 
@@ -123,6 +125,63 @@
 - 这 9 个 tool 的协议面与 macOS / Windows 保持一致：`list_apps`、`get_app_state`、`click`、`perform_secondary_action`、`scroll`、`drag`、`type_text`、`press_key`、`set_value`。其中 element-targeted action 会优先复用上一轮 `get_app_state` 的 runtime path metadata，coordinate action 使用 screenshot/window-relative 坐标。
 - 当前 Linux 侧仍是功能性第一版：没有 visual cursor overlay、没有 installer/desktop entry，也没有独立 Linux fixture。后续 TODO 记录在 `docs/exec-plans/active/20260422-linux-computer-use-runtime.md`。
 
+### 8. Android Runtime (English)
+
+- The Android runtime lives in `apps/OpenAndroidUse`. It is a **host-side bridge**:
+  a single Go binary that runs on the developer's machine (macOS/Linux/Windows) and
+  drives any ADB-connected Android device or emulator. There is no embedded
+  scripting runtime — adb itself is the transport. Build entry:
+  `scripts/build-open-android-use.sh [--os ...] [--arch ...]` →
+  `dist/android-bridge/<os>/<arch>/open-android-use`.
+- The protocol surface is identical to the other runtimes: the same 9 tools
+  (`list_apps`, `get_app_state`, `click`, `perform_secondary_action`, `scroll`,
+  `drag`, `type_text`, `press_key`, `set_value`), the same stdio MCP framing
+  (`initialize` / `tools/list` / `tools/call` / `notifications/turn-ended`), and the
+  same CLI shape (`mcp`, `doctor`, `list-apps`, `snapshot`, `call --calls`), plus an
+  Android-only `devices` command. Server name: `open-android-use`.
+- State capture: `get_app_state` resolves the app query against launchable packages
+  (`cmd package query-activities`, falling back to `pm list packages`), brings the
+  package to the foreground when needed (`monkey -p <pkg> ... 1` + poll on
+  `dumpsys activity activities`), then captures `screencap -p` and a
+  `uiautomator dump` accessibility hierarchy (one retry on flaky dumps). Android is
+  a single-foreground-app OS, so unlike the Windows runtime, app launch is the
+  default behavior, and `app: "foreground"` targets whatever is on screen.
+- Coordinate model: the screenshot is downsampled with the same budget model as
+  macOS (`OPEN_ANDROID_USE_IMAGE_MAX_BYTES` default 900KB, `_MAX_DIMENSION` default
+  1280, `_MIN_SCALE` default 0.25, clamped at min scale). Every snapshot carries one
+  `CoordinateScale`; element frames and tree lines are rendered in screenshot pixel
+  space, and every action divides by the same factor to recover device pixels.
+- Action mapping keeps Android semantics inside the shared schema: `click` →
+  `input tap` (`mouse_button: "right"` → 600ms swipe-hold long-press;
+  `click_count` → repeated taps), `perform_secondary_action` supports `long-click`
+  for elements that expose it, `scroll` → paged `input swipe` gestures inside the
+  element frame (fractional pages shorten the swipe), `drag` →
+  `input draganddrop` with `input swipe` fallback, `press_key` → xdotool-style key
+  specs mapped to Android keycodes (plus phone keys `Back`, `Menu`, `app_switch`;
+  combinations use `input keycombination`, Android 13+), `set_value` → tap +
+  best-effort select-all/delete + `input text` for editable elements only.
+- Known limits (deliberate, fail-loud): `input text` is printable-ASCII only — the
+  runtime rejects non-ASCII with an actionable error instead of mangling it;
+  `uiautomator dump` cannot see secure surfaces; device selection requires
+  `OPEN_ANDROID_USE_SERIAL` when several devices are attached
+  (`OPEN_ANDROID_USE_ADB` overrides the adb path).
+- **On-device companion** (`apps/OpenAndroidUseCompanion`, Kotlin, zero
+  third-party dependencies): an `AccessibilityService` hosting a loopback-only
+  HTTP server (port 8355, reachable from the host via `adb forward`) that exposes
+  protocol v1 — `/health`, `/snapshot` (live `rootInActiveWindow` tree),
+  `/screenshot` (Android 11+), and `/action` (`dispatchGesture` tap/long-press/
+  swipe, `ACTION_SET_TEXT`, global back/home/recents). Spec:
+  `docs/design-docs/on-device-companion.md`. With `OPEN_ANDROID_USE_COMPANION=1`
+  the bridge goes companion-first end to end: live-tree snapshots (rendered via a
+  shared builder so the format matches uiautomator exactly), tap/long-press/swipe
+  gestures, companion screenshots (Android 11+), and full-Unicode
+  `type_text`/`set_value` — each degrading to the ADB path on companion failure
+  (non-ASCII typing surfaces the companion error instead). `doctor` always
+  reports availability. Build:
+  `make companion-build` → `dist/companion/open-android-use-companion.apk`
+  (debug-signed; requires Android SDK + Gradle). On-device verification steps
+  live in `VERIFICATION.md` until hardware-verified.
+
 ## 关键边界
 
 - 开源版当前不复刻官方闭源实现里的 caller signing、私有 IPC、完整 overlay choreography 和 plugin 自安装逻辑。
@@ -146,6 +205,12 @@
 - Windows exe 构建：`./scripts/build-open-computer-use-windows.sh --arch arm64`
 - Linux runtime 单测：`(cd apps/OpenComputerUseLinux && go test ./...)`
 - Linux binary 构建：`./scripts/build-open-computer-use-linux.sh --arch arm64`
+- Android runtime 单测：`make android-test`（即 `cd apps/OpenAndroidUse && go test ./...`）
+- Android bridge 构建：`make android-build`（即 `./scripts/build-open-android-use.sh`）
+- Android 手工诊断：`open-android-use doctor` / `open-android-use devices` / `open-android-use snapshot foreground`
+- Companion APK 构建：`make companion-build`（需要 Android SDK；CI 会上传 APK artifact）
+- Android 端到端 smoke：`make android-smoke`（需要已启动的 device/emulator；CI 的 `emulator-smoke` job 会在真实 API-30 emulator 上跑同一脚本，含 companion 安装与启用）
+- Android 真机验证清单：`VERIFICATION.md`（硬件验证完成后删除并归档到 history）
 - 对比样本：`artifacts/tool-comparisons/20260417-focus-behavior/`
 - 手工诊断：
   - `open-computer-use doctor`
