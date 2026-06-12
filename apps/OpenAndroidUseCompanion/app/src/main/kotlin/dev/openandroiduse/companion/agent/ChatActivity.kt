@@ -32,6 +32,8 @@ class ChatActivity : Activity(), AgentController.Listener {
     private lateinit var input: EditText
     private lateinit var sendButton: Button
     private lateinit var stopButton: Button
+    private lateinit var micButton: Button
+    private var speechRecognizer: android.speech.SpeechRecognizer? = null
     private val mainHandler = Handler(Looper.getMainLooper())
 
     /** The bubble currently receiving streamed text; null starts a new one. */
@@ -75,6 +77,11 @@ class ChatActivity : Activity(), AgentController.Listener {
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         }
         composer.addView(input)
+        micButton = Button(this).apply {
+            text = "🎤"
+            setOnClickListener { startListening() }
+        }
+        composer.addView(micButton)
         sendButton = Button(this).apply {
             text = "Send"
             setOnClickListener { sendTask() }
@@ -311,6 +318,11 @@ class ChatActivity : Activity(), AgentController.Listener {
             isChecked = settings.confirmActions
         }
         layout.addView(confirmBox)
+        val speakBox = android.widget.CheckBox(this).apply {
+            text = "Speak narration aloud while working"
+            isChecked = settings.speakNarration
+        }
+        layout.addView(speakBox)
 
         AlertDialog.Builder(this)
             .setTitle("Agent settings")
@@ -322,10 +334,86 @@ class ChatActivity : Activity(), AgentController.Listener {
                 }
                 settings.model = spinner.selectedItem as String
                 settings.confirmActions = confirmBox.isChecked
+                settings.speakNarration = speakBox.isChecked
             }
             .setNegativeButton("Cancel", null)
             .show()
     }
 
+    // --- push-to-talk (Phase 3.1c) ---
+
+    private fun startListening() {
+        if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(arrayOf(android.Manifest.permission.RECORD_AUDIO), REQUEST_RECORD_AUDIO)
+            return
+        }
+        if (!android.speech.SpeechRecognizer.isRecognitionAvailable(this)) {
+            addSystemNote("Speech recognition is not available on this device.")
+            return
+        }
+        val recognizer = speechRecognizer ?: android.speech.SpeechRecognizer.createSpeechRecognizer(this).also {
+            speechRecognizer = it
+            it.setRecognitionListener(object : android.speech.RecognitionListener {
+                override fun onResults(results: Bundle?) {
+                    micButton.text = "🎤"
+                    val text = results
+                        ?.getStringArrayList(android.speech.SpeechRecognizer.RESULTS_RECOGNITION)
+                        ?.firstOrNull()
+                    if (!text.isNullOrBlank()) {
+                        input.setText(text)
+                        input.setSelection(text.length)
+                    }
+                }
+
+                override fun onError(error: Int) {
+                    micButton.text = "🎤"
+                    if (error != android.speech.SpeechRecognizer.ERROR_NO_MATCH &&
+                        error != android.speech.SpeechRecognizer.ERROR_SPEECH_TIMEOUT
+                    ) {
+                        addSystemNote("Speech recognition failed (code $error).")
+                    }
+                }
+
+                override fun onReadyForSpeech(params: Bundle?) {
+                    micButton.text = "…"
+                }
+
+                override fun onEndOfSpeech() {}
+                override fun onBeginningOfSpeech() {}
+                override fun onRmsChanged(rmsdB: Float) {}
+                override fun onBufferReceived(buffer: ByteArray?) {}
+                override fun onPartialResults(partialResults: Bundle?) {}
+                override fun onEvent(eventType: Int, params: Bundle?) {}
+            })
+        }
+        recognizer.startListening(
+            android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).putExtra(
+                android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
+            ),
+        )
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_RECORD_AUDIO &&
+            grantResults.firstOrNull() == android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            startListening()
+        }
+    }
+
+    override fun onDestroy() {
+        speechRecognizer?.destroy()
+        speechRecognizer = null
+        super.onDestroy()
+    }
+
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    private companion object {
+        const val REQUEST_RECORD_AUDIO = 41
+    }
 }

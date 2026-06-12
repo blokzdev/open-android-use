@@ -32,6 +32,13 @@ class AgentSettings(context: Context) {
             prefs.edit().putBoolean(PREF_CONFIRM_ACTIONS, value).apply()
         }
 
+    /** Phase 3.1c: speak the agent's narration via TTS while it works. */
+    var speakNarration: Boolean
+        get() = prefs.getBoolean(PREF_SPEAK_NARRATION, false)
+        set(value) {
+            prefs.edit().putBoolean(PREF_SPEAK_NARRATION, value).apply()
+        }
+
     fun hasApiKey(): Boolean = prefs.contains(PREF_KEY_CIPHERTEXT)
 
     fun storeApiKey(apiKey: String) {
@@ -88,6 +95,7 @@ class AgentSettings(context: Context) {
         private const val TRANSFORMATION = "AES/GCM/NoPadding"
         private const val PREF_MODEL = "model"
         private const val PREF_CONFIRM_ACTIONS = "confirm_actions"
+        private const val PREF_SPEAK_NARRATION = "speak_narration"
         private const val PREF_KEY_CIPHERTEXT = "api_key_ciphertext"
         private const val PREF_KEY_IV = "api_key_iv"
     }

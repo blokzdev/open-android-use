@@ -119,6 +119,10 @@ object AgentController {
         history.add(HistoryEntry(userMessage(userText), pruned = null))
         TouchPauseMonitor.reset()
         GestureTrail.attach(service)
+        speakNarration = settings.speakNarration
+        if (speakNarration) {
+            VoiceNarrator.ensureInitialized(service)
+        }
         val confirmActions = settings.confirmActions
         worker = Thread(
             {
@@ -126,12 +130,16 @@ object AgentController {
                     runLoop(service, apiKey, settings.model, confirmActions)
                 } finally {
                     GestureTrail.detach(service)
+                    VoiceNarrator.stop()
                 }
             },
             "oau-agent-loop",
         ).also { it.start() }
         return true
     }
+
+    @Volatile
+    private var speakNarration = false
 
     fun requestStop() {
         cancelRequested = true
@@ -188,6 +196,9 @@ object AgentController {
                     accumulator.message()
                 } catch (error: Exception) {
                     return fail("The response stream ended unexpectedly: ${error.message}")
+                }
+                if (speakNarration) {
+                    VoiceNarrator.onMessageEnd()
                 }
                 appendAssistant(message.toParam())
 
@@ -277,6 +288,9 @@ object AgentController {
         val delta = event.contentBlockDelta().orElse(null)?.delta() ?: return
         delta.text().orElse(null)?.let {
             log(KIND_ASSISTANT, it.text(), append = true)
+            if (speakNarration) {
+                VoiceNarrator.onAssistantDelta(it.text())
+            }
             listener?.onAssistantDelta(it.text())
         }
         delta.thinking().orElse(null)?.let {
