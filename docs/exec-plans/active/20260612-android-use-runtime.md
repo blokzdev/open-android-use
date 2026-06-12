@@ -112,7 +112,11 @@ build script, and docs synced.
   Sub-plan: `docs/exec-plans/completed/20260612-phase3-on-device-agent.md`.
 - [ ] Device smoke on real hardware: run `VERIFICATION.md` V1–V41 (needs
   founder's device; blocked in container).
-- [ ] npm distribution of the Android bridge binary (Phase 1.x).
+- [x] npm distribution of the Android bridge binary, staged: standalone
+  `open-android-use` package (six host targets + Node launcher) assembled by
+  `make android-npm` / `scripts/npm/build-android-package.mjs`, built and
+  uploaded as a CI artifact on every push. Registry publish remains a manual
+  maintainer step (`npm publish dist/npm/open-android-use`).
 - [ ] Phase 3.x backlog: models-API-driven model list, per-action consent
   granularity, task memory (opt-in), release signing / distribution.
 
