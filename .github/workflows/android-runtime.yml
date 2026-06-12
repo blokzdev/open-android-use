@@ -42,12 +42,15 @@ jobs:
         run: go vet ./...
       - name: go test
         run: go test ./...
-      - name: cross-compile host targets
+      - name: cross-compile host targets and assemble the npm package
         working-directory: ${{ github.workspace }}
         run: |
-          ./scripts/build-open-android-use.sh --os linux --arch amd64
-          ./scripts/build-open-android-use.sh --os darwin --arch arm64
-          ./scripts/build-open-android-use.sh --os windows --arch amd64
+          node ./scripts/npm/build-android-package.mjs
+          node dist/npm/open-android-use/bin/open-android-use.js version
+      - uses: actions/upload-artifact@v4
+        with:
+          name: open-android-use-npm-package
+          path: dist/npm/open-android-use
 
   companion:
     # ubuntu-latest ships an Android SDK and Gradle. The control surface is

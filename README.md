@@ -15,6 +15,13 @@ the desktop runtimes expose. Vision: [docs/design-docs/second-pair-of-hands.md](
 
 Requires [Android platform-tools](https://developer.android.com/tools/releases/platform-tools) (`adb`) and a device with USB debugging enabled (or an emulator).
 
+**npm package (staged):** `make android-npm` assembles the standalone
+[`open-android-use`](scripts/npm/build-android-package.mjs) npm package —
+bridge binaries for macOS/Linux/Windows (arm64 + x64) behind a platform
+launcher (`open-android-use mcp|doctor|...`). CI builds it on every push as
+the `open-android-use-npm-package` artifact; publishing to the registry is a
+manual `npm publish dist/npm/open-android-use` by a maintainer.
+
 ```bash
 # Build the Android bridge (Go 1.22+)
 make android-build
