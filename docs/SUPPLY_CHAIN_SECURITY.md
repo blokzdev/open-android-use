@@ -33,3 +33,17 @@
 - 让构建过程尽量可重复、可验证。
 - 如果条件允许，在部署链路里增加对 provenance 的校验。
 - 把 attestation 校验继续下沉到部署平台或准入层。
+
+## Runtime dependency register (English appendix)
+
+The Android companion's control surface (accessibility service, loopback
+endpoint, snapshot/action code) is deliberately dependency-free. Exceptions
+are registered here, one entry per dependency, with the reasoning:
+
+| Dependency | Where | Why | Added |
+|---|---|---|---|
+| `com.anthropic:anthropic-java` 2.40.1 (Maven Central) | `apps/OpenAndroidUseCompanion` `agent` package only | First-party Anthropic SDK for the on-device agent's Claude API access; hand-rolled HTTP against a streaming LLM API is a larger risk than a pinned official SDK. Decision record: `docs/exec-plans/active/20260612-phase3-on-device-agent.md`. | 2026-06-12 |
+
+Rules for the register: pin exact versions, never ranges; the control-surface
+packages must not import any of these; bumping a version is a reviewed change
+that updates this table in the same commit.

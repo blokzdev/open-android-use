@@ -17,6 +17,12 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".agent.ChatActivity"
+            android:exported="false"
+            android:label="Agent" />
+
+
         <service
             android:name=".CompanionService"
             android:exported="false"

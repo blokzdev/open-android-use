@@ -45,7 +45,7 @@ fi
 
 (
   cd "${module_dir}"
-  gradle assembleDebug --no-daemon
+  gradle testDebugUnitTest assembleDebug --no-daemon
 )
 
 mkdir -p "${out_dir}"
