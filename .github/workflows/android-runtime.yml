@@ -8,6 +8,7 @@ on:
       - "apps/OpenAndroidUseCompanion/**"
       - "scripts/build-open-android-use.sh"
       - "scripts/build-open-android-use-companion.sh"
+      - "scripts/run-android-smoke-tests.sh"
       - ".github/workflows/android-runtime.yml"
   pull_request:
     paths:
@@ -15,6 +16,7 @@ on:
       - "apps/OpenAndroidUseCompanion/**"
       - "scripts/build-open-android-use.sh"
       - "scripts/build-open-android-use-companion.sh"
+      - "scripts/run-android-smoke-tests.sh"
       - ".github/workflows/android-runtime.yml"
 
 permissions:
@@ -63,3 +65,38 @@ jobs:
         with:
           name: open-android-use-companion-apk
           path: dist/companion/open-android-use-companion.apk
+
+  emulator-smoke:
+    # Boots a real Android emulator (GitHub-hosted runners provide KVM) and
+    # runs the end-to-end smoke: bridge tools against Settings, plus the
+    # companion installed with its accessibility service enabled via adb.
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: build bridge and companion
+        run: |
+          ./scripts/build-open-android-use.sh --os linux --arch amd64
+          ./scripts/build-open-android-use-companion.sh
+      - name: run emulator smoke
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          profile: pixel_4
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          script: ./scripts/run-android-smoke-tests.sh --bridge dist/android-bridge/linux/amd64/open-android-use --with-companion

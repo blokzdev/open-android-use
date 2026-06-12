@@ -6,6 +6,13 @@
 > this file is deleted once everything passes and the results are recorded in
 > `docs/histories/`.
 
+> **CI automation:** `scripts/run-android-smoke-tests.sh` (CI: the
+> `emulator-smoke` job in `.github/workflows/android-runtime.yml`, which boots a
+> real API-30 emulator) automates the scriptable subset — roughly V1–V5, V7,
+> V14, V20–V23, V26, V29, and the V27 routing guard. A green emulator-smoke run
+> is strong evidence, but the real-hardware pass below remains authoritative
+> (OEM ROMs, IMEs, secure surfaces, and touch behavior differ).
+
 ## How to set up
 
 1. Install [Android platform-tools](https://developer.android.com/tools/releases/platform-tools); `adb version` should work.

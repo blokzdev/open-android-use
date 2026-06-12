@@ -209,6 +209,7 @@
 - Android bridge 构建：`make android-build`（即 `./scripts/build-open-android-use.sh`）
 - Android 手工诊断：`open-android-use doctor` / `open-android-use devices` / `open-android-use snapshot foreground`
 - Companion APK 构建：`make companion-build`（需要 Android SDK；CI 会上传 APK artifact）
+- Android 端到端 smoke：`make android-smoke`（需要已启动的 device/emulator；CI 的 `emulator-smoke` job 会在真实 API-30 emulator 上跑同一脚本，含 companion 安装与启用）
 - Android 真机验证清单：`VERIFICATION.md`（硬件验证完成后删除并归档到 history）
 - 对比样本：`artifacts/tool-comparisons/20260417-focus-behavior/`
 - 手工诊断：

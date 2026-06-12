@@ -101,8 +101,13 @@ build script, and docs synced.
   screenshot with screencap fallback, shared tree renderer), companion-first
   tap/long-press/swipe/drag, Unicode `set_value`; all with ADB degradation and
   httptest-pinned tests (V29–V32 added to `VERIFICATION.md`).
+- [x] Agent skill `skills/open-android-use` + parameterized skill packaging.
+- [x] Emulator smoke: `scripts/run-android-smoke-tests.sh` (`make android-smoke`)
+  + CI `emulator-smoke` job on a real API-30 emulator with companion
+  install/enable via adb settings. First green run = first true e2e validation.
 - [ ] Device smoke on real hardware: run `VERIFICATION.md` (needs founder's
   device; blocked in container).
+- [ ] npm distribution of the Android bridge binary (Phase 1.x).
 
 ## Decisions
 
