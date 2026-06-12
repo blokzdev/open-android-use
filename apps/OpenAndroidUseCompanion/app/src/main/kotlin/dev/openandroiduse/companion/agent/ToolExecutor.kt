@@ -82,6 +82,10 @@ class ToolExecutor(private val service: CompanionService) {
     private fun click(args: JSONObject): Outcome {
         val app = args.optString("app")
         val snapshot = current(app) ?: return needsSnapshot(app)
+        val elementIndex = args.optString("element_index")
+        if (elementIndex.isNotBlank() && snapshot.lookupElement(elementIndex) == null) {
+            return error("unknown element_index \"$elementIndex\"")
+        }
         val point = targetPoint(args, snapshot) ?: return error("click requires either element_index or x/y")
         val (x, y) = point
         val button = args.optString("mouse_button").ifBlank { "left" }.lowercase()

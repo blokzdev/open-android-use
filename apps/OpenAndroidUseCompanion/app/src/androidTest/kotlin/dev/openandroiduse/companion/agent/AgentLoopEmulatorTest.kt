@@ -110,6 +110,11 @@ class AgentLoopEmulatorTest {
         } finally {
             AgentController.listener = null
             stub.shutdown()
+            // Never leave the loopback override or stub key behind on a real
+            // device that later runs the agent for real.
+            val settings = AgentSettings(ApplicationProvider.getApplicationContext())
+            settings.baseUrlOverride = null
+            settings.clearApiKey()
         }
     }
 }
