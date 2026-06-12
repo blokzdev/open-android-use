@@ -1,0 +1,44 @@
+name: android-runtime
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/OpenAndroidUse/**"
+      - "scripts/build-open-android-use.sh"
+      - ".github/workflows/android-runtime.yml"
+  pull_request:
+    paths:
+      - "apps/OpenAndroidUse/**"
+      - "scripts/build-open-android-use.sh"
+      - ".github/workflows/android-runtime.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/OpenAndroidUse
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          # The runtime is dependency-free (stdlib only), so there is no go.sum
+          # for the cache to key on.
+          cache: false
+      - name: gofmt
+        run: test -z "$(gofmt -l .)"
+      - name: go vet
+        run: go vet ./...
+      - name: go test
+        run: go test ./...
+      - name: cross-compile host targets
+        working-directory: ${{ github.workspace }}
+        run: |
+          ./scripts/build-open-android-use.sh --os linux --arch amd64
+          ./scripts/build-open-android-use.sh --os darwin --arch arm64
+          ./scripts/build-open-android-use.sh --os windows --arch amd64
