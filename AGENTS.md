@@ -1,6 +1,10 @@
-# open-computer-use
+# open-android-use
 
-这个仓库是一个面向 Agent 协作开发的基础模板。
+这个仓库是 `open-computer-use` 的 fork，正在转向 Android：目标是成为 Android 上的
+"Second Pair of Hands"（产品愿景见 `docs/design-docs/second-pair-of-hands.md`，
+当前路线见 `docs/exec-plans/active/20260612-android-use-runtime.md`）。Android
+runtime 位于 `apps/OpenAndroidUse`，与桌面 runtimes 共享同一组 9 个 Computer Use
+tools。新文档默认用英文写，存量中文文档在迁移前仍然有效。
 
 `AGENTS.md` 故意保持简短，只负责做导航，不负责塞满所有规则。仓库内的 `docs/` 才是本地知识的正式来源。
 
