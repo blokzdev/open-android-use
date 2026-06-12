@@ -1,13 +1,60 @@
-# open-computer-use
+# open-android-use
 
 [![English](https://img.shields.io/badge/English-Click-yellow)](./README.md)
 [![简体中文](https://img.shields.io/badge/简体中文-点击查看-orange)](./README.zh-CN.md)
 
 ---
 
-MCP-based Computer Use service for [Qwen Code](https://github.com/QwenLM/qwen-code) and any MCP client — controls macOS, Linux, and Windows via accessibility APIs.
+**A second pair of hands for your Android device.** `open-android-use` is a fork of
+`open-computer-use` that brings the same MCP-based Computer Use tool surface to
+Android: any MCP client can see a connected phone or emulator (accessibility tree +
+screenshot) and act on it (tap, type, scroll, drag, keys) through the same 9 tools
+the desktop runtimes expose. Vision: [docs/design-docs/second-pair-of-hands.md](docs/design-docs/second-pair-of-hands.md).
 
-Published to npm as [`@qwen-code/open-computer-use`](https://www.npmjs.com/package/@qwen-code/open-computer-use).
+## Android Quick Start
+
+Requires [Android platform-tools](https://developer.android.com/tools/releases/platform-tools) (`adb`) and a device with USB debugging enabled (or an emulator).
+
+```bash
+# Build the Android bridge (Go 1.22+)
+make android-build
+
+# Diagnose: adb, connected devices, foreground app
+dist/android-bridge/*/*/open-android-use doctor
+
+# Inspect and act
+dist/android-bridge/*/*/open-android-use call list_apps
+dist/android-bridge/*/*/open-android-use call --calls '[
+  {"tool":"get_app_state","args":{"app":"settings"}},
+  {"tool":"click","args":{"app":"settings","element_index":"1"}}
+]'
+```
+
+MCP client config:
+
+```json
+{
+  "mcpServers": {
+    "open-android-use": {
+      "command": "/path/to/open-android-use",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+Environment: `OPEN_ANDROID_USE_SERIAL` selects a device when several are attached;
+`OPEN_ANDROID_USE_ADB` overrides the adb path; `OPEN_ANDROID_USE_IMAGE_MAX_BYTES` /
+`_MAX_DIMENSION` / `_MIN_SCALE` tune screenshots (same model as macOS below).
+Notable mappings: `mouse_button: "right"` → long-press, `press_key: "Back"` /
+`"Menu"` → Android navigation keys, `app: "foreground"` → whatever is on screen.
+Text input over ADB is ASCII-only today; the planned on-device companion removes
+that limit (see [the roadmap](docs/exec-plans/active/20260612-android-use-runtime.md)).
+
+---
+
+The inherited desktop runtimes below still work — macOS, Linux, and Windows via
+accessibility APIs, published to npm as [`@qwen-code/open-computer-use`](https://www.npmjs.com/package/@qwen-code/open-computer-use).
 
 ## Demo
 
