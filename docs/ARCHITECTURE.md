@@ -31,7 +31,7 @@
 - `scripts/`
   仓库级自动化命令，包括 smoke test、`.app` 打包入口、Windows `.exe` / Linux binary 构建入口、npm 分发脚本，以及 `scripts/computer-use-cli/` 这个用于探测官方 bundled `computer-use` 的 Go helper。
 - `skills/`
-  面向 agent runtime 的可安装 skill。当前 `skills/open-computer-use/SKILL.md` 只作为轻量入口和目录，安装、MCP/CLI 使用、排障等细节拆到相邻 `references/` 文件里按需加载；`scripts/package-skill.sh` 负责校验并打包 `.zip` / `.skill` 制品。
+  面向 agent runtime 的可安装 skill。`skills/open-computer-use/`（桌面）和 `skills/open-android-use/`（Android，含 companion mode 指引）都采用同一结构：`SKILL.md` 作为轻量入口，安装、MCP/CLI 使用、排障细节拆到相邻 `references/` 文件按需加载；`scripts/package-skill.sh [skill-name]` 负责校验并打包 `.zip` / `.skill` 制品（默认仍为 open-computer-use）。
 - `docs/`
   逆向分析、执行计划、history 和项目约束。
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Open Android Use(OAU)"
+  short_description: "Guide agents using Open Android Use"
+  default_prompt: "Use $open-android-use to operate Android apps through Open Android Use."
