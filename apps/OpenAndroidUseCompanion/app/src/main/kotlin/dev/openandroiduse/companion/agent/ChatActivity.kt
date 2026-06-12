@@ -108,6 +108,10 @@ class ChatActivity : Activity(), AgentController.Listener {
         }
         if (!settings.hasApiKey()) {
             showSettingsDialog()
+        } else {
+            // Best-effort, silent: keep the model list current for the next
+            // settings open.
+            Thread({ ModelCatalog.refresh(settings) }, "oau-model-refresh").start()
         }
     }
 
@@ -264,13 +268,16 @@ class ChatActivity : Activity(), AgentController.Listener {
             textSize = 14f
             setPadding(0, dp(8), 0, 0)
         })
+        val models = settings.availableModels().let {
+            if (settings.model in it) it else listOf(settings.model) + it
+        }
         val spinner = Spinner(this).apply {
             adapter = ArrayAdapter(
                 this@ChatActivity,
                 android.R.layout.simple_spinner_dropdown_item,
-                AgentSettings.AVAILABLE_MODELS,
+                models,
             )
-            setSelection(AgentSettings.AVAILABLE_MODELS.indexOf(settings.model).coerceAtLeast(0))
+            setSelection(models.indexOf(settings.model).coerceAtLeast(0))
         }
         layout.addView(spinner)
         val confirmBox = android.widget.CheckBox(this).apply {
