@@ -179,8 +179,39 @@
   (non-ASCII typing surfaces the companion error instead). `doctor` always
   reports availability. Build:
   `make companion-build` → `dist/companion/open-android-use-companion.apk`
-  (debug-signed; requires Android SDK + Gradle). On-device verification steps
-  live in `VERIFICATION.md` until hardware-verified.
+  (debug-signed; requires Android SDK + Gradle; the build also runs the JVM
+  unit tests). On-device verification steps live in `VERIFICATION.md` until
+  hardware-verified.
+- **On-device agent** (Phase 3.1a, `apps/OpenAndroidUseCompanion` `agent`
+  package): the companion app hosts a complete agent loop — chat Activity →
+  `AgentController` (manual agentic loop on the Anthropic Java SDK: streaming,
+  adaptive thinking with summarized display, effort high, frozen tools+system
+  prompt with a prompt-cache breakpoint, refusal stop-reason handling, stop
+  gate between stream events and tool executions, screenshot pruning beyond a
+  2-result window) → `ToolExecutor` (the same 9-tool schema, ported verbatim
+  from the bridge's `toolDefinitions()`, executed in-process against
+  SnapshotBuilder/ActionExecutor with bridge-identical semantics: element
+  indexing, CoordinateScale, 800ms settle, fresh snapshot after each action).
+  `press_key` maps onto the accessibility action surface (IME enter, global
+  back/home/recents/notifications, delete-backward); unsupported keys fail
+  loud. The API key lives in Keystore-encrypted prefs (`AgentSettings`),
+  model selectable (default `claude-opus-4-8`). Requires Android 11+ for
+  screenshots. The control surface stays dependency-free; the agent package
+  is the registered exception (`docs/SUPPLY_CHAIN_SECURITY.md`). Plan:
+  `docs/exec-plans/active/20260612-phase3-on-device-agent.md`.
+- **Agent safety surfaces and voice** (Phase 3.1b/3.1c): *touch-to-pause* —
+  direct-manipulation accessibility events outside the agent's own gesture
+  window (temporal heuristic, `TouchPauseMonitor`) suspend the task; the
+  companion's own UI is exempt. *Gesture trail* — a non-touchable
+  `TYPE_ACCESSIBILITY_OVERLAY` draws fading ripples/strokes for every agent
+  gesture. *Confirmation sheet* — optional consent gate (settings toggle)
+  rendered as an accessibility overlay before each mutating tool batch;
+  deny feeds an explanatory tool_result error back to the model; timeout
+  fails closed. *Voice* — controller-owned TTS speaks streamed narration
+  sentence-by-sentence (`SentenceBuffer`); push-to-talk fills the chat input
+  via `SpeechRecognizer`. The chat re-renders from `AgentController`'s
+  transcript buffer on resume, since the Activity is backgrounded while the
+  agent drives other apps.
 
 ## 关键边界
 

@@ -11,6 +11,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 bridge=""
 apk=""
 with_companion=0
+agent_test_apk=""
 companion_port="${OPEN_ANDROID_USE_COMPANION_PORT:-8355}"
 
 print_help() {
@@ -31,6 +32,13 @@ Options:
                        companion mode.
   --apk <path>         Companion APK for --with-companion. Defaults to
                        dist/companion/open-android-use-companion.apk.
+  --agent-test-apk <path>
+                       Instrumentation APK (gradle assembleDebugAndroidTest)
+                       for the on-device agent-loop smoke. Implies
+                       --with-companion. Installed as its own package and run
+                       via `am instrument`, so the companion app is never
+                       reinstalled — reinstalling would unbind the enabled
+                       accessibility service.
   -h, --help           Show help.
 EOF
 }
@@ -40,6 +48,7 @@ while [[ $# -gt 0 ]]; do
     --bridge) bridge="${2:?--bridge requires a value}"; shift 2 ;;
     --apk) apk="${2:?--apk requires a value}"; shift 2 ;;
     --with-companion) with_companion=1; shift ;;
+    --agent-test-apk) agent_test_apk="${2:?--agent-test-apk requires a value}"; with_companion=1; shift 2 ;;
     -h|--help) print_help; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; print_help >&2; exit 1 ;;
   esac
@@ -150,6 +159,32 @@ if [[ "${with_companion}" == "1" ]]; then
   set -e
   grep -q "ASCII" <<<"${unicode_output}" && fail "companion mode fell back to the ASCII guard"
   pass "unicode routed to companion"
+fi
+
+if [[ -n "${agent_test_apk}" ]]; then
+  [[ -f "${agent_test_apk}" ]] || fail "agent test APK not found: ${agent_test_apk} (run gradle assembleDebugAndroidTest)"
+
+  run_step "install agent instrumentation APK (companion app untouched)"
+  adb install -r "${agent_test_apk}" >/dev/null
+  pass "test APK installed"
+
+  run_step "agent loop smoke via am instrument (stub model server, no API key)"
+  # `am instrument` restarts the companion process, unbinding the enabled
+  # accessibility service; the test itself toggles the secure setting via
+  # UiAutomation shell to force a rebind into the instrumented process.
+  # `am instrument -w` exits 0 even when tests fail; assert on the output.
+  adb logcat -c || true
+  instrument_output="$(adb shell am instrument -w -e requireCompanion true \
+    dev.openandroiduse.companion.test/androidx.test.runner.AndroidJUnitRunner 2>&1)"
+  echo "${instrument_output}"
+  dump_agent_logcat() {
+    echo "--- companion logcat (full stacks) ---"
+    adb logcat -d -s "OpenAndroidUse:*" "TestRunner:*" "AndroidRuntime:E" || true
+  }
+  grep -q "FAILURES!!!" <<<"${instrument_output}" && { dump_agent_logcat; fail "agent loop instrumentation reported failures"; }
+  grep -q "INSTRUMENTATION_FAILED" <<<"${instrument_output}" && { dump_agent_logcat; fail "instrumentation did not run"; }
+  grep -Eq "OK \([0-9]+ test" <<<"${instrument_output}" || { dump_agent_logcat; fail "instrumentation output missing OK marker"; }
+  pass "agent loop smoke"
 fi
 
 echo

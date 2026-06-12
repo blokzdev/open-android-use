@@ -18,6 +18,15 @@ class CompanionService : AccessibilityService() {
 
     private var server: HttpServer? = null
 
+    /**
+     * Optional hook for direct-manipulation events `(eventPackage, ownPackage)`.
+     * The on-device agent registers this to implement touch-to-pause; keeping
+     * it a plain function type means the dependency-free control surface never
+     * imports the agent feature or its SDK. Null when no task is running.
+     */
+    @Volatile
+    var interactionListener: ((String?, String) -> Unit)? = null
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
@@ -46,6 +55,17 @@ class CompanionService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         // State is pulled on demand via rootInActiveWindow; no event buffering.
+        // Direct-manipulation events feed the interaction hook (touch-to-pause).
+        // TYPE_VIEW_TEXT_CHANGED is deliberately excluded: it is overwhelmingly
+        // programmatic (timers, autofill, the agent's own typing) and produced
+        // far too many false pauses.
+        when (event?.eventType) {
+            AccessibilityEvent.TYPE_VIEW_CLICKED,
+            AccessibilityEvent.TYPE_VIEW_LONG_CLICKED,
+            AccessibilityEvent.TYPE_VIEW_SCROLLED,
+            -> interactionListener?.invoke(event.packageName?.toString(), packageName)
+            else -> Unit
+        }
     }
 
     override fun onInterrupt() {}

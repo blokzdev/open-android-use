@@ -46,6 +46,13 @@ class MainActivity : Activity() {
             }
         })
 
+        layout.addView(Button(this).apply {
+            text = "Open Agent Chat"
+            setOnClickListener {
+                startActivity(Intent(this@MainActivity, dev.openandroiduse.companion.agent.ChatActivity::class.java))
+            }
+        })
+
         layout.addView(TextView(this).apply {
             textSize = 13f
             setPadding(0, padding, 0, 0)

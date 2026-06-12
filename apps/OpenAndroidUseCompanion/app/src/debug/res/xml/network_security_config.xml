@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug builds only (src/debug): permit cleartext so the emulator smoke can
+     point the agent's SDK client at an on-device loopback stub model server.
+     base-config (not domain-config) because Android's <domain> matching is
+     unreliable for IP literals like 127.0.0.1. The agent itself additionally
+     refuses any non-loopback http override (AgentController.loopbackOrNull),
+     and release builds ship no networkSecurityConfig at all — platform
+     default, cleartext blocked. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

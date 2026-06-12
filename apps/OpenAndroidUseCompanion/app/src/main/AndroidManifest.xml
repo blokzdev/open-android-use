@@ -2,6 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Push-to-talk task input (Phase 3.1c). -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- The agent's list_apps / app resolution must see every launchable app;
+         Android 11+ package-visibility filtering would otherwise hide most of
+         them. Sideloaded/debug distribution, so the Play policy on this
+         permission does not apply. -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
     <application
         android:label="@string/app_name"
@@ -16,6 +23,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".agent.ChatActivity"
+            android:exported="false"
+            android:label="Agent" />
+
 
         <service
             android:name=".CompanionService"

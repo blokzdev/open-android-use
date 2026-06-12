@@ -50,8 +50,10 @@ jobs:
           ./scripts/build-open-android-use.sh --os windows --arch amd64
 
   companion:
-    # ubuntu-latest ships an Android SDK and Gradle; the app itself is
-    # dependency-free Kotlin, so this is a pure-toolchain build.
+    # ubuntu-latest ships an Android SDK and Gradle. The control surface is
+    # dependency-free Kotlin; the agent package adds the pinned Anthropic SDK
+    # (see docs/SUPPLY_CHAIN_SECURITY.md). Builds the APK and runs the JVM
+    # unit tests.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -59,6 +61,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+      - name: companion unit tests
+        run: (cd apps/OpenAndroidUseCompanion && gradle testDebugUnitTest --no-daemon)
       - name: build companion APK
         run: ./scripts/build-open-android-use-companion.sh
       - uses: actions/upload-artifact@v4
@@ -87,11 +91,12 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - name: build bridge and companion
+      - name: build bridge, companion, and agent instrumentation APK
         run: |
           ./scripts/build-open-android-use.sh --os linux --arch amd64
           ./scripts/build-open-android-use-companion.sh
-      - name: run emulator smoke
+          (cd apps/OpenAndroidUseCompanion && gradle assembleDebugAndroidTest --no-daemon)
+      - name: run emulator smoke (bridge + companion + agent loop)
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 30
@@ -99,4 +104,8 @@ jobs:
           profile: pixel_4
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
-          script: ./scripts/run-android-smoke-tests.sh --bridge dist/android-bridge/linux/amd64/open-android-use --with-companion
+          # The agent-loop smoke (Phase 3 plan, Milestone 4) runs inside the
+          # smoke script via `am instrument` against an on-device stub model
+          # server — the script installs only the test APK so the companion's
+          # enabled accessibility service is never unbound by a reinstall.
+          script: ./scripts/run-android-smoke-tests.sh --bridge dist/android-bridge/linux/amd64/open-android-use --agent-test-apk apps/OpenAndroidUseCompanion/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk

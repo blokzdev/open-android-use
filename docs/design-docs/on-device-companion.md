@@ -1,7 +1,11 @@
 # On-device companion — Phase 2 design
 
-The companion is a zero-dependency Kotlin app (`apps/OpenAndroidUseCompanion`)
-that moves the "hands" onto the phone. It hosts an `AccessibilityService` and a
+The companion is a Kotlin app (`apps/OpenAndroidUseCompanion`) that moves the
+"hands" onto the phone. Its **control surface** — the AccessibilityService,
+loopback HTTP server, snapshot/action code — is deliberately dependency-free;
+the on-device agent feature added in Phase 3 is the one registered exception
+(the first-party Anthropic SDK, scoped to the `agent` package — see
+`docs/SUPPLY_CHAIN_SECURITY.md`). It hosts an `AccessibilityService` and a
 loopback HTTP server; the Phase 1 bridge (or any local peer) talks to it over
 `adb forward`. It exists to fix what ADB transport cannot do cleanly:
 
@@ -48,9 +52,12 @@ to a protocol it does not know.
 
 ## Implementation notes
 
-- Zero third-party dependencies: `org.json` from the platform, a hand-rolled
-  ~150-line HTTP/1.1 server over `ServerSocket`, programmatic UI (no androidx).
-  Smallest possible supply-chain and review surface.
+- Control surface has zero third-party dependencies: `org.json` from the
+  platform, a hand-rolled ~150-line HTTP/1.1 server over `ServerSocket`,
+  programmatic UI (no androidx in the shipped APK). Smallest possible
+  supply-chain and review surface. The Phase 3 `agent` package adds the
+  first-party Anthropic SDK (and androidx only in the instrumentation-test
+  APK); nothing under the control surface imports either.
 - Accessibility calls (`rootInActiveWindow`, `dispatchGesture`) run on the main
   looper; HTTP threads block on a latch with a 5s timeout.
 - minSdk 26 (Android 8.0, `dispatchGesture` and `ACTION_SET_TEXT` both safe),
