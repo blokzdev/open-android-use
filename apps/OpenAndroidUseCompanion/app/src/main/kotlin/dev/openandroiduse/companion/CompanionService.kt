@@ -46,6 +46,17 @@ class CompanionService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         // State is pulled on demand via rootInActiveWindow; no event buffering.
+        // Direct-manipulation events feed touch-to-pause while a task runs.
+        when (event?.eventType) {
+            AccessibilityEvent.TYPE_VIEW_CLICKED,
+            AccessibilityEvent.TYPE_VIEW_LONG_CLICKED,
+            AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED,
+            -> dev.openandroiduse.companion.agent.AgentController.onInteractionEvent(
+                event.packageName?.toString(),
+                packageName,
+            )
+            else -> Unit
+        }
     }
 
     override fun onInterrupt() {}

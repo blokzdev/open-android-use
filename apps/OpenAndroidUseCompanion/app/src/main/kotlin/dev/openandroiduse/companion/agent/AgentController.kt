@@ -52,11 +52,21 @@ object AgentController {
     private const val MAX_TOOL_TURNS = 60
     private const val RECENT_IMAGE_WINDOW = 2
 
+    /** Transcript kinds, mirrored by the chat UI. */
+    const val KIND_USER = "user"
+    const val KIND_ASSISTANT = "assistant"
+    const val KIND_THINKING = "thinking"
+    const val KIND_TOOL = "tool"
+    const val KIND_NOTE = "note"
+
     @Volatile
     var listener: Listener? = null
 
     @Volatile
     private var cancelRequested = false
+
+    @Volatile
+    private var pausedByTouch = false
 
     @Volatile
     private var activeStream: StreamResponse<RawMessageStreamEvent>? = null
@@ -67,6 +77,28 @@ object AgentController {
 
     private val history = mutableListOf<HistoryEntry>()
     private var worker: Thread? = null
+
+    /**
+     * Append-only transcript backing the chat UI: the Activity is backgrounded
+     * for most of a task (the agent is driving other apps), so it re-renders
+     * from this on resume instead of relying on live callbacks alone.
+     */
+    private val transcript = mutableListOf<Pair<String, StringBuilder>>()
+
+    fun transcriptSnapshot(): List<Pair<String, String>> = synchronized(transcript) {
+        transcript.map { it.first to it.second.toString() }
+    }
+
+    private fun log(kind: String, text: String, append: Boolean = false) {
+        synchronized(transcript) {
+            val last = transcript.lastOrNull()
+            if (append && last != null && last.first == kind) {
+                last.second.append(text)
+            } else {
+                transcript.add(kind to StringBuilder(text))
+            }
+        }
+    }
 
     @Synchronized
     fun startTask(userText: String, settings: AgentSettings): Boolean {
@@ -80,10 +112,24 @@ object AgentController {
             return false
         }
         cancelRequested = false
+        pausedByTouch = false
         isRunning = true
         listener?.onTaskStateChanged(true)
+        log(KIND_USER, userText)
         history.add(HistoryEntry(userMessage(userText), pruned = null))
-        worker = Thread({ runLoop(service, apiKey, settings.model) }, "oau-agent-loop").also { it.start() }
+        TouchPauseMonitor.reset()
+        GestureTrail.attach(service)
+        val confirmActions = settings.confirmActions
+        worker = Thread(
+            {
+                try {
+                    runLoop(service, apiKey, settings.model, confirmActions)
+                } finally {
+                    GestureTrail.detach(service)
+                }
+            },
+            "oau-agent-loop",
+        ).also { it.start() }
         return true
     }
 
@@ -95,20 +141,33 @@ object AgentController {
         }
     }
 
+    /**
+     * Touch-to-pause entry point, fed by CompanionService's accessibility
+     * events. Any direct user manipulation outside the agent's own gesture
+     * window suspends the task.
+     */
+    fun onInteractionEvent(eventPackage: String?, ownPackage: String) {
+        if (TouchPauseMonitor.shouldPause(isRunning, eventPackage, ownPackage)) {
+            pausedByTouch = true
+            requestStop()
+        }
+    }
+
     @Synchronized
     fun resetConversation() {
         if (isRunning) return
         history.clear()
+        synchronized(transcript) { transcript.clear() }
     }
 
-    private fun runLoop(service: CompanionService, apiKey: String, model: String) {
+    private fun runLoop(service: CompanionService, apiKey: String, model: String, confirmActions: Boolean) {
         val client = AnthropicOkHttpClient.builder().apiKey(apiKey).build()
         val executor = ToolExecutor(service)
         try {
             var turns = 0
             while (turns < MAX_TOOL_TURNS) {
                 turns++
-                if (cancelRequested) return finish("stopped")
+                if (cancelRequested) return finish(stopReasonLabel())
 
                 val accumulator = MessageAccumulator.create()
                 try {
@@ -123,7 +182,7 @@ object AgentController {
                 } finally {
                     activeStream = null
                 }
-                if (cancelRequested) return finish("stopped")
+                if (cancelRequested) return finish(stopReasonLabel())
 
                 val message = try {
                     accumulator.message()
@@ -138,19 +197,26 @@ object AgentController {
                         val category = message.stopDetails()
                             .map { it._additionalProperties().toString() }
                             .orElse("")
-                        listener?.onError(
-                            "The request was declined by the model's safety system$category. " +
-                                "Rephrase the task rather than retrying it as-is.",
-                        )
+                        val refusalText = "The request was declined by the model's safety system$category. " +
+                            "Rephrase the task rather than retrying it as-is."
+                        log(KIND_NOTE, "⚠ $refusalText")
+                        listener?.onError(refusalText)
                         return finish("refusal")
                     }
                     StopReason.TOOL_USE -> {
                         val toolUses = message.content().mapNotNull { it.toolUse().orElse(null) }
                         if (toolUses.isEmpty()) return finish("end_turn")
+                        val denied = confirmActions && needsConfirmation(toolUses) &&
+                            !ConfirmationSheet.ask(service, batchSummary(toolUses))
                         val results = mutableListOf<ContentBlockParam>()
                         for (toolUse in toolUses) {
-                            if (cancelRequested) return finish("stopped")
-                            results.add(executeTool(executor, toolUse))
+                            if (cancelRequested) return finish(stopReasonLabel())
+                            results.add(
+                                if (denied) deniedResult(toolUse) else executeTool(executor, toolUse),
+                            )
+                        }
+                        if (denied) {
+                            log(KIND_NOTE, "Action batch denied by the user.")
                         }
                         appendToolResults(results)
                     }
@@ -167,7 +233,7 @@ object AgentController {
                 Log.w(CompanionService.TAG, "agent loop failed", error)
                 fail(error.message ?: error.javaClass.simpleName)
             } else {
-                finish("stopped")
+                finish(stopReasonLabel())
             }
         } finally {
             client.close()
@@ -209,9 +275,44 @@ object AgentController {
 
     private fun emitDelta(event: RawMessageStreamEvent) {
         val delta = event.contentBlockDelta().orElse(null)?.delta() ?: return
-        delta.text().orElse(null)?.let { listener?.onAssistantDelta(it.text()) }
-        delta.thinking().orElse(null)?.let { listener?.onThinkingDelta(it.thinking()) }
+        delta.text().orElse(null)?.let {
+            log(KIND_ASSISTANT, it.text(), append = true)
+            listener?.onAssistantDelta(it.text())
+        }
+        delta.thinking().orElse(null)?.let {
+            log(KIND_THINKING, it.thinking(), append = true)
+            listener?.onThinkingDelta(it.thinking())
+        }
     }
+
+    private fun stopReasonLabel(): String = if (pausedByTouch) "touched" else "stopped"
+
+    private val mutatingTools = setOf(
+        "click", "drag", "scroll", "type_text", "press_key", "set_value", "perform_secondary_action",
+    )
+
+    private fun needsConfirmation(toolUses: List<ToolUseBlock>): Boolean =
+        toolUses.any { it.name() in mutatingTools }
+
+    private fun batchSummary(toolUses: List<ToolUseBlock>): String =
+        toolUses.joinToString("\n") { toolUse ->
+            val args = try {
+                @Suppress("UNCHECKED_CAST")
+                JSONObject(toolUse._input().convert(Map::class.java) as Map<String, Any?>)
+            } catch (_: Exception) {
+                JSONObject()
+            }
+            "• ${toolUse.name()} ${summarizeArgs(toolUse.name(), args)}".trimEnd()
+        }
+
+    private fun deniedResult(toolUse: ToolUseBlock): ContentBlockParam =
+        ContentBlockParam.ofToolResult(
+            ToolResultBlockParam.builder()
+                .toolUseId(toolUse.id())
+                .content("The user declined this action. Ask how they would like to proceed instead of retrying.")
+                .isError(true)
+                .build(),
+        )
 
     private fun executeTool(executor: ToolExecutor, toolUse: ToolUseBlock): ContentBlockParam {
         val args = try {
@@ -220,8 +321,13 @@ object AgentController {
         } catch (_: Exception) {
             JSONObject()
         }
-        listener?.onToolCall(toolUse.name(), summarizeArgs(toolUse.name(), args))
+        val summary = summarizeArgs(toolUse.name(), args)
+        log(KIND_TOOL, "▸ ${toolUse.name()} $summary".trimEnd())
+        listener?.onToolCall(toolUse.name(), summary)
         val outcome = executor.callTool(toolUse.name(), args)
+        if (outcome.isError) {
+            log(KIND_TOOL, "✗ ${toolUse.name()} failed")
+        }
         listener?.onToolResult(toolUse.name(), outcome.isError)
 
         val blocks = mutableListOf(
@@ -321,10 +427,16 @@ object AgentController {
             .build()
 
     private fun finish(reason: String) {
+        when (reason) {
+            "touched" -> log(KIND_NOTE, "Paused — you touched the screen. Send a message to continue.")
+            "stopped" -> log(KIND_NOTE, "Stopped.")
+            "max_tokens" -> log(KIND_NOTE, "The turn hit its output limit; say \"continue\" to resume.")
+        }
         listener?.onTaskFinished(reason)
     }
 
     private fun fail(message: String) {
+        log(KIND_NOTE, "⚠ $message")
         listener?.onError(message)
         listener?.onTaskFinished("error")
     }

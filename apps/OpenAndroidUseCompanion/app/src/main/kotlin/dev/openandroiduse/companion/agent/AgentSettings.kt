@@ -25,6 +25,13 @@ class AgentSettings(context: Context) {
             prefs.edit().putString(PREF_MODEL, value).apply()
         }
 
+    /** Phase 3.1b consent ladder: show a confirmation sheet before action batches. */
+    var confirmActions: Boolean
+        get() = prefs.getBoolean(PREF_CONFIRM_ACTIONS, false)
+        set(value) {
+            prefs.edit().putBoolean(PREF_CONFIRM_ACTIONS, value).apply()
+        }
+
     fun hasApiKey(): Boolean = prefs.contains(PREF_KEY_CIPHERTEXT)
 
     fun storeApiKey(apiKey: String) {
@@ -80,6 +87,7 @@ class AgentSettings(context: Context) {
         private const val KEY_ALIAS = "oau-agent-api-key"
         private const val TRANSFORMATION = "AES/GCM/NoPadding"
         private const val PREF_MODEL = "model"
+        private const val PREF_CONFIRM_ACTIONS = "confirm_actions"
         private const val PREF_KEY_CIPHERTEXT = "api_key_ciphertext"
         private const val PREF_KEY_IV = "api_key_iv"
     }

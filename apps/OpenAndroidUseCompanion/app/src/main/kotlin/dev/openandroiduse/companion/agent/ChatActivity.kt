@@ -99,12 +99,38 @@ class ChatActivity : Activity(), AgentController.Listener {
         super.onResume()
         AgentController.listener = this
         refreshControls(AgentController.isRunning)
+        renderTranscript()
         if (!CompanionService.isRunning) {
             addSystemNote("The companion accessibility service is OFF — enable it before starting a task.")
         }
         if (!settings.hasApiKey()) {
             showSettingsDialog()
         }
+    }
+
+    /**
+     * Rebuilds the transcript from the controller's log. The Activity is
+     * backgrounded while the agent drives other apps, so resume re-renders
+     * everything it missed.
+     */
+    private fun renderTranscript() {
+        transcript.removeAllViews()
+        activeBubble = null
+        activeThinking = null
+        for ((kind, text) in AgentController.transcriptSnapshot()) {
+            when (kind) {
+                AgentController.KIND_USER -> addBubble(text, user = true)
+                AgentController.KIND_ASSISTANT -> activeBubble = addBubble(text, user = false)
+                AgentController.KIND_THINKING -> activeThinking = addThinkingView().also { it.text = text }
+                AgentController.KIND_TOOL -> addToolChip(text)
+                AgentController.KIND_NOTE -> addSystemNote(text)
+            }
+        }
+        // Only the last entry may still be streaming; older views are final.
+        val last = AgentController.transcriptSnapshot().lastOrNull()?.first
+        if (last != AgentController.KIND_ASSISTANT) activeBubble = null
+        if (last != AgentController.KIND_THINKING) activeThinking = null
+        scrollToBottom()
     }
 
     override fun onPause() {
@@ -117,11 +143,13 @@ class ChatActivity : Activity(), AgentController.Listener {
     private fun sendTask() {
         val text = input.text.toString().trim()
         if (text.isEmpty()) return
-        addBubble(text, user = true)
         input.setText("")
         activeBubble = null
         activeThinking = null
-        AgentController.startTask(text, settings)
+        if (AgentController.startTask(text, settings)) {
+            addBubble(text, user = true)
+            scrollToBottom()
+        }
     }
 
     // --- AgentController.Listener (loop thread → main) ---
@@ -165,16 +193,9 @@ class ChatActivity : Activity(), AgentController.Listener {
     }
 
     override fun onTaskFinished(reason: String) {
-        mainHandler.post {
-            activeBubble = null
-            activeThinking = null
-            when (reason) {
-                "stopped" -> addSystemNote("Stopped.")
-                "max_tokens" -> addSystemNote("The turn hit its output limit; say \"continue\" to resume.")
-                "refusal", "error", "end_turn" -> Unit
-            }
-            scrollToBottom()
-        }
+        // The controller logs the user-facing note; re-render to pick it up
+        // along with anything missed while backgrounded.
+        mainHandler.post { renderTranscript() }
     }
 
     override fun onError(message: String) {
@@ -285,6 +306,11 @@ class ChatActivity : Activity(), AgentController.Listener {
             setSelection(AgentSettings.AVAILABLE_MODELS.indexOf(settings.model).coerceAtLeast(0))
         }
         layout.addView(spinner)
+        val confirmBox = android.widget.CheckBox(this).apply {
+            text = "Ask before each action batch (confirmation sheet)"
+            isChecked = settings.confirmActions
+        }
+        layout.addView(confirmBox)
 
         AlertDialog.Builder(this)
             .setTitle("Agent settings")
@@ -295,6 +321,7 @@ class ChatActivity : Activity(), AgentController.Listener {
                     settings.storeApiKey(key)
                 }
                 settings.model = spinner.selectedItem as String
+                settings.confirmActions = confirmBox.isChecked
             }
             .setNegativeButton("Cancel", null)
             .show()

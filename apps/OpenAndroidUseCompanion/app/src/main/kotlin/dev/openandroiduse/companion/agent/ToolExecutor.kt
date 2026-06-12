@@ -242,7 +242,16 @@ class ToolExecutor(private val service: CompanionService) {
 
     /** Runs an ActionExecutor action; returns an error Outcome on failure, null on success. */
     private fun perform(action: JSONObject): Outcome? {
+        TouchPauseMonitor.noteAgentAction()
+        when (action.optString("type")) {
+            "tap", "longPress" -> GestureTrail.tap(action.optInt("x"), action.optInt("y"))
+            "swipe" -> GestureTrail.swipe(
+                action.optInt("fromX"), action.optInt("fromY"),
+                action.optInt("toX"), action.optInt("toY"),
+            )
+        }
         val result = ActionExecutor.execute(service, action.toString())
+        TouchPauseMonitor.noteAgentAction()
         if (result.optBoolean("ok")) return null
         return error(result.optString("error", "action failed"))
     }
