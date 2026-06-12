@@ -82,6 +82,8 @@ func deviceHandler(t *testing.T) func(args []string) ([]byte, error) {
 			return []byte("1234\n"), nil
 		case strings.Contains(joined, "screencap"):
 			return screenshot, nil
+		case strings.Contains(joined, "forward tcp:"):
+			return []byte(""), nil
 		case strings.Contains(joined, "input"):
 			return []byte(""), nil
 		case strings.Contains(joined, "monkey"):

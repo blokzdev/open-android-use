@@ -52,9 +52,17 @@ func (r execRunner) output(args ...string) ([]byte, error) {
 }
 
 type adbBridge struct {
-	runner commandRunner
-	serial string
-	sleep  func(time.Duration)
+	runner    commandRunner
+	serial    string
+	sleep     func(time.Duration)
+	companion *companionClient
+}
+
+func (b *adbBridge) companionLink() *companionClient {
+	if b.companion == nil {
+		b.companion = newCompanionClient(b)
+	}
+	return b.companion
 }
 
 func newADBBridge() *adbBridge {
@@ -787,6 +795,17 @@ func (b *adbBridge) performDrag(request actionRequest) error {
 }
 
 func (b *adbBridge) performTypeText(text string) error {
+	if companionEnabled() {
+		companionErr := b.companionLink().setText(text)
+		if companionErr == nil {
+			return nil
+		}
+		// Fall back to the ADB path only when it can represent the text;
+		// otherwise the companion error (which names the fix) wins.
+		if _, asciiErr := escapeInputText(text); asciiErr != nil {
+			return companionErr
+		}
+	}
 	escaped, err := escapeInputText(text)
 	if err != nil {
 		return err
@@ -898,6 +917,7 @@ func doctorReport() string {
 			if pkg, activity, err := bridge.foregroundApp(); err == nil {
 				lines = append(lines, "foreground: "+pkg+"/"+activity)
 			}
+			lines = append(lines, bridge.companionLink().describe())
 		}
 	}
 	return strings.Join(lines, "\n")

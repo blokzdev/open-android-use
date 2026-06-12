@@ -5,12 +5,16 @@ on:
     branches: [main]
     paths:
       - "apps/OpenAndroidUse/**"
+      - "apps/OpenAndroidUseCompanion/**"
       - "scripts/build-open-android-use.sh"
+      - "scripts/build-open-android-use-companion.sh"
       - ".github/workflows/android-runtime.yml"
   pull_request:
     paths:
       - "apps/OpenAndroidUse/**"
+      - "apps/OpenAndroidUseCompanion/**"
       - "scripts/build-open-android-use.sh"
+      - "scripts/build-open-android-use-companion.sh"
       - ".github/workflows/android-runtime.yml"
 
 permissions:
@@ -42,3 +46,20 @@ jobs:
           ./scripts/build-open-android-use.sh --os linux --arch amd64
           ./scripts/build-open-android-use.sh --os darwin --arch arm64
           ./scripts/build-open-android-use.sh --os windows --arch amd64
+
+  companion:
+    # ubuntu-latest ships an Android SDK and Gradle; the app itself is
+    # dependency-free Kotlin, so this is a pure-toolchain build.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: build companion APK
+        run: ./scripts/build-open-android-use-companion.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: open-android-use-companion-apk
+          path: dist/companion/open-android-use-companion.apk
