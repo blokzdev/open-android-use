@@ -1,8 +1,11 @@
 # Phase 3.1a — on-device agent loop (chat UI + Claude API + in-process tools)
 
-> Status: 3.1a, 3.1b (touch-to-pause, confirmation sheet, gesture trail), and
-> 3.1c (TTS narration, push-to-talk) implemented and unit-tested in container;
-> awaiting hardware verification (V33–V41).
+> Status: COMPLETE — merged to main in PR #2 (2026-06-12) with CI green,
+> including the emulator agent-loop smoke (Milestone 4). 3.1a, 3.1b
+> (touch-to-pause, confirmation sheet, gesture trail), 3.1c (TTS narration,
+> push-to-talk), a code-review hardening pass, and the keyless emulator smoke
+> all shipped. Real-hardware acceptance (V33–V41 in VERIFICATION.md) remains
+> open and is tracked there, not here.
 > Parent design: `docs/design-docs/phase3-agent-loop.md`. Phase 1/2 runtime plan:
 > `20260612-android-use-runtime.md` (bridge + companion shipped, PR #1 merged,
 > emulator CI green).

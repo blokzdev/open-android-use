@@ -50,6 +50,17 @@ class AgentSettings(context: Context) {
             prefs.edit().putString(PREF_BASE_URL, value).apply()
         }
 
+    /** Models offered in settings: the last Models-API fetch, else the built-in list. */
+    fun availableModels(): List<String> {
+        val cached = prefs.getString(PREF_AVAILABLE_MODELS, null)
+            ?.split('\n')?.filter { it.isNotBlank() }
+        return if (cached.isNullOrEmpty()) AVAILABLE_MODELS else cached
+    }
+
+    fun cacheAvailableModels(ids: List<String>) {
+        prefs.edit().putString(PREF_AVAILABLE_MODELS, ids.joinToString("\n")).apply()
+    }
+
     fun hasApiKey(): Boolean = prefs.contains(PREF_KEY_CIPHERTEXT)
 
     fun storeApiKey(apiKey: String) {
@@ -104,7 +115,7 @@ class AgentSettings(context: Context) {
     companion object {
         const val DEFAULT_MODEL = "claude-opus-4-8"
 
-        /** Hardcoded for 3.1a; a models-API fetch is planned for a later slice. */
+        /** Fallback list until the first Models-API fetch succeeds (ModelCatalog). */
         val AVAILABLE_MODELS = listOf("claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5")
 
         private const val KEYSTORE = "AndroidKeyStore"
@@ -114,6 +125,7 @@ class AgentSettings(context: Context) {
         private const val PREF_CONFIRM_ACTIONS = "confirm_actions"
         private const val PREF_SPEAK_NARRATION = "speak_narration"
         private const val PREF_BASE_URL = "base_url_override"
+        private const val PREF_AVAILABLE_MODELS = "available_models"
         private const val PREF_KEY_CIPHERTEXT = "api_key_ciphertext"
         private const val PREF_KEY_IV = "api_key_iv"
     }

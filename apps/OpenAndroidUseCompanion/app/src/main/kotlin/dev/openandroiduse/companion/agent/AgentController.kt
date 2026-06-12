@@ -23,7 +23,7 @@ import dev.openandroiduse.companion.CompanionService
 import org.json.JSONObject
 
 /**
- * The manual agentic loop (docs/exec-plans/active/20260612-phase3-on-device-
+ * The manual agentic loop (docs/exec-plans/completed/20260612-phase3-on-device-
  * agent.md): stream a turn, execute tool batches in-process via ToolExecutor,
  * feed results back, repeat until end_turn — with a cancel gate checked
  * between stream events and before every tool execution so the stop button

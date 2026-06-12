@@ -198,7 +198,7 @@
   model selectable (default `claude-opus-4-8`). Requires Android 11+ for
   screenshots. The control surface stays dependency-free; the agent package
   is the registered exception (`docs/SUPPLY_CHAIN_SECURITY.md`). Plan:
-  `docs/exec-plans/active/20260612-phase3-on-device-agent.md`.
+  `docs/exec-plans/completed/20260612-phase3-on-device-agent.md`.
 - **Agent safety surfaces and voice** (Phase 3.1b/3.1c): *touch-to-pause* —
   direct-manipulation accessibility events outside the agent's own gesture
   window (temporal heuristic, `TouchPauseMonitor`) suspend the task; the

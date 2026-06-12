@@ -30,8 +30,23 @@ object ImageBudget {
         return scale
     }
 
-    /** Same shrink step the Go loop applies when the encoded size is over budget. */
-    fun nextScale(scale: Double, minScale: Double = MIN_SCALE): Double = max(scale * 0.85, minScale)
+    /**
+     * Shrink step when the encoded size is over budget. Unlike the Go bridge's
+     * fixed 0.85, the step is proportional to the overshoot (PNG bytes scale
+     * roughly with area, so sqrt of the byte ratio targets the budget in one
+     * re-encode instead of several) with a 0.95 margin — each full-frame PNG
+     * encode costs real CPU and battery on-device.
+     */
+    fun nextScale(
+        scale: Double,
+        encodedBytes: Int,
+        maxBytes: Int = MAX_BYTES,
+        minScale: Double = MIN_SCALE,
+    ): Double {
+        val ratio = kotlin.math.sqrt(maxBytes.toDouble() / encodedBytes.coerceAtLeast(1))
+        val factor = (ratio * 0.95).coerceAtMost(0.95)
+        return max(scale * factor, minScale)
+    }
 
     data class Result(val png: ByteArray, val scale: Double, val width: Int, val height: Int)
 
@@ -58,7 +73,7 @@ object ImageBudget {
             if (encoded.size <= MAX_BYTES || scale <= MIN_SCALE) {
                 return Result(encoded, scale, targetWidth, targetHeight)
             }
-            scale = nextScale(scale)
+            scale = nextScale(scale, encoded.size)
         }
     }
 }

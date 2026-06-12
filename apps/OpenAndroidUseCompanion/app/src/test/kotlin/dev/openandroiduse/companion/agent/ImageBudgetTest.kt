@@ -22,9 +22,17 @@ class ImageBudgetTest {
     }
 
     @Test
+    fun shrinkStepIsProportionalToOvershoot() {
+        // 4x over budget → sqrt(1/4)*0.95 = 0.475 in a single step.
+        assertEquals(0.475, ImageBudget.nextScale(1.0, encodedBytes = 3_600_000), 0.0001)
+        // Slightly over budget → gentle step, never a no-op (capped at 0.95).
+        val gentle = ImageBudget.nextScale(1.0, encodedBytes = 950_000)
+        assertEquals(true, gentle < 1.0 && gentle > 0.9)
+    }
+
+    @Test
     fun scaleNeverDropsBelowFloor() {
         assertEquals(0.25, ImageBudget.initialScale(100_000, 100), 0.0001)
-        assertEquals(0.25, ImageBudget.nextScale(0.26), 0.0001)
-        assertEquals(0.85 * 0.5, ImageBudget.nextScale(0.5), 0.0001)
+        assertEquals(0.25, ImageBudget.nextScale(0.26, encodedBytes = 100_000_000), 0.0001)
     }
 }
