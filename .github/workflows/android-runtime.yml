@@ -91,11 +91,12 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - name: build bridge and companion
+      - name: build bridge, companion, and agent instrumentation APK
         run: |
           ./scripts/build-open-android-use.sh --os linux --arch amd64
           ./scripts/build-open-android-use-companion.sh
-      - name: run emulator smoke
+          (cd apps/OpenAndroidUseCompanion && gradle assembleDebugAndroidTest --no-daemon)
+      - name: run emulator smoke (bridge + companion + agent loop)
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 30
@@ -103,12 +104,8 @@ jobs:
           profile: pixel_4
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
-          script: |
-            ./scripts/run-android-smoke-tests.sh --bridge dist/android-bridge/linux/amd64/open-android-use --with-companion
-            # Agent loop smoke (Phase 3 plan, Milestone 4): the production
-            # loop — SDK streaming, ToolExecutor, real snapshot/screenshot —
-            # against an on-device stub model server. The smoke script above
-            # leaves the companion's accessibility service enabled.
-            # NOTE: must stay on one line — the emulator-runner executes each
-            # script line as a separate `sh -c`.
-            (cd apps/OpenAndroidUseCompanion && gradle connectedDebugAndroidTest --no-daemon -Pandroid.testInstrumentationRunnerArguments.requireCompanion=true)
+          # The agent-loop smoke (Phase 3 plan, Milestone 4) runs inside the
+          # smoke script via `am instrument` against an on-device stub model
+          # server — the script installs only the test APK so the companion's
+          # enabled accessibility service is never unbound by a reinstall.
+          script: ./scripts/run-android-smoke-tests.sh --bridge dist/android-bridge/linux/amd64/open-android-use --agent-test-apk apps/OpenAndroidUseCompanion/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
