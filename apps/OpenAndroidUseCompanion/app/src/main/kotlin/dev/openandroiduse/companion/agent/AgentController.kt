@@ -124,10 +124,11 @@ object AgentController {
             VoiceNarrator.ensureInitialized(service)
         }
         val confirmActions = settings.confirmActions
+        val baseUrl = settings.baseUrlOverride
         worker = Thread(
             {
                 try {
-                    runLoop(service, apiKey, settings.model, confirmActions)
+                    runLoop(service, apiKey, settings.model, confirmActions, baseUrl)
                 } finally {
                     GestureTrail.detach(service)
                     VoiceNarrator.stop()
@@ -168,8 +169,18 @@ object AgentController {
         synchronized(transcript) { transcript.clear() }
     }
 
-    private fun runLoop(service: CompanionService, apiKey: String, model: String, confirmActions: Boolean) {
-        val client = AnthropicOkHttpClient.builder().apiKey(apiKey).build()
+    private fun runLoop(
+        service: CompanionService,
+        apiKey: String,
+        model: String,
+        confirmActions: Boolean,
+        baseUrl: String?,
+    ) {
+        val clientBuilder = AnthropicOkHttpClient.builder().apiKey(apiKey)
+        if (baseUrl != null) {
+            clientBuilder.baseUrl(baseUrl)
+        }
+        val client = clientBuilder.build()
         val executor = ToolExecutor(service)
         try {
             var turns = 0

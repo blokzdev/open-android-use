@@ -39,6 +39,17 @@ class AgentSettings(context: Context) {
             prefs.edit().putBoolean(PREF_SPEAK_NARRATION, value).apply()
         }
 
+    /**
+     * Test/diagnostic hook with no UI: overrides the API base URL so the
+     * emulator smoke can run the real agent loop against a loopback stub
+     * model server. Null means api.anthropic.com (the SDK default).
+     */
+    var baseUrlOverride: String?
+        get() = prefs.getString(PREF_BASE_URL, null)?.ifBlank { null }
+        set(value) {
+            prefs.edit().putString(PREF_BASE_URL, value).apply()
+        }
+
     fun hasApiKey(): Boolean = prefs.contains(PREF_KEY_CIPHERTEXT)
 
     fun storeApiKey(apiKey: String) {
@@ -96,6 +107,7 @@ class AgentSettings(context: Context) {
         private const val PREF_MODEL = "model"
         private const val PREF_CONFIRM_ACTIONS = "confirm_actions"
         private const val PREF_SPEAK_NARRATION = "speak_narration"
+        private const val PREF_BASE_URL = "base_url_override"
         private const val PREF_KEY_CIPHERTEXT = "api_key_ciphertext"
         private const val PREF_KEY_IV = "api_key_iv"
     }

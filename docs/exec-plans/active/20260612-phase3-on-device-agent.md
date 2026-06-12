@@ -102,8 +102,14 @@ complete Second Pair of Hands.
   runs them in CI.
 - [x] Milestone 3: AgentController (manual streaming loop), AgentSettings
   (Keystore), ChatActivity; wired from MainActivity.
-- [ ] Milestone 4: emulator smoke extension — deferred (API key handling in CI;
-  manual V33–V37 acceptable per plan).
+- [x] Milestone 4 (un-deferred): emulator agent-loop smoke without an API key —
+  an instrumentation test hosts a loopback stub model server (scripted SSE:
+  tool_use turn → end_turn) and points the SDK at it via a no-UI
+  `baseUrlOverride`; the production loop, ToolExecutor, real snapshot and
+  screenshot all execute on the CI emulator. Cleartext is permitted to
+  127.0.0.1 only (network security config). CI runs it after the existing
+  smoke with `requireCompanion=true` so a missing service fails instead of
+  skipping.
 - [x] Milestone 5: docs sync (ARCHITECTURE §8, QUALITY_SCORE, VERIFICATION
   V33–V37, supply-chain register), history record.
 - [x] Stretch into 3.1b (same session): touch-to-pause via `TouchPauseMonitor`

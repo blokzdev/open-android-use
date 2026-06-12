@@ -50,8 +50,10 @@ jobs:
           ./scripts/build-open-android-use.sh --os windows --arch amd64
 
   companion:
-    # ubuntu-latest ships an Android SDK and Gradle; the app itself is
-    # dependency-free Kotlin, so this is a pure-toolchain build.
+    # ubuntu-latest ships an Android SDK and Gradle. The control surface is
+    # dependency-free Kotlin; the agent package adds the pinned Anthropic SDK
+    # (see docs/SUPPLY_CHAIN_SECURITY.md). Builds the APK and runs the JVM
+    # unit tests.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -99,4 +101,11 @@ jobs:
           profile: pixel_4
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
-          script: ./scripts/run-android-smoke-tests.sh --bridge dist/android-bridge/linux/amd64/open-android-use --with-companion
+          script: |
+            ./scripts/run-android-smoke-tests.sh --bridge dist/android-bridge/linux/amd64/open-android-use --with-companion
+            # Agent loop smoke (Phase 3 plan, Milestone 4): the production
+            # loop — SDK streaming, ToolExecutor, real snapshot/screenshot —
+            # against an on-device stub model server. The smoke script above
+            # leaves the companion's accessibility service enabled.
+            (cd apps/OpenAndroidUseCompanion && gradle connectedDebugAndroidTest --no-daemon \
+              -Pandroid.testInstrumentationRunnerArguments.requireCompanion=true)
