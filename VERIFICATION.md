@@ -160,6 +160,28 @@ Anthropic API key at hand (Android 11+ device):
   Pass: exact text lands (set_value/ACTION_SET_TEXT path), and the next
   turn's screenshot confirms it.
 
+### Phase 3.1b/3.1c — safety surfaces and voice
+
+- [ ] **V38. Gesture trail**: during any agent task, watch the screen.
+  Pass: every agent tap shows a fading blue ripple and every swipe a fading
+  stroke at the exact gesture location; the overlay never intercepts touches
+  and disappears when the task ends.
+- [ ] **V39. Touch-to-pause**: while the agent is mid-task in another app,
+  tap anywhere on the screen (≥3s after the agent's last gesture).
+  Pass: the agent stops within one action; the chat shows "Paused — you
+  touched the screen"; pressing buttons in the companion's own chat UI does
+  NOT trigger the pause.
+- [ ] **V40. Confirmation sheet**: enable "Ask before each action batch" in
+  settings, then give the agent a task.
+  Pass: a bottom sheet listing the pending actions appears over whatever app
+  is foreground; Allow proceeds; Deny makes the agent acknowledge and ask
+  for direction instead of retrying; no sheet appears for pure
+  get_app_state/list_apps turns.
+- [ ] **V41. Voice**: enable "Speak narration aloud", send a task, and lock
+  attention elsewhere; then use the 🎤 button to dictate a task.
+  Pass: narration is spoken sentence-by-sentence while the agent works (and
+  goes silent on Stop); dictation lands in the input field for review.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |

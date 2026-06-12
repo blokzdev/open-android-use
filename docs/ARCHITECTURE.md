@@ -199,6 +199,19 @@
   screenshots. The control surface stays dependency-free; the agent package
   is the registered exception (`docs/SUPPLY_CHAIN_SECURITY.md`). Plan:
   `docs/exec-plans/active/20260612-phase3-on-device-agent.md`.
+- **Agent safety surfaces and voice** (Phase 3.1b/3.1c): *touch-to-pause* —
+  direct-manipulation accessibility events outside the agent's own gesture
+  window (temporal heuristic, `TouchPauseMonitor`) suspend the task; the
+  companion's own UI is exempt. *Gesture trail* — a non-touchable
+  `TYPE_ACCESSIBILITY_OVERLAY` draws fading ripples/strokes for every agent
+  gesture. *Confirmation sheet* — optional consent gate (settings toggle)
+  rendered as an accessibility overlay before each mutating tool batch;
+  deny feeds an explanatory tool_result error back to the model; timeout
+  fails closed. *Voice* — controller-owned TTS speaks streamed narration
+  sentence-by-sentence (`SentenceBuffer`); push-to-talk fills the chat input
+  via `SpeechRecognizer`. The chat re-renders from `AgentController`'s
+  transcript buffer on resume, since the Activity is backgrounded while the
+  agent drives other apps.
 
 ## 关键边界
 

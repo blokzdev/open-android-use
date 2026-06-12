@@ -1,7 +1,8 @@
 # Phase 3.1a — on-device agent loop (chat UI + Claude API + in-process tools)
 
-> Status: 3.1a implemented and unit-tested in container; awaiting hardware
-> verification (V33–V37).
+> Status: 3.1a, 3.1b (touch-to-pause, confirmation sheet, gesture trail), and
+> 3.1c (TTS narration, push-to-talk) implemented and unit-tested in container;
+> awaiting hardware verification (V33–V41).
 > Parent design: `docs/design-docs/phase3-agent-loop.md`. Phase 1/2 runtime plan:
 > `20260612-android-use-runtime.md` (bridge + companion shipped, PR #1 merged,
 > emulator CI green).
@@ -105,6 +106,16 @@ complete Second Pair of Hands.
   manual V33–V37 acceptable per plan).
 - [x] Milestone 5: docs sync (ARCHITECTURE §8, QUALITY_SCORE, VERIFICATION
   V33–V37, supply-chain register), history record.
+- [x] Stretch into 3.1b (same session): touch-to-pause via `TouchPauseMonitor`
+  temporal heuristic + accessibility click/long-click/text-change events;
+  gesture-trail accessibility overlay; confirmation sheet as a touchable
+  accessibility overlay gating mutating tool batches (settings toggle, deny
+  feeds tool_result errors, timeout fails closed); transcript buffer so the
+  backgrounded chat re-renders on resume. V38–V40.
+- [x] Stretch into 3.1c (same session): controller-owned TTS narration
+  (sentence-buffered, settings toggle) and push-to-talk via SpeechRecognizer.
+  Wake word out of scope. V41. `QUERY_ALL_PACKAGES` added for list_apps
+  visibility on Android 11+.
 
 ## Decisions (amended during implementation)
 
