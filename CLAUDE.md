@@ -28,6 +28,12 @@ Chat context is disposable; the repo is the memory. Per round:
    `docs/BACKLOG.md` (one line + rationale + rough priority) so it isn't lost.
    Scheduled work belongs in an exec-plan; `docs/BACKLOG.md` is the someday/maybe
    list — promote items into an exec-plan when they're scheduled.
+6. **Batch on-device checks**: when a change adds or alters behavior that can only
+   be confirmed on a real device/emulator, append its checks to `VERIFICATION.md`
+   (the on-device ledger) in the same change — each item numbered `Vn`, grouped by
+   phase, saying exactly what to run and what "pass" looks like. `emulator-smoke`
+   CI covers the scriptable subset; the ledger stays the real-hardware source of
+   truth until it's cleared into a history record.
 
 ## Language policy
 
