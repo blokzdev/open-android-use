@@ -76,8 +76,12 @@ tests, dependency-free control surface). Founder selected all themes + opportuni
   (→ new `TranscriptEntry`), `StoredMessage`, and `SessionCodec` (v3, back-compat `t`). All call
   sites (`ChatActivity` `messages`, `SessionPreview`, export, emulator test) updated; resume
   preserves saved times. JVM/instrumented tests green. Foundation for 4.7b-3b.
-- [ ] 4.7b-3b History/chat (render per-message timestamps + role grouping + export times) ·
-  [ ] 4.7c-2 History (search · archived filter · multi-select) · [ ] 4.7a-3 tokens/motion ·
+- [x] 4.7b-3b — **chat: timestamps + role grouping**: consecutive same-role turns are visually
+  grouped (tight spacing within a run, extra space on role change); a centered relative day/time
+  separator appears when a turn is ≥5 min after the previous; a subtle locale-aware time caption
+  sits under the last bubble of each user/assistant run (legacy `createdAt==0` lines show none).
+  Builds + tests + APK + instrumentation green. _(Export-time in the Markdown → backlog.)_
+- [ ] 4.7c-2 History (search · archived filter · multi-select) · [ ] 4.7a-3 tokens/motion ·
   [ ] 4.7d Home/onboarding · [ ] 4.7e Settings/Privacy.
 - _Founder call (2026-06-14):_ do the full per-message timestamps + role grouping (un-deferred
   from BACKLOG) for a more intuitive, elegant chat — split into plumbing (4.7b-3a) + UI (4.7b-3b).

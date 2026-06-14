@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.text.format.DateUtils
 import android.util.Base64
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -503,6 +504,9 @@ private val SUGGESTED_PROMPTS = listOf(
     R.string.suggested_prompt_3,
 )
 
+/** Show a centered time marker only when this turn is ≥5 min after the previous one. */
+private const val TIME_SEPARATOR_GAP_MS = 5 * 60 * 1000L
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ChatScreen(
@@ -603,21 +607,36 @@ private fun ChatScreen(
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
                         itemsIndexed(messages) { index, entry ->
+                            val prev = messages.getOrNull(index - 1)
+                            val next = messages.getOrNull(index + 1)
+                            // Group consecutive same-role turns: extra space when the role changes,
+                            // tight spacing within a run (so a task's tool/think steps read as one).
+                            val roleChanged = prev == null || prev.kind != entry.kind
+                            // A subtle time on the last bubble of each user/assistant run, and a
+                            // centered separator when there's a real gap since the previous turn.
+                            val lastOfRun = next == null || next.kind != entry.kind
+                            val showSeparator = entry.createdAt != 0L &&
+                                (prev == null || entry.createdAt - prev.createdAt >= TIME_SEPARATOR_GAP_MS)
                             // Offer Retry only on the last message and only when it's an
                             // error note and the agent is idle (re-runs the last user task).
                             val onRetryHere = if (!running && index == messages.lastIndex) onRetry else null
-                            MessageItem(
-                                entry.kind,
-                                entry.text,
-                                onOpenSettings,
-                                onOpenAccessibility,
-                                onCopy = onCopyMessage,
-                                onShare = onShareMessage,
-                                onRetry = onRetryHere,
-                            )
+                            Column(Modifier.padding(top = if (roleChanged) 8.dp else 0.dp)) {
+                                if (showSeparator) TimeSeparator(entry.createdAt)
+                                val time = if (lastOfRun && entry.createdAt != 0L) entry.createdAt else null
+                                MessageItem(
+                                    entry.kind,
+                                    entry.text,
+                                    onOpenSettings,
+                                    onOpenAccessibility,
+                                    onCopy = onCopyMessage,
+                                    onShare = onShareMessage,
+                                    onRetry = onRetryHere,
+                                    timestamp = time,
+                                )
+                            }
                         }
                         // A typing cue where the next answer will land — only while the
                         // agent is composing (not once its reply is already streaming in).
@@ -881,14 +900,55 @@ private fun MessageItem(
     onCopy: (String) -> Unit,
     onShare: (String) -> Unit,
     onRetry: (() -> Unit)? = null,
+    timestamp: Long? = null,
 ) {
     when (kind) {
-        AgentController.KIND_USER -> Bubble(text, user = true, onCopy = onCopy, onShare = onShare)
-        AgentController.KIND_ASSISTANT -> AssistantBubble(text, onCopy = onCopy, onShare = onShare)
+        AgentController.KIND_USER -> Bubble(text, user = true, onCopy = onCopy, onShare = onShare, timestamp = timestamp)
+        AgentController.KIND_ASSISTANT -> AssistantBubble(text, onCopy = onCopy, onShare = onShare, timestamp = timestamp)
         AgentController.KIND_THINKING -> ThinkingBlock(text)
         AgentController.KIND_TOOL -> ToolChip(text)
         else -> NoteCard(text, onOpenSettings, onOpenAccessibility, onRetry)
     }
+}
+
+/** A centered, subtle day/time marker between conversation turns with a real time gap (4.7b-3b). */
+@Composable
+private fun TimeSeparator(timestamp: Long) {
+    val context = LocalContext.current
+    val label = remember(timestamp) {
+        DateUtils.getRelativeDateTimeString(
+            context,
+            timestamp,
+            DateUtils.MINUTE_IN_MILLIS,
+            DateUtils.WEEK_IN_MILLIS,
+            0,
+        ).toString()
+    }
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.Center) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** Time-of-day caption (locale-aware) shown under the last bubble of a user/assistant run. */
+@Composable
+private fun BubbleTime(timestamp: Long, alignEnd: Boolean) {
+    val context = LocalContext.current
+    val label = remember(timestamp) {
+        DateUtils.formatDateTime(context, timestamp, DateUtils.FORMAT_SHOW_TIME)
+    }
+    Text(
+        label,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 2.dp, start = 6.dp, end = 6.dp),
+        textAlign = if (alignEnd) TextAlign.End else TextAlign.Start,
+    )
 }
 
 /**
@@ -985,34 +1045,40 @@ private fun MessageActions(
 }
 
 @Composable
-private fun Bubble(text: String, user: Boolean, onCopy: (String) -> Unit, onShare: (String) -> Unit) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = if (user) Arrangement.End else Arrangement.Start) {
-        MessageActions(text, onCopy, onShare) {
-            Surface(
-                color = if (user) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth(0.88f).widthIn(max = 560.dp),
-            ) {
-                Text(text, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodyMedium)
+private fun Bubble(text: String, user: Boolean, onCopy: (String) -> Unit, onShare: (String) -> Unit, timestamp: Long? = null) {
+    Column {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = if (user) Arrangement.End else Arrangement.Start) {
+            MessageActions(text, onCopy, onShare) {
+                Surface(
+                    color = if (user) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth(0.88f).widthIn(max = 560.dp),
+                ) {
+                    Text(text, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodyMedium)
+                }
             }
         }
+        if (timestamp != null) BubbleTime(timestamp, alignEnd = user)
     }
 }
 
 @Composable
-private fun AssistantBubble(text: String, onCopy: (String) -> Unit, onShare: (String) -> Unit) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
-        MessageActions(text, onCopy, onShare) {
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth(0.92f).widthIn(max = 640.dp),
-            ) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    ChatMarkdown.parse(text).forEach { block -> MarkdownBlock(block) }
+private fun AssistantBubble(text: String, onCopy: (String) -> Unit, onShare: (String) -> Unit, timestamp: Long? = null) {
+    Column {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
+            MessageActions(text, onCopy, onShare) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth(0.92f).widthIn(max = 640.dp),
+                ) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        ChatMarkdown.parse(text).forEach { block -> MarkdownBlock(block) }
+                    }
                 }
             }
         }
+        if (timestamp != null) BubbleTime(timestamp, alignEnd = false)
     }
 }
 

@@ -441,6 +441,18 @@ need a real device.
   intact); per-message start times are now captured and survive a resume (visible rendering lands
   in 4.7b-3b).
 
+### Phase 4.7b-3b — Chat: timestamps + role grouping
+
+- [ ] **V101. Role grouping**: run a task that produces a run of agent/tool/thinking steps. Pass:
+  steps within the same role sit tightly together, with a clear extra gap when the turn switches
+  (user ↔ agent), so each turn reads as one chunk rather than a uniform stack.
+- [ ] **V102. Time separator on gaps**: send a message, wait >5 min, send another (or resume an
+  older conversation). Pass: a centered relative day/time marker (e.g. "Yesterday 2:34 PM")
+  appears above the later turn; rapid back-to-back turns show no separator.
+- [ ] **V103. Per-turn time caption**: each user and agent turn shows a small locale-aware
+  time-of-day under the last bubble of its run; conversations saved before 4.7b-3a (no stored
+  time) simply show no caption (no "1970"/epoch artifact).
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |
