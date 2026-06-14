@@ -214,6 +214,30 @@ Anthropic API key at hand (Android 11+ device):
   "Speak narration" in the wizard. Pass: the choices match in Agent Chat →
   Settings afterward.
 
+### Phase 4.3 — World-class chat (Compose)
+
+- [ ] **V48. Live streaming**: send a task. Pass: the assistant reply streams in
+  smoothly (no jank/flicker) and the list auto-scrolls to the newest message.
+- [ ] **V49. Agent's view**: during a task. Pass: the "What the agent sees" card
+  updates with the latest screenshot as the agent acts; tapping it opens a
+  full-screen view. (Before any capture it shows the "second pair of eyes" hint.)
+- [ ] **V50. Tool chips read clearly**: Pass: actions render as friendly chips
+  ("Open Settings", "Tap [n]", "Type …", "Scroll down"); failures show an error
+  chip.
+- [ ] **V51. Thinking toggle**: Pass: a "Show thinking" control reveals/hides the
+  reasoning; it's hidden by default.
+- [ ] **V52. Markdown answers**: ask for a list. Pass: bullets/numbers, bold,
+  italic, and inline code render.
+- [ ] **V53. Select / copy / share**: long-press an answer to select & copy;
+  tap "Share". Pass: text is selectable/copyable and the share sheet opens.
+- [ ] **V54. New conversation + model chip + haptics**: Pass: "New" clears the
+  transcript; the model chip shows the active model and opens settings; Send/Stop
+  give a haptic tick; the input sits above the keyboard (IME inset).
+- [ ] **V55. Error card + fix**: enter a bad API key and send. Pass: a styled
+  error/needs-key card appears with a one-tap fix that opens settings.
+- [ ] **V56. Stop always reachable**: mid-task. Pass: Stop is visible in the
+  "agent's view" status row and the composer; tapping it halts within one action.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |
