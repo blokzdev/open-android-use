@@ -23,12 +23,15 @@
 - **Brand "Aurora" palette + theme**: `ui/theme/Color.kt` + `Theme.kt`
   (`OpenAndroidUseTheme`) — indigo / blue→violet / mint, Material 3 light+dark,
   brand-forward (dynamic color opt-in, off by default).
-- **App icon "tap ripple"**: concentric squircles rippling from a mint core (a
-  tap on a phone screen), echoing the app squircle. Adaptive vector
+- **App icon — the agent's hand tapping out an AI sparkle**: touch-gesture hand
+  (blue→violet gradient) with an open mint "sparkle crown" blooming above the
+  fingertip (top tip anchored; lower arms cut with gaps so the sparkle stays
+  distinct from the hand, including in monochrome). Adaptive vector
   (`ic_launcher_foreground.xml`), gradient background (`ic_launcher_background.xml`),
   monochrome themed layer (`ic_launcher_monochrome.xml`); manifest icon/roundIcon
-  updated. Designed by rasterizing candidates (first a literal "two hands cradle a
-  phone", then switched to the ripple on founder feedback) and iterating visually.
+  updated. Designed iteratively with the founder by rasterizing candidates
+  (hands-cradle-a-phone → tap ripple → screen-squircle → hand+sparkle) via
+  cairosvg and reviewing renders at full and 48px sizes plus a monochrome proof.
 - **Screen migration**: `MainActivity` + `AboutActivity` → Compose
   (`ComponentActivity` + `setContent`), preserving intents/behavior; `ChatActivity`
   stays Views (chunk 4.3).

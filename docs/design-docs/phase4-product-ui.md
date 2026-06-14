@@ -71,9 +71,11 @@ largely for free).
 
 4. **Design system & identity**
    - Material 3 / dynamic color, full dark mode, type + spacing tokens.
-   - A real adaptive app icon — **shipped in PR-A**: the "tap ripple" brand mark
-     (concentric squircles rippling out from a mint core — a tap on a phone
-     screen), in the brand "Aurora" palette (indigo ground, blue→violet rings),
+   - A real adaptive app icon — **shipped in PR-A**: the brand mark is the
+     agent's hand tapping out an **AI sparkle** (the touch-gesture hand in a
+     blue→violet gradient, with an open mint "sparkle crown" blooming above the
+     fingertip — arms cut with gaps so it stays distinct from the hand, including
+     in monochrome), in the brand "Aurora" palette (indigo gradient ground),
      with a monochrome layer for Android 13+ themed icons
      (`res/drawable/ic_launcher_foreground.xml` + `ic_launcher_monochrome.xml`,
      gradient `ic_launcher_background.xml`). The same palette drives the app

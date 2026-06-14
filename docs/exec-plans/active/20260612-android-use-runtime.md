@@ -132,10 +132,10 @@ build script, and docs synced.
   design-system foundation → 4.3 chat polish → 4.4 trust/control surface → 4.5
   settings & privacy → 4.6 a11y/i18n/responsive + Play readiness.
   - [~] PR-A (foundation): Compose + Material 3 enabled (Kotlin 2.0 compose
-    plugin), `OpenAndroidUseTheme` on the brand "Aurora" palette, designed "tap
-    ripple" adaptive launcher icon (+ gradient background + monochrome themed
-    variant), and `MainActivity`/`AboutActivity` migrated to Compose.
-    `ChatActivity` stays Views (chunk 4.3).
+    plugin), `OpenAndroidUseTheme` on the brand "Aurora" palette, designed brand
+    icon — the agent's hand tapping out an AI sparkle (+ gradient background +
+    monochrome themed variant), and `MainActivity`/`AboutActivity` migrated to
+    Compose. `ChatActivity` stays Views (chunk 4.3).
   - [ ] PR-B (onboarding wizard 4.1): guided first-run flow (welcome → enable
     accessibility w/ restricted-settings handling → API key → ready), gating on a
     new `AgentSettings.onboardingCompleted` flag.
@@ -188,8 +188,9 @@ build script, and docs synced.
   Vercel AI SDK are rejected as JS/server-side: both would force a backend proxy
   and break the on-device, key-stays-local model. See
   `docs/design-docs/phase5-multi-provider-byok.md`.
-- 2026-06-14: Brand identity — the app icon is a designed "tap ripple" adaptive
-  vector (concentric squircles rippling from a mint core — a tap on a phone
-  screen), in the brand "Aurora" palette (indigo ground, blue→violet rings),
+- 2026-06-14: Brand identity — the app icon is a designed adaptive vector: the
+  agent's hand (touch-gesture, blue→violet gradient) tapping out an AI sparkle
+  (open mint "sparkle crown" with gaps so it stays distinct from the hand, incl.
+  in monochrome), in the brand "Aurora" palette (indigo gradient ground),
   replacing the borrowed system drawable; a monochrome layer supports Android 13+
   themed icons, and the same palette drives the Compose theme.
