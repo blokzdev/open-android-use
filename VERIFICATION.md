@@ -9,7 +9,8 @@
 > **CI automation:** `scripts/run-android-smoke-tests.sh` (CI: the
 > `emulator-smoke` job in `.github/workflows/android-runtime.yml`, which boots a
 > real API-30 emulator) automates the scriptable subset — roughly V1–V5, V7,
-> V14, V20–V23, V26, V29, and the V27 routing guard. A green emulator-smoke run
+> V14, V20–V23, V26, V29, the V27 routing guard, and the session-store I/O behind
+> V67/V68/V70 (`SessionStoreInstrumentedTest`). A green emulator-smoke run
 > is strong evidence, but the real-hardware pass below remains authoritative
 > (OEM ROMs, IMEs, secure surfaces, and touch behavior differ).
 
@@ -254,6 +255,57 @@ Anthropic API key at hand (Android 11+ device):
 - [ ] **V61. Tap-location highlight**: during a task, watch the "Agent's view" in
   chat. Pass: a mint ring marks where the agent just tapped, aligned to the
   screenshot; it tracks subsequent taps and clears on New conversation.
+
+### Phase 4.5 — Settings, privacy & multi-session conversations
+
+The emulator-smoke `SessionStoreInstrumentedTest` already exercises the on-device
+persistence I/O (save, newest-first list, load, rename, archive, delete,
+delete-all); the items below cover the UI and the resume behavior on real
+hardware.
+
+- [ ] **V62. Settings screen (not a dialog)**: open Agent Chat → tap the model
+  chip (or Home → Settings). Pass: a full **Settings** screen opens showing API
+  key status, model picker, the confirm/voice toggles, and (Android 12+) a
+  Material You toggle — the old in-chat dialog is gone.
+- [ ] **V63. API key save & clear**: enter a key → "Save key" (toast; model list
+  refreshes); then "Clear key". Pass: status flips to "not set", the agent now
+  reports it needs a key, and the key never appears in `adb logcat`.
+- [ ] **V64. Material You toggle (Android 12+)**: toggle "Use system colors".
+  Pass: the UI recolors to the system palette immediately and reverts to the
+  brand "Aurora" palette when off; the choice persists across an app restart. On
+  Android < 12 the toggle is absent.
+- [ ] **V65. Re-run setup**: Settings → "Re-run setup". Pass: the onboarding
+  wizard launches again; completing it returns to the app.
+- [ ] **V66. Privacy & data screen**: Settings → "Privacy & data". Pass: the
+  trust story is browsable — on-device, what leaves the device (only
+  api.anthropic.com), Keystore key storage, text-only saved conversations, and
+  the kill switch.
+- [ ] **V67. Data controls**: each of "Clear API key", "Clear current
+  conversation", "Delete all saved conversations" asks for confirmation and does
+  exactly what it says (delete-all empties History; clear-conversation empties
+  the current chat without touching saved ones).
+- [ ] **V68. Conversation persists + auto-named**: run a task, then open History
+  (or background and reopen the app). Pass: the conversation is saved, **named
+  from the first prompt**, newest first.
+- [ ] **V69. Resume with context (headline)**: from History, tap a past
+  conversation → it reopens with its transcript; send a follow-up like "what did
+  you just do?". Pass: the agent answers using the prior conversation's context
+  (history rebuilt from the transcript) and re-observes the device live for any
+  new action — no stale screenshots.
+- [ ] **V70. Rename / archive / delete**: use a row's ⋯ menu. Pass: rename
+  updates the title (and the live title if it's the open session); archive shows
+  the chip and removes it from the empty-state recents; delete removes it
+  (blocked with a toast if it's the currently-running session).
+- [ ] **V71. Recent sessions on the empty state**: tap "New", then view the empty
+  chat. Pass: up to three recent non-archived conversations appear above the
+  suggested prompts; tapping one resumes it.
+- [ ] **V72. Export a conversation**: tap "Export". Pass: the share sheet offers a
+  Markdown `.md` (named from the title); the file contains the full transcript
+  (You / Agent / tool / thinking) and **no images**.
+- [ ] **V73. Screenshots never persisted**: after image-producing tasks, inspect
+  the saved session (export, or `adb run-as dev.openandroiduse.companion` over
+  `files/sessions/*.json`). Pass: the JSON is text-only — no base64 PNG — with
+  only "(screenshot omitted…)" markers where a screenshot had been.
 
 ## Results log
 
