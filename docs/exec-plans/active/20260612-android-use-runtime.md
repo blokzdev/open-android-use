@@ -129,7 +129,7 @@ build script, and docs synced.
 - [~] **Phase 4 — Product UI/UX** (`docs/design-docs/phase4-product-ui.md`):
   Compose/Material 3 presentation layer; 4.1 guided onboarding wizard → 4.2
   design-system foundation → 4.3 chat polish → 4.4 trust/control surface → 4.5
-  settings & privacy → 4.5.1 hardening → 4.6 a11y/i18n/responsive → 4.7 Play readiness.
+  settings & privacy → 4.5.1 hardening → 4.6 a11y/i18n/responsive → 4.7 UX elevation → 4.8 Play readiness.
   - [x] PR-A (foundation): Compose + Material 3 enabled (Kotlin 2.0 compose
     plugin), `OpenAndroidUseTheme` on the brand "Aurora" palette, designed brand
     icon — the agent's hand tapping out an AI sparkle (+ gradient background +
@@ -188,7 +188,12 @@ build script, and docs synced.
     (responsive: edge-to-edge, predictive back, resizeable, content max-width +
     chat bubble caps). 4.6d done (markdown links + pipe tables). Actual
     translations are a future Localization phase.
-- [ ] **Phase 4.7 — Distribution & Play readiness**: (a) tagged GitHub release of
+  - [~] 4.7 UX elevation
+    (`docs/exec-plans/active/20260614-phase47-ux-elevation.md`): a design-led sweep across
+    every surface (icons/splash/Snackbar+Undo/motion, chat depth, History power features,
+    Home+onboarding glow-up, Settings/Privacy depth). Sub-PRs 4.7a→4.7e. 4.7a done (real
+    Material icons + Android-12 splash).
+- [ ] **Phase 4.8 — Distribution & Play readiness**: (a) tagged GitHub release of
   the signed APK; (b) Play Store **signed AAB** (the Android 13+ "Restricted
   setting" prompt is an install-source gate removed by a Play install, *not* by
   release signing); (c) release signing keystore/config (founder-held); (d) the
@@ -270,6 +275,10 @@ build script, and docs synced.
   dedicated future **Localization** phase, so the framework lands without committing to
   translation quality/maintenance now. 4.6 also includes tablet/foldable two-pane and
   markdown links+tables (founder's scope choices); Play distribution stays in 4.7.
+- 2026-06-14: A design-led **UX-elevation** phase was inserted as **4.7** (icons/splash/
+  Snackbar+Undo/motion, chat depth, History power features, Home+onboarding, Settings/Privacy
+  depth); the prior Play-readiness work is renumbered **4.8**. (Supersedes the "Play stays in
+  4.7" notes above.) See `docs/exec-plans/active/20260614-phase47-ux-elevation.md`.
 - 2026-06-14: Brand identity — the app icon is a designed adaptive vector: the
   agent's hand (touch-gesture, blue→violet gradient) tapping out an AI sparkle
   (open mint "sparkle crown" with gaps so it stays distinct from the hand, incl.

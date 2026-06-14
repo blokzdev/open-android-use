@@ -37,7 +37,14 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.IosShare
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -493,10 +500,16 @@ private fun ChatScreen(
                 actions = {
                     // In two-pane the History list is already on screen.
                     if (showHistoryAction) {
-                        TextButton(onClick = onOpenHistory) { Text(stringResource(R.string.chat_history)) }
+                        IconButton(onClick = onOpenHistory) {
+                            Icon(Icons.Filled.History, contentDescription = stringResource(R.string.chat_history))
+                        }
                     }
-                    TextButton(onClick = onExport) { Text(stringResource(R.string.chat_export)) }
-                    TextButton(onClick = onNewConversation) { Text(stringResource(R.string.chat_new)) }
+                    IconButton(onClick = onExport) {
+                        Icon(Icons.Filled.IosShare, contentDescription = stringResource(R.string.chat_export))
+                    }
+                    IconButton(onClick = onNewConversation) {
+                        Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.chat_new))
+                    }
                 },
             )
         },
@@ -736,13 +749,9 @@ private fun Composer(
             maxLines = 4,
         )
         val micLabel = stringResource(if (listening) R.string.chat_mic_listening else R.string.chat_mic_voice_input)
-        TextButton(
-            onClick = onMic,
-            enabled = !running,
-            modifier = Modifier
-                .minimumInteractiveComponentSize()
-                .semantics { contentDescription = micLabel },
-        ) { Text(if (listening) "…" else "🎤") }
+        IconButton(onClick = onMic, enabled = !running) {
+            Icon(Icons.Filled.Mic, contentDescription = micLabel)
+        }
         if (running) {
             Button(onClick = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); onStop() }) { Text(stringResource(R.string.action_stop)) }
         } else {

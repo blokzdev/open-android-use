@@ -367,6 +367,16 @@ need a real device.
   single pane and the Main → History flow is unchanged; rotating / folding-unfolding keeps the
   current chat (no lost state).
 
+### Phase 4.7a — Design-system foundation (icons + splash)
+
+- [ ] **V84. Splash screen**: cold-launch the app. Pass: the Android-12 splash shows the brand
+  mark on the indigo ground, then hands off to the Home screen (no white flash / no double
+  splash); on Android < 12 the back-compat splash is acceptable.
+- [ ] **V85. Real icons, still labelled**: the chat top-bar actions (History/Export/New), the
+  mic, and the History row overflow now show Material icons (no emoji). Pass: each is announced
+  by TalkBack with its label (History, Export, New conversation, Voice input, "More options
+  for …") and the touch targets stay ≥48dp.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |
