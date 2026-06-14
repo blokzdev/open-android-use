@@ -86,8 +86,15 @@ tests, dependency-free control surface). Founder selected all themes + opportuni
   "Show archived" chip (shown only when some exist); a "No matching conversations" empty state.
   Lives in the shared `SessionsList`, so phone + two-pane both get it. JVM `SessionSearchTest` +
   instrumented `searchFiltersByTitle`. Builds + tests + APK + instrumentation green.
-- [ ] 4.7c-2b History (multi-select bulk archive/delete) · [ ] 4.7a-3 tokens/motion ·
-  [ ] 4.7d Home/onboarding · [ ] 4.7e Settings/Privacy.
+- [x] 4.7d-1 — **Home dashboard**: `MainActivity` is now a dashboard — a brand hero (mark +
+  name + tagline), a readiness card with a status icon and one **context-aware primary CTA**
+  (Ready → Open chat; otherwise → Finish setup, routing to the first missing prerequisite), a
+  recent-conversations section (tap to resume, See all → History), suggestion chips that open chat
+  prefilled (new `ChatActivity.EXTRA_PROMPT`), and a cleaner Settings / History / About nav plus
+  the accessibility/kill-switch footer. Builds + tests + APK + instrumentation green.
+- [ ] 4.7d-2 onboarding glow-up · [ ] 4.7a-3 tokens/motion · [ ] 4.7e Settings/Privacy.
+- _Deferred:_ 4.7c-2b multi-select bulk archive/delete → BACKLOG (stateful selection mode is the
+  lowest-value / hardest-to-tune-blind item in 4.7c; revisit if requested).
 - _Founder call (2026-06-14):_ do the full per-message timestamps + role grouping (un-deferred
   from BACKLOG) for a more intuitive, elegant chat — split into plumbing (4.7b-3a) + UI (4.7b-3b).
 

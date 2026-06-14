@@ -44,6 +44,15 @@
     <string name="main_history">History</string>
     <string name="main_settings">Settings</string>
     <string name="main_kill_switch_hint">Disable the service at any time to cut the agent off. The endpoint binds 127.0.0.1 only and is reachable from a computer solely via `adb forward`.</string>
+    <!-- Home dashboard (Phase 4.7d) -->
+    <string name="main_tagline">Your second pair of hands</string>
+    <string name="main_ready_caption">Ready when you are — ask me to do something on this phone.</string>
+    <string name="main_cta_open_chat">Open chat</string>
+    <string name="main_cta_finish_setup">Finish setup</string>
+    <string name="main_recent_title">Recent conversations</string>
+    <string name="main_recent_see_all">See all</string>
+    <string name="main_suggestions_title">Try asking</string>
+    <string name="main_about">About</string>
 
     <!-- SettingsActivity -->
     <string name="settings_title">Settings</string>
