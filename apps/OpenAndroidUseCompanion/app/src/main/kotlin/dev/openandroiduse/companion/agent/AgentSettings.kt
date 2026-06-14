@@ -39,6 +39,13 @@ class AgentSettings(context: Context) {
             prefs.edit().putBoolean(PREF_SPEAK_NARRATION, value).apply()
         }
 
+    /** Phase 4.1: whether the first-run onboarding wizard has been completed. */
+    var onboardingCompleted: Boolean
+        get() = prefs.getBoolean(PREF_ONBOARDING_COMPLETED, false)
+        set(value) {
+            prefs.edit().putBoolean(PREF_ONBOARDING_COMPLETED, value).apply()
+        }
+
     /**
      * Test/diagnostic hook with no UI: overrides the API base URL so the
      * emulator smoke can run the real agent loop against a loopback stub
@@ -124,6 +131,7 @@ class AgentSettings(context: Context) {
         private const val PREF_MODEL = "model"
         private const val PREF_CONFIRM_ACTIONS = "confirm_actions"
         private const val PREF_SPEAK_NARRATION = "speak_narration"
+        private const val PREF_ONBOARDING_COMPLETED = "onboarding_completed"
         private const val PREF_BASE_URL = "base_url_override"
         private const val PREF_AVAILABLE_MODELS = "available_models"
         private const val PREF_KEY_CIPHERTEXT = "api_key_ciphertext"

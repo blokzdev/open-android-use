@@ -131,14 +131,17 @@ build script, and docs synced.
   Compose/Material 3 presentation layer; 4.1 guided onboarding wizard → 4.2
   design-system foundation → 4.3 chat polish → 4.4 trust/control surface → 4.5
   settings & privacy → 4.6 a11y/i18n/responsive + Play readiness.
-  - [~] PR-A (foundation): Compose + Material 3 enabled (Kotlin 2.0 compose
+  - [x] PR-A (foundation): Compose + Material 3 enabled (Kotlin 2.0 compose
     plugin), `OpenAndroidUseTheme` on the brand "Aurora" palette, designed brand
     icon — the agent's hand tapping out an AI sparkle (+ gradient background +
     monochrome themed variant), and `MainActivity`/`AboutActivity` migrated to
-    Compose. `ChatActivity` stays Views (chunk 4.3).
-  - [ ] PR-B (onboarding wizard 4.1): guided first-run flow (welcome → enable
-    accessibility w/ restricted-settings handling → API key → ready), gating on a
-    new `AgentSettings.onboardingCompleted` flag.
+    Compose. `ChatActivity` stays Views (chunk 4.3). Merged in PR #6.
+  - [x] PR-B (onboarding wizard 4.1): Compose first-run wizard (welcome → enable
+    accessibility w/ restricted-settings handling + auto-advance → privacy →
+    skippable API key + model → preferences → ready), gated by
+    `AgentSettings.onboardingCompleted`. Plus an agent-readiness model
+    (`Readiness.kt`): home + chat surface what's missing (accessibility / key)
+    and degrade gracefully instead of failing silently.
 - [ ] **Phase 5 — Multi-provider BYOK** (`docs/design-docs/phase5-multi-provider-byok.md`):
   Claude + Gemini via an in-house Kotlin `AgentBackend` interface + official
   per-provider SDKs (keep `anthropic-java`; add `com.google.genai` for Gemini);

@@ -191,6 +191,29 @@ Anthropic API key at hand (Android 11+ device):
   Pass: narration is spoken sentence-by-sentence while the agent works (and
   goes silent on Stop); dictation lands in the input field for review.
 
+### Phase 4.1 — First-run onboarding wizard + graceful handling
+
+- [ ] **V42. First-run wizard appears**: clear app data (or fresh install) and
+  open the app. Pass: the onboarding wizard launches instead of the home screen
+  (Welcome → step 1 of 6).
+- [ ] **V43. Accessibility step + auto-advance**: on the accessibility step, tap
+  "Open Accessibility Settings", clear the Android 13+ restricted-settings gate
+  (the inline hint explains how), enable the service, return. Pass: the wizard
+  auto-advances to the privacy step; the card showed "running ✓".
+- [ ] **V44. Skip the API key**: on the API-key step, tap "Skip for now".
+  Pass: onboarding completes; the home screen shows "API key needed" with
+  guidance; relaunching the app does NOT show the wizard again.
+- [ ] **V45. Graceful no-key on send**: with no key set, open Agent Chat, type a
+  task, Send. Pass: a clear note appears ("Add your Anthropic API key to start")
+  and the settings dialog opens; the typed task is preserved; no crash/silent
+  fail. After adding a key, Send works.
+- [ ] **V46. Graceful no-accessibility on send**: with the service disabled but a
+  key set, Send a task. Pass: a note appears ("Enable the companion accessibility
+  service…") and Accessibility Settings opens; no silent fail.
+- [ ] **V47. Preferences persisted**: toggle "Ask before each action batch" /
+  "Speak narration" in the wizard. Pass: the choices match in Agent Chat →
+  Settings afterward.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |

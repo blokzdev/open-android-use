@@ -18,6 +18,8 @@ import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
 import dev.openandroiduse.companion.CompanionService
+import dev.openandroiduse.companion.Readiness
+import dev.openandroiduse.companion.readiness
 
 /**
  * The conversation surface for the on-device agent (Phase 3.1a): type a task,
@@ -163,6 +165,21 @@ class ChatActivity : Activity(), AgentController.Listener {
     private fun sendTask() {
         val text = input.text.toString().trim()
         if (text.isEmpty()) return
+        // Graceful degradation: surface what's missing and the fix, instead of a
+        // silent failure. The typed task is preserved so the user doesn't lose it.
+        when (readiness(CompanionService.isRunning, settings.hasApiKey())) {
+            Readiness.NEEDS_KEY, Readiness.NEEDS_BOTH -> {
+                addSystemNote("Add your Anthropic API key to start — opening settings.")
+                showSettingsDialog()
+                return
+            }
+            Readiness.NEEDS_ACCESSIBILITY -> {
+                addSystemNote("Enable the companion accessibility service so I can see and tap the screen — opening settings.")
+                startActivity(android.content.Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                return
+            }
+            Readiness.READY -> Unit
+        }
         input.setText("")
         AgentController.startTask(text, settings)
         // startTask logs the user message → onTranscriptChanged renders it.
