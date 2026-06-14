@@ -67,7 +67,15 @@ Guardrail: control surface stays dependency-free; 4.6 work is presentation-layer
   underline) + `| pipe |` tables (header + `---` separator + rows) in `agent/ChatMarkdown.kt`,
   rendered with horizontal scroll. Parser unit-tested (links, tables, fallbacks, link-in-cell).
   Builds + unit tests + APK green.
-- [ ] 4.6e two-pane.
+- [x] 4.6e tablet/foldable two-pane: `material3-window-size-class`; extracted
+  `agent/SessionsList.kt` (shared by `SessionsActivity` + the pane); `agent/TwoPane.kt`
+  (Expanded-only) + `TwoPaneTest`; `ChatActivity` shows a `HistoryPane` beside `ChatScreen`
+  at Expanded width (reusing `resumeSession`), single-pane otherwise. Out-of-scope items
+  (hinge-awareness, full `NavigableListDetailPaneScaffold`, Settings/Privacy two-pane, 4.6c
+  responsive follow-ups) recorded in `docs/BACKLOG.md`. Builds + unit tests + APK +
+  instrumentation green.
+
+**Phase 4.6 complete** (a–e).
 
 ## Decisions
 - 2026-06-14: i18n ships as **externalize-only** (English, translation-ready). Actual

@@ -50,6 +50,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.VerticalDivider
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -125,6 +128,8 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
     private var tapPoint by mutableStateOf<Pair<Float, Float>?>(null)
     private var expandView by mutableStateOf(false)
     private var recentSessions by mutableStateOf<List<SessionMeta>>(emptyList())
+    /** Full session list for the tablet/foldable two-pane History pane (4.6e). */
+    private var sessionList by mutableStateOf<List<SessionMeta>>(emptyList())
     private lateinit var sessions: SessionStore
 
     /** The dynamic-color value this instance was themed with, to detect a Settings toggle. */
@@ -133,6 +138,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
     /** Transcript revision last written to SessionStore, so onPause doesn't re-save no-ops. */
     private var lastSavedRevision = -1
 
+    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         settings = AgentSettings(this)
@@ -151,39 +157,23 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
         }
         setContent {
             OpenAndroidUseTheme(dynamicColor = settings.dynamicColor) {
-                ChatScreen(
-                    messages = messages,
-                    running = running,
-                    readiness = readiness(serviceOn, hasKey),
-                    listening = listening,
-                    input = input,
-                    agentView = agentView,
-                    tapPoint = tapPoint,
-                    modelLabel = settings.model,
-                    recentSessions = recentSessions,
-                    onInputChange = { input = it },
-                    onSend = ::sendTask,
-                    onStop = {
-                        AgentController.requestStop()
-                    },
-                    onMic = ::startListening,
-                    onNewConversation = {
-                        persistCurrentSession()
-                        AgentController.newConversation()
-                        messages = emptyList()
-                        agentView = null
-                        tapPoint = null
-                        recentSessions = sessions.list()
-                    },
-                    onExport = ::exportConversation,
-                    onResumeSession = ::resumeSession,
-                    onOpenSettings = { startActivity(Intent(this, SettingsActivity::class.java)) },
-                    onOpenHistory = { startActivity(Intent(this, SessionsActivity::class.java)) },
-                    onOpenAccessibility = {
-                        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-                    },
-                    onExpandView = { expandView = true },
-                )
+                val widthClass = calculateWindowSizeClass(this).widthSizeClass
+                if (TwoPane.isTwoPane(widthClass)) {
+                    Row(Modifier.fillMaxSize()) {
+                        HistoryPane(
+                            sessions = sessionList,
+                            onResume = ::resumeSession,
+                            onRename = ::renameSessionFromPane,
+                            onArchive = { id, archived -> sessions.setArchived(id, archived); sessionList = sessions.list() },
+                            onDelete = ::deleteSessionFromPane,
+                            modifier = Modifier.width(360.dp),
+                        )
+                        VerticalDivider()
+                        ChatContent(Modifier.weight(1f), showHistory = false)
+                    }
+                } else {
+                    ChatContent()
+                }
                 val shot = agentView
                 if (expandView && shot != null) {
                     Dialog(onDismissRequest = { expandView = false }) {
@@ -222,8 +212,61 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
         AgentController.latestScreenshotBase64?.let { decodeAgentView(it) }
         tapPoint = AgentController.latestTapNormalized
         recentSessions = sessions.list()
+        sessionList = recentSessions
         if (hasKey) {
             Thread({ ModelCatalog.refresh(settings) }, "oau-model-refresh").start()
+        }
+    }
+
+    /** The chat surface; reused as the single screen and as the detail pane in two-pane. */
+    @Composable
+    private fun ChatContent(modifier: Modifier = Modifier, showHistory: Boolean = true) {
+        ChatScreen(
+            messages = messages,
+            running = running,
+            readiness = readiness(serviceOn, hasKey),
+            listening = listening,
+            input = input,
+            agentView = agentView,
+            tapPoint = tapPoint,
+            modelLabel = settings.model,
+            recentSessions = recentSessions,
+            modifier = modifier,
+            showHistoryAction = showHistory,
+            onInputChange = { input = it },
+            onSend = ::sendTask,
+            onStop = { AgentController.requestStop() },
+            onMic = ::startListening,
+            onNewConversation = {
+                persistCurrentSession()
+                AgentController.newConversation()
+                messages = emptyList()
+                agentView = null
+                tapPoint = null
+                recentSessions = sessions.list()
+                sessionList = recentSessions
+            },
+            onExport = ::exportConversation,
+            onResumeSession = ::resumeSession,
+            onOpenSettings = { startActivity(Intent(this, SettingsActivity::class.java)) },
+            onOpenHistory = { startActivity(Intent(this, SessionsActivity::class.java)) },
+            onOpenAccessibility = { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
+            onExpandView = { expandView = true },
+        )
+    }
+
+    private fun renameSessionFromPane(id: String, title: String) {
+        sessions.rename(id, title)
+        AgentController.noteRenamed(id, title)
+        sessionList = sessions.list()
+    }
+
+    private fun deleteSessionFromPane(id: String) {
+        if (AgentController.isRunning && id == AgentController.currentSessionId) {
+            Toast.makeText(this, getString(R.string.sessions_busy_delete), Toast.LENGTH_SHORT).show()
+        } else {
+            sessions.delete(id)
+            sessionList = sessions.list()
         }
     }
 
@@ -249,6 +292,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
             if (!running) {
                 persistCurrentSession()
                 recentSessions = sessions.list()
+                sessionList = recentSessions
             }
         }
     }
@@ -413,6 +457,8 @@ private fun ChatScreen(
     tapPoint: Pair<Float, Float>?,
     modelLabel: String,
     recentSessions: List<SessionMeta>,
+    modifier: Modifier = Modifier,
+    showHistoryAction: Boolean = true,
     onInputChange: (String) -> Unit,
     onSend: () -> Unit,
     onStop: () -> Unit,
@@ -434,6 +480,7 @@ private fun ChatScreen(
         }
     }
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = {
@@ -444,7 +491,10 @@ private fun ChatScreen(
                     }
                 },
                 actions = {
-                    TextButton(onClick = onOpenHistory) { Text(stringResource(R.string.chat_history)) }
+                    // In two-pane the History list is already on screen.
+                    if (showHistoryAction) {
+                        TextButton(onClick = onOpenHistory) { Text(stringResource(R.string.chat_history)) }
+                    }
                     TextButton(onClick = onExport) { Text(stringResource(R.string.chat_export)) }
                     TextButton(onClick = onNewConversation) { Text(stringResource(R.string.chat_new)) }
                 },
@@ -475,6 +525,31 @@ private fun ChatScreen(
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HistoryPane(
+    sessions: List<SessionMeta>,
+    onResume: (String) -> Unit,
+    onRename: (String, String) -> Unit,
+    onArchive: (String, Boolean) -> Unit,
+    onDelete: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Scaffold(
+        modifier = modifier,
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.sessions_title)) }) },
+    ) { padding ->
+        SessionsList(
+            sessions = sessions,
+            onResume = onResume,
+            onRename = onRename,
+            onArchive = onArchive,
+            onDelete = onDelete,
+            modifier = Modifier.padding(padding),
+        )
     }
 }
 

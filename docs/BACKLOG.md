@@ -52,3 +52,18 @@ Each entry: **idea** — why deferred · _priority_ · origin.
   observable theme (StateFlow/DataStore) collected via `collectAsState` so screens
   recompose in place with no flash. _Low–Medium._ Fold into Phase 4.6's design-system
   work (which may introduce DataStore/ViewModel). Origin: Phase 4.5.1.
+
+## Adaptive / large-screen (deferred from Phase 4.6)
+
+- **Hinge-aware two-pane** — the 4.6e tablet/foldable two-pane splits by width class only;
+  it doesn't avoid a foldable's hinge. Add `androidx.window` (`HingeInfo`/`Posture`) to place
+  the divider on the hinge and pad around it. _Low._ Origin: Phase 4.6e.
+- **Adopt `NavigableListDetailPaneScaffold`** — if app-wide adaptive navigation is wanted
+  later (predictive-back pane nav, canonical list-detail), migrate the History↔Chat two-pane
+  (and possibly Settings/Privacy) to the official Material3-adaptive scaffold instead of the
+  manual `WindowSizeClass` Row. Bigger refactor (re-houses navigation). _Low/Medium._ Origin: Phase 4.6e.
+- **Two-pane Settings/Privacy on large screens** — a supporting-pane layout for the
+  settings cluster on tablets/foldables. _Low._ Origin: Phase 4.6e.
+- **Responsive follow-ups from 4.6c** — content max-width for Onboarding and the chat
+  message list; an adaptive (height-fraction) "Agent's view" instead of the fixed 200dp.
+  _Low._ Origin: Phase 4.6c.
