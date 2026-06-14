@@ -19,8 +19,18 @@ data class SessionPayload(
     val preview: String = "",
 )
 
-/** One transcript line: an [AgentController] KIND_* and its rendered text. */
-data class StoredMessage(val kind: String, val text: String)
+/**
+ * One transcript line: an [AgentController] KIND_* and its rendered text, plus when it started
+ * ([createdAt], epoch millis; 0 for legacy sessions saved before Phase 4.7b-3).
+ */
+data class StoredMessage(val kind: String, val text: String, val createdAt: Long = 0L)
+
+/**
+ * A live transcript line for the chat UI (Phase 4.7b-3): an [AgentController] KIND_*, its current
+ * text, and when it started ([createdAt], epoch millis). Carries the timestamp the chat renders
+ * and groups by; pure (Android/SDK-free) so export/grouping logic can use it off the UI thread.
+ */
+data class TranscriptEntry(val kind: String, val text: String, val createdAt: Long)
 
 /** Lightweight session metadata for the History list, without parsing the transcript. */
 data class SessionMeta(

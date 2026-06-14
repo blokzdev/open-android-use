@@ -113,11 +113,11 @@ class AgentLoopEmulatorTest {
             val transcript = AgentController.transcriptSnapshot()
             // Surface the loop's own error notes in the CI log and in every
             // assertion message — the transcript is where failures land.
-            val dump = transcript.joinToString("\n") { (kind, text) -> "[$kind] ${text.take(300)}" }
+            val dump = transcript.joinToString("\n") { "[${it.kind}] ${it.text.take(300)}" }
             println("AGENT TRANSCRIPT:\n$dump")
             assertTrue(
                 "get_app_state should have executed; transcript:\n$dump",
-                transcript.any { it.first == AgentController.KIND_TOOL && it.second.contains("get_app_state") },
+                transcript.any { it.kind == AgentController.KIND_TOOL && it.text.contains("get_app_state") },
             )
             assertEquals("stub should have served two turns; transcript:\n$dump", 2, stub.requestBodies.size)
 
@@ -135,7 +135,7 @@ class AgentLoopEmulatorTest {
 
             assertTrue(
                 "transcript should contain the final narration",
-                transcript.any { it.first == AgentController.KIND_ASSISTANT && it.second.contains("Done") },
+                transcript.any { it.kind == AgentController.KIND_ASSISTANT && it.text.contains("Done") },
             )
         } finally {
             AgentController.listener = null

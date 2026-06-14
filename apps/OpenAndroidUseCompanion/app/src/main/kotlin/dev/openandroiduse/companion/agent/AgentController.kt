@@ -154,24 +154,28 @@ object AgentController {
     private fun str(resId: Int, vararg args: Any): String =
         (appContext ?: CompanionService.instance)?.getString(resId, *args) ?: ""
 
+    /** One transcript line with its start time (epoch millis); text grows in place on append. */
+    private class Line(val kind: String, val text: StringBuilder, val createdAt: Long)
+
     /**
      * Append-only transcript backing the chat UI: the Activity is backgrounded
      * for most of a task (the agent is driving other apps), so it re-renders
      * from this on resume instead of relying on live callbacks alone.
      */
-    private val transcript = mutableListOf<Pair<String, StringBuilder>>()
+    private val transcript = mutableListOf<Line>()
 
-    fun transcriptSnapshot(): List<Pair<String, String>> = synchronized(transcript) {
-        transcript.map { it.first to it.second.toString() }
+    /** Timed snapshot (Phase 4.7b-3): each line with its KIND_*, text, and start time. */
+    fun transcriptSnapshot(): List<TranscriptEntry> = synchronized(transcript) {
+        transcript.map { TranscriptEntry(it.kind, it.text.toString(), it.createdAt) }
     }
 
     private fun log(kind: String, text: String, append: Boolean = false) {
         synchronized(transcript) {
             val last = transcript.lastOrNull()
-            if (append && last != null && last.first == kind) {
-                last.second.append(text)
+            if (append && last != null && last.kind == kind) {
+                last.text.append(text)
             } else {
-                transcript.add(kind to StringBuilder(text))
+                transcript.add(Line(kind, StringBuilder(text), System.currentTimeMillis()))
             }
         }
         transcriptRevision++
@@ -300,7 +304,7 @@ object AgentController {
         val lines = transcriptSnapshot()
         if (lines.isEmpty()) return null
         val title = sessionTitle
-            ?: lines.firstOrNull { it.first == KIND_USER }?.second?.let { SessionTitle.derive(it) }
+            ?: lines.firstOrNull { it.kind == KIND_USER }?.text?.let { SessionTitle.derive(it) }
             ?: SessionTitle.FALLBACK
         return SessionPayload(
             id = currentSessionId,
@@ -308,7 +312,7 @@ object AgentController {
             createdAt = sessionCreatedAt,
             updatedAt = System.currentTimeMillis(),
             archived = false,
-            transcript = lines.map { StoredMessage(it.first, it.second) },
+            transcript = lines.map { StoredMessage(it.kind, it.text, it.createdAt) },
             pinned = sessionPinned,
             preview = SessionPreview.derive(lines),
         )
@@ -329,7 +333,7 @@ object AgentController {
         synchronized(transcript) {
             transcript.clear()
             for (line in payload.transcript) {
-                transcript.add(line.kind to StringBuilder(line.text))
+                transcript.add(Line(line.kind, StringBuilder(line.text), line.createdAt))
             }
         }
         latestScreenshotBase64 = null
