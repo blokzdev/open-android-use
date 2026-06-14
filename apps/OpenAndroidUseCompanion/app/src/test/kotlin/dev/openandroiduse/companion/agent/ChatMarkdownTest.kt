@@ -45,4 +45,39 @@ class ChatMarkdownTest {
         val blocks = ChatMarkdown.parse("one\n\ntwo")
         assertEquals(2, blocks.size)
     }
+
+    @Test fun parsesLink() {
+        val spans = ChatMarkdown.parseInline("see [docs](https://example.com/x) now")
+        val link = spans.single { it.url != null }
+        assertEquals("docs", link.text)
+        assertEquals("https://example.com/x", link.url)
+        // Surrounding text is preserved.
+        assertEquals("see docs now", spans.joinToString("") { it.text })
+    }
+
+    @Test fun unmatchedBracketIsLiteral() {
+        val spans = ChatMarkdown.parseInline("an [open bracket")
+        assertEquals("an [open bracket", spans.joinToString("") { it.text })
+        assertTrue(spans.none { it.url != null })
+    }
+
+    @Test fun parsesPipeTable() {
+        val blocks = ChatMarkdown.parse("| Name | Qty |\n| --- | --- |\n| Apples | 3 |\n| Pears | 5 |")
+        val table = blocks.single() as MdBlock.Table
+        assertEquals(listOf("Name", "Qty"), table.header.map { spans -> spans.joinToString("") { it.text } })
+        assertEquals(2, table.rows.size)
+        assertEquals(listOf("Apples", "3"), table.rows[0].map { spans -> spans.joinToString("") { it.text } })
+    }
+
+    @Test fun pipeLinesWithoutSeparatorAreNotATable() {
+        val blocks = ChatMarkdown.parse("| just some piped text |")
+        assertTrue(blocks.all { it is MdBlock.Paragraph })
+    }
+
+    @Test fun linkInsideTableCell() {
+        val blocks = ChatMarkdown.parse("| Site |\n| --- |\n| [home](https://h.co) |")
+        val table = blocks.single() as MdBlock.Table
+        val cell = table.rows[0][0]
+        assertEquals("https://h.co", cell.single { it.url != null }.url)
+    }
 }

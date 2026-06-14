@@ -63,7 +63,11 @@ Guardrail: control surface stays dependency-free; 4.6 work is presentation-layer
   bubble width caps. (`WindowSizeClass` dep deferred to 4.6e where the two-pane
   choice needs it; Onboarding/chat-list width + adaptive Agent's-view height are
   minor follow-ups.) Builds + unit tests + APK green.
-- [ ] 4.6d markdown · [ ] 4.6e two-pane.
+- [x] 4.6d markdown: links `[text](url)` (Compose `LinkAnnotation`/`withLink`, brand-colored
+  underline) + `| pipe |` tables (header + `---` separator + rows) in `agent/ChatMarkdown.kt`,
+  rendered with horizontal scroll. Parser unit-tested (links, tables, fallbacks, link-in-cell).
+  Builds + unit tests + APK green.
+- [ ] 4.6e two-pane.
 
 ## Decisions
 - 2026-06-14: i18n ships as **externalize-only** (English, translation-ready). Actual

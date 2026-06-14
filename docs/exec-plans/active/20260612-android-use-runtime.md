@@ -186,7 +186,8 @@ build script, and docs synced.
     ToolChipLabel verbs deferred to Localization). 4.6b done (a11y: reduce-motion,
     48dp targets, heading semantics, agent run-state announced). 4.6c done
     (responsive: edge-to-edge, predictive back, resizeable, content max-width +
-    chat bubble caps). Actual translations are a future Localization phase.
+    chat bubble caps). 4.6d done (markdown links + pipe tables). Actual
+    translations are a future Localization phase.
 - [ ] **Phase 4.7 — Distribution & Play readiness**: (a) tagged GitHub release of
   the signed APK; (b) Play Store **signed AAB** (the Android 13+ "Restricted
   setting" prompt is an install-source gate removed by a Play install, *not* by
