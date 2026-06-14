@@ -57,7 +57,13 @@ Guardrail: control surface stays dependency-free; 4.6 work is presentation-layer
   semantics on section/step titles, polite live-region for agent running/idle, error tool-chip
   descriptions, decorative tap-marker cleared. `MotionTest` + Compose a11y assertions
   (heading + 48dp). Builds + unit tests + instrumentation green.
-- [ ] 4.6c responsive · [ ] 4.6d markdown · [ ] 4.6e two-pane.
+- [x] 4.6c responsive: edge-to-edge on all activities; predictive-back +
+  `resizeableActivity` in the manifest; `ui/Responsive.kt` `ResponsiveContent`
+  (centered, `ContentMaxWidth=640.dp`) wrapping Main/Settings/Privacy/About; chat
+  bubble width caps. (`WindowSizeClass` dep deferred to 4.6e where the two-pane
+  choice needs it; Onboarding/chat-list width + adaptive Agent's-view height are
+  minor follow-ups.) Builds + unit tests + APK green.
+- [ ] 4.6d markdown · [ ] 4.6e two-pane.
 
 ## Decisions
 - 2026-06-14: i18n ships as **externalize-only** (English, translation-ready). Actual

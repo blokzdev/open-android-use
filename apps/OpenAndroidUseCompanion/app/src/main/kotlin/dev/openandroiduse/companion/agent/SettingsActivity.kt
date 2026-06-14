@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -44,6 +45,7 @@ import dev.openandroiduse.companion.AboutActivity
 import dev.openandroiduse.companion.OnboardingActivity
 import dev.openandroiduse.companion.PrivacyActivity
 import dev.openandroiduse.companion.R
+import dev.openandroiduse.companion.ui.ResponsiveContent
 import dev.openandroiduse.companion.ui.markHeading
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
 
@@ -61,6 +63,7 @@ class SettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         settings = AgentSettings(this)
+        enableEdgeToEdge()
         setContent {
             OpenAndroidUseTheme(dynamicColor = settings.dynamicColor) {
                 SettingsScreen(
@@ -102,12 +105,11 @@ private fun SettingsScreen(
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.settings_title)) }) },
     ) { contentPadding ->
+        ResponsiveContent(contentPadding) { inner ->
         Column(
-            modifier = Modifier
-                .padding(contentPadding)
-                .padding(16.dp)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+            modifier = inner
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // --- API key ---
@@ -201,6 +203,7 @@ private fun SettingsScreen(
             OutlinedButton(onClick = onRerunSetup, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.settings_rerun_setup))
             }
+        }
         }
     }
 }

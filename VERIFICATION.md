@@ -335,6 +335,22 @@ need a real device.
   animate-scroll (jumps instantly), and onboarding step transitions are instant; the
   app otherwise behaves normally.
 
+### Phase 4.6c — Responsive / large-screen
+
+- [ ] **V78. Edge-to-edge**: on each screen, content draws under the status/nav bars
+  without being obscured (top bar clears the status bar; the chat composer clears the
+  nav bar / IME). Pass: nothing important is hidden behind system bars on a notched
+  device; the composer still sits above the keyboard.
+- [ ] **V79. Tablet / landscape content width**: on a tablet or in landscape, the
+  Main/Settings/Privacy/About content is centered and capped (~640dp) rather than
+  stretched full-width; chat bubbles don't span the whole width. Pass: comfortable
+  line length on large screens; phones look unchanged.
+- [ ] **V80. Predictive back**: on Android 14+, the back gesture shows the predictive
+  back animation and navigates correctly from each screen. Pass: no janky/abrupt back;
+  resuming History → Chat still routes to the single chat instance.
+- [ ] **V81. RTL**: enable a RTL pseudo-locale (or force RTL). Pass: layouts mirror
+  correctly (start/end honored); no clipped or left-stuck elements.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |

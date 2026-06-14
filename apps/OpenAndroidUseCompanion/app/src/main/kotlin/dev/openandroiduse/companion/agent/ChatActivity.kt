@@ -11,6 +11,7 @@ import android.util.Base64
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -28,6 +29,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -130,6 +132,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
         settings = AgentSettings(this)
         sessions = SessionStore(this)
         appliedDynamicColor = settings.dynamicColor
+        enableEdgeToEdge()
         // Resume a saved session if launched from History (rebuilds context).
         intent.getStringExtra(EXTRA_SESSION_ID)?.let { id ->
             if (!AgentController.isRunning) sessions.load(id)?.let { AgentController.restore(it) }
@@ -687,7 +690,7 @@ private fun Bubble(text: String, user: Boolean) {
         Surface(
             color = if (user) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
             shape = RoundedCornerShape(14.dp),
-            modifier = Modifier.fillMaxWidth(0.88f),
+            modifier = Modifier.fillMaxWidth(0.88f).widthIn(max = 560.dp),
         ) {
             Text(text, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodyMedium)
         }
@@ -700,7 +703,7 @@ private fun AssistantBubble(text: String) {
         Surface(
             color = MaterialTheme.colorScheme.surfaceVariant,
             shape = RoundedCornerShape(14.dp),
-            modifier = Modifier.fillMaxWidth(0.92f),
+            modifier = Modifier.fillMaxWidth(0.92f).widthIn(max = 640.dp),
         ) {
             SelectionContainer {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
