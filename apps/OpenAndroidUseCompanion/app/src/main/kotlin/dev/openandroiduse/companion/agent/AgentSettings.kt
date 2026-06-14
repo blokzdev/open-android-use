@@ -17,6 +17,9 @@ import javax.crypto.spec.GCMParameterSpec
  */
 class AgentSettings(context: Context) {
 
+    /** Application context for resolving string resources off the UI (e.g. agent notes). */
+    val appContext: Context = context.applicationContext
+
     private val prefs = context.getSharedPreferences("agent_settings", Context.MODE_PRIVATE)
 
     var model: String

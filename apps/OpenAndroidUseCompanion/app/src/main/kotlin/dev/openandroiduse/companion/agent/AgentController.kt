@@ -1,5 +1,6 @@
 package dev.openandroiduse.companion.agent
 
+import android.content.Context
 import android.util.Log
 import com.anthropic.client.okhttp.AnthropicOkHttpClient
 import com.anthropic.core.http.StreamResponse
@@ -20,6 +21,7 @@ import com.anthropic.models.messages.ToolResultBlockParam
 import com.anthropic.models.messages.ToolUseBlock
 import dev.openandroiduse.companion.BuildConfig
 import dev.openandroiduse.companion.CompanionService
+import dev.openandroiduse.companion.R
 import org.json.JSONObject
 
 /**
@@ -137,6 +139,14 @@ object AgentController {
 
     private fun newSessionId(): String = java.util.UUID.randomUUID().toString()
 
+    /** App context for localizing transcript notes; set when a task starts. */
+    @Volatile
+    private var appContext: Context? = null
+
+    /** Resolve a localized note string off the agent loop thread. */
+    private fun str(resId: Int, vararg args: Any): String =
+        (appContext ?: CompanionService.instance)?.getString(resId, *args) ?: ""
+
     /**
      * Append-only transcript backing the chat UI: the Activity is backgrounded
      * for most of a task (the agent is driving other apps), so it re-renders
@@ -164,12 +174,13 @@ object AgentController {
     @Synchronized
     fun startTask(userText: String, settings: AgentSettings): Boolean {
         if (isRunning) return false
+        appContext = settings.appContext
         val service = CompanionService.instance ?: run {
-            log(KIND_NOTE, "⚠ The companion accessibility service is not running. Enable it first.")
+            log(KIND_NOTE, str(R.string.agent_note_no_service))
             return false
         }
         val apiKey = settings.loadApiKey() ?: run {
-            log(KIND_NOTE, "⚠ No API key configured. Add your Anthropic API key in settings.")
+            log(KIND_NOTE, str(R.string.agent_note_no_key))
             return false
         }
         cancelRequested = false
@@ -360,7 +371,7 @@ object AgentController {
                 val message = try {
                     accumulator.message()
                 } catch (error: Exception) {
-                    return fail("The response stream ended unexpectedly: ${error.message}")
+                    return fail(str(R.string.agent_note_stream_error, error.message ?: ""))
                 }
                 if (speakNarration) {
                     VoiceNarrator.onMessageEnd()
@@ -373,9 +384,7 @@ object AgentController {
                         val category = message.stopDetails()
                             .map { it._additionalProperties().toString() }
                             .orElse("")
-                        val refusalText = "The request was declined by the model's safety system$category. " +
-                            "Rephrase the task rather than retrying it as-is."
-                        log(KIND_NOTE, "⚠ $refusalText")
+                        log(KIND_NOTE, "⚠ " + str(R.string.agent_note_refusal, category))
                         return finish("refusal")
                     }
                     StopReason.TOOL_USE -> {
@@ -403,7 +412,7 @@ object AgentController {
                         }
                         appendToolResults(results)
                         if (denied) {
-                            log(KIND_NOTE, "Action batch denied by the user.")
+                            log(KIND_NOTE, str(R.string.agent_note_denied))
                         }
                         if (interrupted) return finish(stopReasonLabel())
                     }
@@ -419,7 +428,7 @@ object AgentController {
                     else -> return finish("end_turn")
                 }
             }
-            fail("The task exceeded $MAX_TOOL_TURNS tool turns and was stopped.")
+            fail(str(R.string.agent_note_max_turns, MAX_TOOL_TURNS))
         } catch (error: Exception) {
             if (!cancelRequested) {
                 Log.w(CompanionService.TAG, "agent loop failed", error)
@@ -652,9 +661,9 @@ object AgentController {
 
     private fun finish(reason: String) {
         when (reason) {
-            "touched" -> log(KIND_NOTE, "Paused — you touched the screen. Send a message to continue.")
-            "stopped" -> log(KIND_NOTE, "Stopped.")
-            "max_tokens" -> log(KIND_NOTE, "The turn hit its output limit; say \"continue\" to resume.")
+            "touched" -> log(KIND_NOTE, str(R.string.agent_note_paused))
+            "stopped" -> log(KIND_NOTE, str(R.string.agent_note_stopped))
+            "max_tokens" -> log(KIND_NOTE, str(R.string.agent_note_max_tokens))
         }
     }
 

@@ -61,6 +61,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
@@ -74,6 +75,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import dev.openandroiduse.companion.CompanionService
+import dev.openandroiduse.companion.R
 import dev.openandroiduse.companion.Readiness
 import dev.openandroiduse.companion.readiness
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
@@ -171,7 +173,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
                     Dialog(onDismissRequest = { expandView = false }) {
                         Image(
                             bitmap = shot,
-                            contentDescription = "What the agent sees, enlarged",
+                            contentDescription = stringResource(R.string.chat_agent_view_enlarged),
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
@@ -305,7 +307,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
     private fun exportConversation() {
         val lines = messages
         if (lines.isEmpty()) {
-            Toast.makeText(this, "Nothing to export yet", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.chat_nothing_to_export), Toast.LENGTH_SHORT).show()
             return
         }
         val title = lines.firstOrNull { it.first == AgentController.KIND_USER }
@@ -317,7 +319,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
             file.writeText(markdown)
             androidx.core.content.FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
         }.getOrElse {
-            Toast.makeText(this, "Couldn't prepare the export", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.chat_export_failed), Toast.LENGTH_SHORT).show()
             return
         }
         val intent = Intent(Intent.ACTION_SEND).apply {
@@ -326,7 +328,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
             putExtra(Intent.EXTRA_TITLE, "$title.md")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        startActivity(Intent.createChooser(intent, "Export conversation"))
+        startActivity(Intent.createChooser(intent, getString(R.string.chat_export_chooser)))
     }
 
     // --- push-to-talk ---
@@ -339,7 +341,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
             return
         }
         if (!android.speech.SpeechRecognizer.isRecognitionAvailable(this)) {
-            Toast.makeText(this, "Speech recognition is not available", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.chat_speech_unavailable), Toast.LENGTH_SHORT).show()
             return
         }
         val recognizer = speechRecognizer
@@ -378,9 +380,9 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
 }
 
 private val SUGGESTED_PROMPTS = listOf(
-    "Open Settings and tell me the Android version",
-    "Turn Bluetooth on",
-    "Summarize my latest notification",
+    R.string.suggested_prompt_1,
+    R.string.suggested_prompt_2,
+    R.string.suggested_prompt_3,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -416,15 +418,15 @@ private fun ChatScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Agent")
+                        Text(stringResource(R.string.chat_title))
                         Spacer(Modifier.width(8.dp))
                         ModelChip(modelLabel, onOpenSettings)
                     }
                 },
                 actions = {
-                    TextButton(onClick = onOpenHistory) { Text("History") }
-                    TextButton(onClick = onExport) { Text("Export") }
-                    TextButton(onClick = onNewConversation) { Text("New") }
+                    TextButton(onClick = onOpenHistory) { Text(stringResource(R.string.chat_history)) }
+                    TextButton(onClick = onExport) { Text(stringResource(R.string.chat_export)) }
+                    TextButton(onClick = onNewConversation) { Text(stringResource(R.string.chat_new)) }
                 },
             )
         },
@@ -482,11 +484,11 @@ private fun AgentViewCard(
     ElevatedCard(Modifier.fillMaxWidth().padding(12.dp)) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("What the agent sees", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.chat_agent_view_title), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
                 if (running) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                     Spacer(Modifier.width(8.dp))
-                    Button(onClick = onStop) { Text("Stop") }
+                    Button(onClick = onStop) { Text(stringResource(R.string.action_stop)) }
                 }
             }
             if (view != null) {
@@ -498,7 +500,7 @@ private fun AgentViewCard(
                 ) {
                     Image(
                         bitmap = view,
-                        contentDescription = "Latest screenshot the agent captured",
+                        contentDescription = stringResource(R.string.chat_screenshot_desc),
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.fillMaxSize(),
                     )
@@ -519,7 +521,7 @@ private fun AgentViewCard(
                 }
             } else {
                 Text(
-                    "You're the agent's second pair of eyes — its view will appear here as it works.",
+                    stringResource(R.string.chat_agent_view_placeholder),
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -539,9 +541,9 @@ private fun EmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Spacer(Modifier.heightIn(min = 24.dp))
-        Text("Your second pair of hands", style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.chat_empty_title), style = MaterialTheme.typography.titleLarge)
         Text(
-            "Ask me to do something on this phone — I'll narrate and act, and you can stop me any time.",
+            stringResource(R.string.chat_empty_body),
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
         )
@@ -549,7 +551,7 @@ private fun EmptyState(
         val recent = recentSessions.filterNot { it.archived }.take(3)
         if (recent.isNotEmpty()) {
             Spacer(Modifier.heightIn(min = 8.dp))
-            Text("Pick up where you left off:", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.chat_recent_title), style = MaterialTheme.typography.labelLarge)
             recent.forEach { meta ->
                 OutlinedButton(
                     onClick = { onResumeSession(meta.id) },
@@ -560,8 +562,9 @@ private fun EmptyState(
             }
         }
         Spacer(Modifier.heightIn(min = 8.dp))
-        Text("Try:", style = MaterialTheme.typography.labelLarge)
-        SUGGESTED_PROMPTS.forEach { prompt ->
+        Text(stringResource(R.string.chat_try), style = MaterialTheme.typography.labelLarge)
+        SUGGESTED_PROMPTS.forEach { promptId ->
+            val prompt = stringResource(promptId)
             OutlinedButton(onClick = { onPrompt(prompt) }, modifier = Modifier.fillMaxWidth()) {
                 Text(prompt)
             }
@@ -573,9 +576,21 @@ private fun EmptyState(
 private fun ReadinessBanner(readiness: Readiness, onOpenSettings: () -> Unit, onOpenAccessibility: () -> Unit) {
     if (readiness == Readiness.READY) return
     val (msg, action, onAction) = when (readiness) {
-        Readiness.NEEDS_KEY -> Triple("Add your API key to run tasks.", "Add key", onOpenSettings)
-        Readiness.NEEDS_ACCESSIBILITY -> Triple("Enable the accessibility service so I can act.", "Enable", onOpenAccessibility)
-        else -> Triple("Enable accessibility and add an API key to start.", "Fix", onOpenAccessibility)
+        Readiness.NEEDS_KEY -> Triple(
+            stringResource(R.string.chat_readiness_needs_key),
+            stringResource(R.string.chat_readiness_add_key),
+            onOpenSettings,
+        )
+        Readiness.NEEDS_ACCESSIBILITY -> Triple(
+            stringResource(R.string.chat_readiness_needs_accessibility),
+            stringResource(R.string.chat_readiness_enable),
+            onOpenAccessibility,
+        )
+        else -> Triple(
+            stringResource(R.string.chat_readiness_needs_both),
+            stringResource(R.string.chat_readiness_fix),
+            onOpenAccessibility,
+        )
     }
     Surface(color = MaterialTheme.colorScheme.tertiaryContainer, modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -608,23 +623,23 @@ private fun Composer(
             value = input,
             onValueChange = onInputChange,
             modifier = Modifier.weight(1f),
-            placeholder = { Text("What should I do on this phone?") },
+            placeholder = { Text(stringResource(R.string.chat_composer_placeholder)) },
             enabled = !running,
             maxLines = 4,
         )
-        val micLabel = if (listening) "Listening" else "Voice input"
+        val micLabel = stringResource(if (listening) R.string.chat_mic_listening else R.string.chat_mic_voice_input)
         TextButton(
             onClick = onMic,
             enabled = !running,
             modifier = Modifier.semantics { contentDescription = micLabel },
         ) { Text(if (listening) "…" else "🎤") }
         if (running) {
-            Button(onClick = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); onStop() }) { Text("Stop") }
+            Button(onClick = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); onStop() }) { Text(stringResource(R.string.action_stop)) }
         } else {
             Button(
                 onClick = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); onSend() },
                 enabled = input.isNotBlank(),
-            ) { Text("Send") }
+            ) { Text(stringResource(R.string.chat_send)) }
         }
     }
 }
@@ -703,7 +718,10 @@ private fun ThinkingBlock(text: String) {
     var expanded by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth()) {
         TextButton(onClick = { expanded = !expanded }) {
-            Text(if (expanded) "Hide thinking" else "Show thinking", style = MaterialTheme.typography.labelMedium)
+            Text(
+                stringResource(if (expanded) R.string.chat_hide_thinking else R.string.chat_show_thinking),
+                style = MaterialTheme.typography.labelMedium,
+            )
         }
         if (expanded) {
             Text(
@@ -743,8 +761,8 @@ private fun NoteCard(text: String, onOpenSettings: () -> Unit, onOpenAccessibili
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(text, style = MaterialTheme.typography.bodySmall)
             when (style) {
-                NoteStyle.NEEDS_KEY -> TextButton(onClick = onOpenSettings) { Text("Add API key") }
-                NoteStyle.NEEDS_ACCESSIBILITY -> TextButton(onClick = onOpenAccessibility) { Text("Enable service") }
+                NoteStyle.NEEDS_KEY -> TextButton(onClick = onOpenSettings) { Text(stringResource(R.string.chat_note_add_key)) }
+                NoteStyle.NEEDS_ACCESSIBILITY -> TextButton(onClick = onOpenAccessibility) { Text(stringResource(R.string.chat_note_enable_service)) }
                 else -> Unit
             }
         }
