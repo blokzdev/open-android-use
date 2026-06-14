@@ -200,7 +200,11 @@ object AgentController {
         service.interactionListener = { eventPackage, ownPackage ->
             onInteractionEvent(eventPackage, ownPackage)
         }
-        GestureTrail.attach(service)
+        // Reduce-motion: the gesture trail is decorative; skip it when the user
+        // has turned animations off (the custom Canvas loop won't self-honor it).
+        if (!Motion.animationsDisabled(service)) {
+            GestureTrail.attach(service)
+        }
         InControlOverlay.attach(service) { requestStop() }
         AgentNotification.show(service)
         speakNarration = settings.speakNarration

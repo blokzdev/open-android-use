@@ -64,6 +64,7 @@ object InControlOverlay {
             })
             chip.addView(Button(service).apply {
                 text = service.getString(R.string.action_stop)
+                minimumHeight = dp(48)
                 setOnClickListener { onStop() }
             })
 

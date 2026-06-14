@@ -44,6 +44,7 @@ import dev.openandroiduse.companion.AboutActivity
 import dev.openandroiduse.companion.OnboardingActivity
 import dev.openandroiduse.companion.PrivacyActivity
 import dev.openandroiduse.companion.R
+import dev.openandroiduse.companion.ui.markHeading
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
 
 /**
@@ -206,7 +207,7 @@ private fun SettingsScreen(
 
 @Composable
 private fun SectionTitle(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium)
+    Text(text, style = MaterialTheme.typography.titleMedium, modifier = Modifier.markHeading())
 }
 
 @Composable

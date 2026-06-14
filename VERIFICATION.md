@@ -13,7 +13,8 @@
 > V67/V68/V70 (`SessionStoreInstrumentedTest`), the API-key Keystore round-trip
 > behind V33 (`AgentSettingsInstrumentedTest`), and the Settings/History screens
 > rendering + menus behind V62/V70 (Compose UI tests `SettingsScreenTest` /
-> `SessionsScreenTest`). A green emulator-smoke run is strong evidence, but the
+> `SessionsScreenTest`, which also assert heading semantics + the 48dp overflow
+> touch target for V74). A green emulator-smoke run is strong evidence, but the
 > real-hardware pass below remains authoritative (OEM ROMs, IMEs, secure surfaces,
 > and touch behavior differ).
 
@@ -309,6 +310,30 @@ hardware.
   the saved session (export, or `adb run-as dev.openandroiduse.companion` over
   `files/sessions/*.json`). Pass: the JSON is text-only — no base64 PNG — with
   only "(screenshot omitted…)" markers where a screenshot had been.
+
+### Phase 4.6b — Accessibility
+
+The emulator-smoke Compose tests already assert heading semantics and the 48dp
+overflow touch target; the items below are the screen-reader / settings checks that
+need a real device.
+
+- [ ] **V74. TalkBack reads every control**: enable TalkBack and swipe through each
+  screen (Main, Onboarding, Settings, Privacy, History, Chat). Pass: every button,
+  toggle, and the mic/overflow/in-control/Stop controls are announced with a
+  meaningful label (no "unlabelled button"); section/step titles are announced as
+  headings and reachable via heading navigation.
+- [ ] **V75. Agent run state is announced**: with TalkBack on, start and stop a task.
+  Pass: the "What the agent sees" status announces "Agent is working" on start and
+  "Agent is idle" on stop (the spinner state is no longer silent); error tool-chips
+  are announced as "Error: …".
+- [ ] **V76. Large font / display size**: set Settings → Display → Font size and
+  Display size to the largest. Pass: all screens remain usable — text scales, nothing
+  important is clipped or overlapped; the in-control chip and confirmation sheet stay
+  legible with ≥48dp buttons.
+- [ ] **V77. Reduce motion**: enable Settings → Accessibility → Remove animations,
+  then run a task. Pass: the gesture-trail ripples do not appear, the chat does not
+  animate-scroll (jumps instantly), and onboarding step transitions are instant; the
+  app otherwise behaves normally.
 
 ## Results log
 

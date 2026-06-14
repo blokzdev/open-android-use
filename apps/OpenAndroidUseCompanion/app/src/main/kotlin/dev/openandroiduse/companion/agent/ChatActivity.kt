@@ -38,6 +38,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -60,10 +61,15 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -78,6 +84,7 @@ import dev.openandroiduse.companion.CompanionService
 import dev.openandroiduse.companion.R
 import dev.openandroiduse.companion.Readiness
 import dev.openandroiduse.companion.readiness
+import dev.openandroiduse.companion.ui.markHeading
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -409,9 +416,13 @@ private fun ChatScreen(
     onOpenAccessibility: () -> Unit,
     onExpandView: () -> Unit,
 ) {
+    val context = LocalContext.current
     val listState = rememberLazyListState()
     LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
+        if (messages.isNotEmpty()) {
+            val last = messages.size - 1
+            if (Motion.animationsDisabled(context)) listState.scrollToItem(last) else listState.animateScrollToItem(last)
+        }
     }
     Scaffold(
         topBar = {
@@ -483,8 +494,20 @@ private fun AgentViewCard(
 ) {
     ElevatedCard(Modifier.fillMaxWidth().padding(12.dp)) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            val statusDesc = stringResource(if (running) R.string.chat_status_working else R.string.chat_status_idle)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.chat_agent_view_title), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                Text(
+                    stringResource(R.string.chat_agent_view_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier
+                        .weight(1f)
+                        // Announce agent start/stop to screen readers (the running
+                        // state is otherwise conveyed only by the spinner).
+                        .semantics {
+                            liveRegion = LiveRegionMode.Polite
+                            stateDescription = statusDesc
+                        },
+                )
                 if (running) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                     Spacer(Modifier.width(8.dp))
@@ -506,7 +529,8 @@ private fun AgentViewCard(
                     )
                     if (tapPoint != null) {
                         val (fx, fy) = tapPoint
-                        Canvas(Modifier.fillMaxSize()) {
+                        // Decorative tap marker — keep it out of the a11y tree.
+                        Canvas(Modifier.fillMaxSize().clearAndSetSemantics {}) {
                             // Map the normalized point onto the Fit-scaled image rect.
                             val s = minOf(size.width / view.width, size.height / view.height)
                             val dw = view.width * s
@@ -541,7 +565,7 @@ private fun EmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Spacer(Modifier.heightIn(min = 24.dp))
-        Text(stringResource(R.string.chat_empty_title), style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.chat_empty_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.markHeading())
         Text(
             stringResource(R.string.chat_empty_body),
             style = MaterialTheme.typography.bodyMedium,
@@ -631,7 +655,9 @@ private fun Composer(
         TextButton(
             onClick = onMic,
             enabled = !running,
-            modifier = Modifier.semantics { contentDescription = micLabel },
+            modifier = Modifier
+                .minimumInteractiveComponentSize()
+                .semantics { contentDescription = micLabel },
         ) { Text(if (listening) "…" else "🎤") }
         if (running) {
             Button(onClick = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); onStop() }) { Text(stringResource(R.string.action_stop)) }
@@ -737,14 +763,20 @@ private fun ThinkingBlock(text: String) {
 @Composable
 private fun ToolChip(raw: String) {
     val error = ToolChipLabel.isError(raw)
+    val label = ToolChipLabel.describe(raw)
+    // Failure is otherwise conveyed only by the error-container color; spell it
+    // out for screen readers.
+    val desc = if (error) stringResource(R.string.chat_tool_error_prefix, label) else label
     Surface(
         color = if (error) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer,
         shape = RoundedCornerShape(50),
     ) {
         Text(
-            ToolChipLabel.describe(raw),
+            label,
             style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            modifier = Modifier
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+                .semantics { contentDescription = desc },
         )
     }
 }

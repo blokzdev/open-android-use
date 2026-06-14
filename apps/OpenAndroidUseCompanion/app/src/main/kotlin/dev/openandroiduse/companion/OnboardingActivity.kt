@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import dev.openandroiduse.companion.agent.AgentSettings
 import dev.openandroiduse.companion.agent.ChatActivity
 import dev.openandroiduse.companion.agent.ModelCatalog
+import dev.openandroiduse.companion.ui.markHeading
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
 
 /**
@@ -193,14 +194,14 @@ private fun OnboardingScreen(
 
 @Composable
 private fun WelcomeStep() {
-    Text(stringResource(R.string.onboarding_welcome_title), style = MaterialTheme.typography.headlineSmall)
+    Text(stringResource(R.string.onboarding_welcome_title), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.markHeading())
     Text(stringResource(R.string.onboarding_welcome_body), style = MaterialTheme.typography.bodyMedium)
     Text(stringResource(R.string.onboarding_welcome_time), style = MaterialTheme.typography.bodyMedium)
 }
 
 @Composable
 private fun AccessibilityStep(serviceRunning: Boolean, onOpen: () -> Unit) {
-    Text(stringResource(R.string.onboarding_accessibility_title), style = MaterialTheme.typography.headlineSmall)
+    Text(stringResource(R.string.onboarding_accessibility_title), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.markHeading())
     Text(stringResource(R.string.onboarding_accessibility_body), style = MaterialTheme.typography.bodyMedium)
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Text(
@@ -217,7 +218,7 @@ private fun AccessibilityStep(serviceRunning: Boolean, onOpen: () -> Unit) {
 
 @Composable
 private fun PrivacyStep() {
-    Text(stringResource(R.string.onboarding_privacy_title), style = MaterialTheme.typography.headlineSmall)
+    Text(stringResource(R.string.onboarding_privacy_title), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.markHeading())
     PrivacyPoint(stringResource(R.string.privacy_on_device_title), stringResource(R.string.onboarding_privacy_on_device_body))
     PrivacyPoint(stringResource(R.string.privacy_leaves_title), stringResource(R.string.onboarding_privacy_leaves_body))
     PrivacyPoint(stringResource(R.string.privacy_key_title), stringResource(R.string.onboarding_privacy_key_body))
@@ -240,7 +241,7 @@ private fun ApiKeyStep(
     model: String,
     onModelChange: (String) -> Unit,
 ) {
-    Text(stringResource(R.string.onboarding_apikey_title), style = MaterialTheme.typography.headlineSmall)
+    Text(stringResource(R.string.onboarding_apikey_title), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.markHeading())
     Text(stringResource(R.string.onboarding_apikey_body), style = MaterialTheme.typography.bodyMedium)
     OutlinedTextField(
         value = apiKey,
@@ -280,7 +281,7 @@ private fun PreferencesStep(
     speakNarration: Boolean,
     onSpeakChange: (Boolean) -> Unit,
 ) {
-    Text(stringResource(R.string.onboarding_prefs_title), style = MaterialTheme.typography.headlineSmall)
+    Text(stringResource(R.string.onboarding_prefs_title), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.markHeading())
     ToggleRow(
         stringResource(R.string.pref_confirm_title),
         stringResource(R.string.pref_confirm_body),
@@ -310,7 +311,7 @@ private fun ToggleRow(title: String, body: String, checked: Boolean, onChange: (
 
 @Composable
 private fun ReadyStep(serviceRunning: Boolean, hasKey: Boolean) {
-    Text(stringResource(R.string.onboarding_ready_title), style = MaterialTheme.typography.headlineSmall)
+    Text(stringResource(R.string.onboarding_ready_title), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.markHeading())
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(stringResource(if (serviceRunning) R.string.onboarding_ready_accessibility_on else R.string.onboarding_ready_accessibility_off))

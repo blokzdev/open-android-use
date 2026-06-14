@@ -1,5 +1,8 @@
 package dev.openandroiduse.companion.agent
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -32,5 +35,11 @@ class SettingsScreenTest {
         composeTestRule.onNodeWithText("Model").performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithText("Privacy & data").performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithText("Re-run setup").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun sectionTitleIsAHeadingForScreenReaders() {
+        composeTestRule.onNodeWithText("API key")
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
     }
 }

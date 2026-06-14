@@ -85,6 +85,7 @@ object ConfirmationSheet {
             val buttons = LinearLayout(service).apply { orientation = LinearLayout.HORIZONTAL }
             buttons.addView(Button(service).apply {
                 text = service.getString(R.string.confirm_deny)
+                minimumHeight = dp(48)
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                 setOnClickListener {
                     allowed.set(false)
@@ -94,6 +95,7 @@ object ConfirmationSheet {
             })
             buttons.addView(Button(service).apply {
                 text = service.getString(R.string.confirm_allow)
+                minimumHeight = dp(48)
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                 setOnClickListener {
                     allowed.set(true)
