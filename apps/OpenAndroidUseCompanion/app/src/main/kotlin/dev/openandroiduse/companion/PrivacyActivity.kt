@@ -1,13 +1,11 @@
 package dev.openandroiduse.companion
 
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -18,6 +16,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -25,9 +25,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.openandroiduse.companion.agent.AgentController
@@ -35,7 +35,9 @@ import dev.openandroiduse.companion.agent.AgentSettings
 import dev.openandroiduse.companion.agent.SessionStore
 import dev.openandroiduse.companion.ui.ResponsiveContent
 import dev.openandroiduse.companion.ui.markHeading
+import dev.openandroiduse.companion.ui.showUndo
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
+import kotlinx.coroutines.launch
 
 /**
  * Privacy & data (Phase 4.5): the trust story made browsable — what the app can
@@ -43,6 +45,11 @@ import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
  * plus honest data controls (clear key, clear the current conversation, delete
  * all saved conversations). Restyles the onboarding privacy step into a
  * first-class screen; About keeps the licenses/attribution it needs for Play.
+ *
+ * Phase 4.7a-2: destructive controls now confirm, then report via a Snackbar
+ * with **Undo** — each action captures its pre-state (the key, the live
+ * conversation, or every saved session) and restores it if the user taps Undo,
+ * so a mistaken clear/delete is recoverable for the life of the snackbar.
  */
 class PrivacyActivity : ComponentActivity() {
 
@@ -57,9 +64,21 @@ class PrivacyActivity : ComponentActivity() {
         setContent {
             OpenAndroidUseTheme(dynamicColor = settings.dynamicColor) {
                 PrivacyScreen(
-                    onClearKey = { settings.clearApiKey() },
-                    onClearConversation = { AgentController.resetConversation() },
-                    onDeleteAllSessions = { sessions.deleteAll() },
+                    onClearKey = {
+                        val previous = settings.loadApiKey()
+                        settings.clearApiKey();
+                        { if (previous != null) settings.storeApiKey(previous) }
+                    },
+                    onClearConversation = {
+                        val snapshot = AgentController.snapshotForPersistence()
+                        AgentController.resetConversation();
+                        { if (snapshot != null) AgentController.restore(snapshot) }
+                    },
+                    onDeleteAllSessions = {
+                        val saved = sessions.list().mapNotNull { sessions.load(it.id) }
+                        sessions.deleteAll();
+                        { saved.forEach { sessions.save(it) } }
+                    },
                 )
             }
         }
@@ -69,13 +88,14 @@ class PrivacyActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PrivacyScreen(
-    onClearKey: () -> Unit,
-    onClearConversation: () -> Unit,
-    onDeleteAllSessions: () -> Unit,
+    onClearKey: () -> (() -> Unit),
+    onClearConversation: () -> (() -> Unit),
+    onDeleteAllSessions: () -> (() -> Unit),
 ) {
-    val context = LocalContext.current
+    val snackbarHost = remember { SnackbarHostState() }
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.privacy_title)) }) },
+        snackbarHost = { SnackbarHost(snackbarHost) },
     ) { contentPadding ->
         ResponsiveContent(contentPadding) { inner ->
         Column(
@@ -94,35 +114,29 @@ private fun PrivacyScreen(
             HorizontalDivider()
 
             Text(stringResource(R.string.privacy_data_controls), style = MaterialTheme.typography.titleMedium, modifier = Modifier.markHeading())
-            val clearedKey = stringResource(R.string.privacy_clear_key_toast)
-            val clearedConv = stringResource(R.string.privacy_clear_conv_toast)
-            val deletedAll = stringResource(R.string.privacy_delete_all_toast)
             DangerControl(
                 label = stringResource(R.string.privacy_clear_key),
                 confirmTitle = stringResource(R.string.privacy_clear_key_q),
                 confirmBody = stringResource(R.string.privacy_clear_key_body),
-                onConfirmed = {
-                    onClearKey()
-                    Toast.makeText(context, clearedKey, Toast.LENGTH_SHORT).show()
-                },
+                successMessage = stringResource(R.string.privacy_clear_key_toast),
+                host = snackbarHost,
+                onConfirmed = onClearKey,
             )
             DangerControl(
                 label = stringResource(R.string.privacy_clear_conv),
                 confirmTitle = stringResource(R.string.privacy_clear_conv_q),
                 confirmBody = stringResource(R.string.privacy_clear_conv_body),
-                onConfirmed = {
-                    onClearConversation()
-                    Toast.makeText(context, clearedConv, Toast.LENGTH_SHORT).show()
-                },
+                successMessage = stringResource(R.string.privacy_clear_conv_toast),
+                host = snackbarHost,
+                onConfirmed = onClearConversation,
             )
             DangerControl(
                 label = stringResource(R.string.privacy_delete_all),
                 confirmTitle = stringResource(R.string.privacy_delete_all_q),
                 confirmBody = stringResource(R.string.privacy_delete_all_body),
-                onConfirmed = {
-                    onDeleteAllSessions()
-                    Toast.makeText(context, deletedAll, Toast.LENGTH_SHORT).show()
-                },
+                successMessage = stringResource(R.string.privacy_delete_all_toast),
+                host = snackbarHost,
+                onConfirmed = onDeleteAllSessions,
             )
         }
         }
@@ -137,13 +151,22 @@ private fun PrivacyPoint(title: String, body: String) {
     }
 }
 
+/**
+ * A destructive control: confirm via dialog, run [onConfirmed] (which performs
+ * the change and returns an undo lambda capturing the pre-state), then show a
+ * Snackbar offering Undo. Tapping Undo runs the returned lambda to restore.
+ */
 @Composable
 private fun DangerControl(
     label: String,
     confirmTitle: String,
     confirmBody: String,
-    onConfirmed: () -> Unit,
+    successMessage: String,
+    host: SnackbarHostState,
+    onConfirmed: () -> (() -> Unit),
 ) {
+    val scope = rememberCoroutineScope()
+    val undoLabel = stringResource(R.string.action_undo)
     var asking by remember { mutableStateOf(false) }
     OutlinedButton(onClick = { asking = true }, modifier = Modifier.fillMaxWidth()) {
         Text(label, color = MaterialTheme.colorScheme.error)
@@ -154,7 +177,13 @@ private fun DangerControl(
             title = { Text(confirmTitle) },
             text = { Text(confirmBody) },
             confirmButton = {
-                TextButton(onClick = { asking = false; onConfirmed() }) {
+                TextButton(onClick = {
+                    asking = false
+                    val undo = onConfirmed()
+                    scope.launch {
+                        if (host.showUndo(successMessage, undoLabel)) undo()
+                    }
+                }) {
                     Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error)
                 }
             },

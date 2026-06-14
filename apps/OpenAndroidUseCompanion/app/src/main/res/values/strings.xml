@@ -24,6 +24,7 @@
     <string name="action_delete">Delete</string>
     <string name="action_save">Save</string>
     <string name="action_stop">Stop</string>
+    <string name="action_undo">Undo</string>
     <string name="action_open_accessibility">Open Accessibility Settings</string>
     <string name="action_open_chat">Open Agent Chat</string>
     <string name="label_model">Model</string>
@@ -132,6 +133,7 @@
     <string name="sessions_archived">Archived</string>
     <string name="sessions_delete_q">Delete conversation?</string>
     <string name="sessions_delete_body">This permanently deletes \"%1$s\".</string>
+    <string name="sessions_deleted">Conversation deleted</string>
     <string name="sessions_rename_title">Rename conversation</string>
     <string name="sessions_busy_open">Stop the current task before opening another conversation</string>
     <string name="sessions_busy_delete">Stop the current task before deleting it</string>

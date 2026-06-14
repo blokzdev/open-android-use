@@ -377,6 +377,23 @@ need a real device.
   by TalkBack with its label (History, Export, New conversation, Voice input, "More options
   for …") and the touch targets stay ≥48dp.
 
+### Phase 4.7a-2 — Snackbar + Undo for destructive actions
+
+- [ ] **V86. Privacy Undo (clear key)**: with an API key configured, open Privacy & data →
+  "Clear API key" → confirm. Pass: a Snackbar says the key was cleared and offers **Undo**;
+  tapping Undo restores the key (Settings/Chat again report the key is configured); letting the
+  Snackbar dismiss leaves the key cleared.
+- [ ] **V87. Privacy Undo (clear current conversation)**: with an active chat, Privacy →
+  "Clear current conversation" → confirm → **Undo**. Pass: the live conversation (transcript +
+  rebuilt context) comes back; without Undo it stays cleared.
+- [ ] **V88. Privacy Undo (delete all conversations)**: with several saved conversations,
+  Privacy → "Delete all saved conversations" → confirm → **Undo**. Pass: every conversation
+  reappears in History; without Undo all are gone.
+- [ ] **V89. History delete Undo (phone + two-pane)**: in History (full-screen on a phone, and
+  the side pane on a tablet/foldable) delete a conversation → **Undo**. Pass: the row returns in
+  place; deleting the *running* session is still blocked with the "stop the task" notice (no
+  Snackbar/Undo for that blocked case).
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |

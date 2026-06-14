@@ -53,6 +53,8 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -173,6 +175,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
                             onRename = ::renameSessionFromPane,
                             onArchive = { id, archived -> sessions.setArchived(id, archived); sessionList = sessions.list() },
                             onDelete = ::deleteSessionFromPane,
+                            onRestore = { payload -> sessions.save(payload); sessionList = sessions.list() },
                             modifier = Modifier.width(360.dp),
                         )
                         VerticalDivider()
@@ -268,13 +271,15 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
         sessionList = sessions.list()
     }
 
-    private fun deleteSessionFromPane(id: String) {
+    private fun deleteSessionFromPane(id: String): SessionPayload? {
         if (AgentController.isRunning && id == AgentController.currentSessionId) {
             Toast.makeText(this, getString(R.string.sessions_busy_delete), Toast.LENGTH_SHORT).show()
-        } else {
-            sessions.delete(id)
-            sessionList = sessions.list()
+            return null
         }
+        val removed = sessions.load(id)
+        sessions.delete(id)
+        sessionList = sessions.list()
+        return removed
     }
 
     override fun onPause() {
@@ -548,19 +553,23 @@ private fun HistoryPane(
     onResume: (String) -> Unit,
     onRename: (String, String) -> Unit,
     onArchive: (String, Boolean) -> Unit,
-    onDelete: (String) -> Unit,
+    onDelete: (String) -> SessionPayload?,
+    onRestore: (SessionPayload) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val snackbarHost = remember { SnackbarHostState() }
+    val deleteWithUndo = rememberDeleteWithUndo(snackbarHost, onDelete, onRestore)
     Scaffold(
         modifier = modifier,
         topBar = { TopAppBar(title = { Text(stringResource(R.string.sessions_title)) }) },
+        snackbarHost = { SnackbarHost(snackbarHost) },
     ) { padding ->
         SessionsList(
             sessions = sessions,
             onResume = onResume,
             onRename = onRename,
             onArchive = onArchive,
-            onDelete = onDelete,
+            onDelete = deleteWithUndo,
             modifier = Modifier.padding(padding),
         )
     }

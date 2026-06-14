@@ -22,6 +22,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -29,12 +30,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.openandroiduse.companion.R
+import dev.openandroiduse.companion.ui.showUndo
+import kotlinx.coroutines.launch
 
 /**
  * The saved-conversations list (Phase 4.5), extracted (4.6e) so it is shared by the
@@ -66,6 +70,32 @@ internal fun SessionsList(
         ) {
             items(sessions, key = { it.id }) { meta ->
                 SessionRow(meta, onResume, onRename, onArchive, onDelete)
+            }
+        }
+    }
+}
+
+/**
+ * Wraps a delete handler with a Snackbar + Undo (Phase 4.7a-2). [delete] performs the
+ * deletion and returns the removed [SessionPayload] (or null when the delete was blocked,
+ * e.g. the running session). When a payload comes back, a Snackbar offers Undo; tapping it
+ * re-saves the payload via [restore]. Shared by the full-screen History and the two-pane
+ * History so both surfaces recover a mistaken delete identically.
+ */
+@Composable
+internal fun rememberDeleteWithUndo(
+    host: SnackbarHostState,
+    delete: (String) -> SessionPayload?,
+    restore: (SessionPayload) -> Unit,
+): (String) -> Unit {
+    val scope = rememberCoroutineScope()
+    val message = stringResource(R.string.sessions_deleted)
+    val undoLabel = stringResource(R.string.action_undo)
+    return { id ->
+        val removed = delete(id)
+        if (removed != null) {
+            scope.launch {
+                if (host.showUndo(message, undoLabel)) restore(removed)
             }
         }
     }
