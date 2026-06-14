@@ -406,6 +406,17 @@ need a real device.
   view to the bottom (you keep reading); tapping the FAB scrolls to the newest message and the
   FAB disappears. When already at the bottom, new turns still auto-follow.
 
+### Phase 4.7b-2 — Chat: typing cue + error→Retry
+
+- [ ] **V93. Typing indicator**: start a task and watch the chat. Pass: while the agent is
+  composing (before/between replies), an assistant-aligned bubble of pulsing dots appears at the
+  end of the list and disappears once the reply streams in / the task ends; with system
+  animations off the dots are static (no pulsing); TalkBack announces "Agent is working".
+- [ ] **V94. Error → Retry**: cause a task to end in an error (e.g. an invalid API key, or stop
+  connectivity) so the last message is an error note. Pass: that note shows a **Retry** action
+  (only on the last message, only when idle); tapping it re-runs the most recent user task; if a
+  prerequisite is now missing it routes to Settings / Accessibility instead.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |

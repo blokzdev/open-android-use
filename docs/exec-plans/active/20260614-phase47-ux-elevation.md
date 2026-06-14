@@ -58,8 +58,13 @@ tests, dependency-free control surface). Founder selected all themes + opportuni
   jumps to it; new turns no longer auto-scroll while the user reads history (auto-scroll gated on
   "already at bottom"). Builds + tests + APK + instrumentation green. _(In-bubble partial text
   selection was traded for the long-press menu → backlogged.)_
-- [ ] 4.7a-3 tokens/motion · [ ] 4.7b-2 chat (timestamps/grouping · streaming indicator · retry)
-  · [ ] 4.7c History · [ ] 4.7d Home/onboarding · [ ] 4.7e Settings/Privacy.
+- [x] 4.7b-2 — **chat: typing cue + error→Retry**: a pulsing-dots `TypingIndicator` shows where
+  the next answer will land while the agent composes (static dots under reduce-motion; labelled
+  for TalkBack, no second live region); error notes show a **Retry** action when the agent is idle
+  and the note is the last message — it re-runs the most recent user task (respecting readiness).
+  Builds + tests + APK + instrumentation green.
+- [ ] 4.7a-3 tokens/motion · [ ] 4.7b-3 chat (timestamps + role grouping — transcript/persistence
+  schema change) · [ ] 4.7c History · [ ] 4.7d Home/onboarding · [ ] 4.7e Settings/Privacy.
 
 ## Decisions
 - 2026-06-14: "UX elevation" inserted as Phase **4.7**; the prior Play-readiness work is now
