@@ -128,25 +128,27 @@ private fun MainScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
-                        text = when (readiness(running, hasApiKey)) {
-                            Readiness.READY -> "Agent ready"
-                            Readiness.NEEDS_ACCESSIBILITY -> "Accessibility off"
-                            Readiness.NEEDS_KEY -> "API key needed"
-                            Readiness.NEEDS_BOTH -> "Setup needed"
-                        },
+                        text = stringResource(
+                            when (readiness(running, hasApiKey)) {
+                                Readiness.READY -> R.string.main_status_ready
+                                Readiness.NEEDS_ACCESSIBILITY -> R.string.main_status_accessibility_off
+                                Readiness.NEEDS_KEY -> R.string.main_status_key_needed
+                                Readiness.NEEDS_BOTH -> R.string.main_status_setup_needed
+                            },
+                        ),
                         style = MaterialTheme.typography.titleMedium,
                     )
                     Text(
                         text = if (running) {
-                            "Service: running — endpoint live on 127.0.0.1:$port"
+                            stringResource(R.string.main_service_running, port)
                         } else {
-                            "Service: off — enable the accessibility service to start"
+                            stringResource(R.string.main_service_off)
                         },
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     if (!hasApiKey) {
                         Text(
-                            text = "API key not set — add it in Agent Chat to enable the agent.",
+                            text = stringResource(R.string.main_key_not_set),
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     }
@@ -158,25 +160,23 @@ private fun MainScreen(
             }
 
             Button(onClick = onOpenAccessibility, modifier = Modifier.fillMaxWidth()) {
-                Text("Open Accessibility Settings")
+                Text(stringResource(R.string.action_open_accessibility))
             }
             Button(onClick = onOpenChat, modifier = Modifier.fillMaxWidth()) {
-                Text("Open Agent Chat")
+                Text(stringResource(R.string.action_open_chat))
             }
             OutlinedButton(onClick = onOpenHistory, modifier = Modifier.fillMaxWidth()) {
-                Text("History")
+                Text(stringResource(R.string.main_history))
             }
             OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
-                Text("Settings")
+                Text(stringResource(R.string.main_settings))
             }
             OutlinedButton(onClick = onOpenAbout, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.about_button))
             }
 
             Text(
-                text = "Disable the service at any time to cut the agent off. The " +
-                    "endpoint binds 127.0.0.1 only and is reachable from a computer " +
-                    "solely via `adb forward`.",
+                text = stringResource(R.string.main_kill_switch_hint),
                 style = MaterialTheme.typography.bodySmall,
             )
         }

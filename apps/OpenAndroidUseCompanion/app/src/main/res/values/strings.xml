@@ -8,6 +8,7 @@
 
     <string name="about_button">About</string>
     <string name="about_tagline">A second pair of hands for your Android device.</string>
+    <string name="about_version">Version %1$s</string>
     <string name="about_links_title">Project &amp; contact</string>
     <string name="about_github_label">GitHub</string>
     <string name="about_github_url">https://github.com/blokzdev</string>
@@ -17,4 +18,132 @@
     <string name="about_email">support@blokz.dev</string>
     <string name="about_licenses_title">Licenses &amp; attribution</string>
     <string name="about_licenses_body">This app (Open Android Use Companion) © 2026 Blokz Development Co., licensed under the PolyForm Perimeter 1.0.0 (source-available, no-compete).\n\nIt builds on open-computer-use (MIT, © 2026 Leo / iFurySt).\n\nBundled third-party: Anthropic Java SDK — Apache License 2.0, © Anthropic, PBC.\n\nFull texts: see the LICENSE and NOTICE files in the project repository.</string>
+
+    <!-- Shared -->
+    <string name="action_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_save">Save</string>
+    <string name="action_stop">Stop</string>
+    <string name="action_open_accessibility">Open Accessibility Settings</string>
+    <string name="action_open_chat">Open Agent Chat</string>
+    <string name="label_model">Model</string>
+    <string name="pref_confirm_title">Ask before each action batch</string>
+    <string name="pref_confirm_body">Show a confirmation sheet before the agent taps or types.</string>
+    <string name="pref_speak_title">Speak narration aloud</string>
+    <string name="pref_speak_body">The agent reads its narration out loud while it works.</string>
+
+    <!-- MainActivity -->
+    <string name="main_status_ready">Agent ready</string>
+    <string name="main_status_accessibility_off">Accessibility off</string>
+    <string name="main_status_key_needed">API key needed</string>
+    <string name="main_status_setup_needed">Setup needed</string>
+    <string name="main_service_running">Service: running — endpoint live on 127.0.0.1:%1$d</string>
+    <string name="main_service_off">Service: off — enable the accessibility service to start</string>
+    <string name="main_key_not_set">API key not set — add it in Agent Chat to enable the agent.</string>
+    <string name="main_history">History</string>
+    <string name="main_settings">Settings</string>
+    <string name="main_kill_switch_hint">Disable the service at any time to cut the agent off. The endpoint binds 127.0.0.1 only and is reachable from a computer solely via `adb forward`.</string>
+
+    <!-- SettingsActivity -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_api_key">API key</string>
+    <string name="settings_api_key_configured">An Anthropic API key is configured. Enter a new one to replace it.</string>
+    <string name="settings_api_key_add">Add an Anthropic API key to let the agent run.</string>
+    <string name="settings_api_key_placeholder">sk-ant-…</string>
+    <string name="settings_save_key">Save key</string>
+    <string name="settings_clear_key">Clear key</string>
+    <string name="settings_key_saved">Key saved</string>
+    <string name="settings_key_cleared">Key cleared</string>
+    <string name="settings_section_behavior">Behavior</string>
+    <string name="settings_material_you_title">Use system colors (Material You)</string>
+    <string name="settings_material_you_body">Match Android 12+ dynamic color instead of the app\'s brand palette.</string>
+    <string name="settings_section_more">More</string>
+    <string name="settings_privacy">Privacy &amp; data</string>
+    <string name="settings_about">About &amp; licenses</string>
+    <string name="settings_rerun_setup">Re-run setup</string>
+
+    <!-- PrivacyActivity -->
+    <string name="privacy_title">Privacy &amp; data</string>
+    <string name="privacy_heading">How your data is handled</string>
+    <string name="privacy_on_device_title">On-device</string>
+    <string name="privacy_on_device_body">The agent runs here. Its control endpoint binds to this device only (127.0.0.1) and is reachable from a computer solely via USB debugging.</string>
+    <string name="privacy_leaves_title">What leaves the device</string>
+    <string name="privacy_leaves_body">Only your task and the on-screen context (a text view of the screen and screenshots) — sent to the model provider you choose (api.anthropic.com) to decide the next action. Nothing else is uploaded.</string>
+    <string name="privacy_key_title">Your API key</string>
+    <string name="privacy_key_body">Stored encrypted in the Android Keystore with a non-exportable key; the plaintext never touches disk and leaves the device only toward the provider.</string>
+    <string name="privacy_saved_title">Saved conversations</string>
+    <string name="privacy_saved_body">Conversations are saved on this device as text so you can revisit and resume them. Screenshots are never written to disk. Delete any conversation, or all of them, below or from History.</string>
+    <string name="privacy_kill_title">Kill switch</string>
+    <string name="privacy_kill_body">Press Stop any time. Disabling the accessibility service fully cuts the agent off.</string>
+    <string name="privacy_data_controls">Data controls</string>
+    <string name="privacy_clear_key">Clear API key</string>
+    <string name="privacy_clear_key_q">Clear API key?</string>
+    <string name="privacy_clear_key_body">The agent won\'t run until you add a key again.</string>
+    <string name="privacy_clear_key_toast">API key cleared</string>
+    <string name="privacy_clear_conv">Clear current conversation</string>
+    <string name="privacy_clear_conv_q">Clear current conversation?</string>
+    <string name="privacy_clear_conv_body">Removes the in-progress conversation from the chat. Saved conversations in History are not affected.</string>
+    <string name="privacy_clear_conv_toast">Conversation cleared</string>
+    <string name="privacy_delete_all">Delete all saved conversations</string>
+    <string name="privacy_delete_all_q">Delete all conversations?</string>
+    <string name="privacy_delete_all_body">Permanently deletes every saved conversation on this device. This can\'t be undone.</string>
+    <string name="privacy_delete_all_toast">All conversations deleted</string>
+
+    <!-- OnboardingActivity -->
+    <string name="onboarding_step">Set up · Step %1$d of %2$d</string>
+    <string name="onboarding_back">Back</string>
+    <string name="onboarding_get_started">Get started</string>
+    <string name="onboarding_continue">Continue</string>
+    <string name="onboarding_skip">Skip for now</string>
+    <string name="onboarding_save_continue">Save &amp; continue</string>
+    <string name="onboarding_done">Done</string>
+    <string name="onboarding_welcome_title">A second pair of hands</string>
+    <string name="onboarding_welcome_body">Open Android Use is an AI agent that operates this phone for you — it sees the screen and taps, types, and scrolls on your behalf. Everything runs on this device; you stay in control and can stop it at any time.</string>
+    <string name="onboarding_welcome_time">This quick setup takes about a minute.</string>
+    <string name="onboarding_accessibility_title">Enable the accessibility service</string>
+    <string name="onboarding_accessibility_body">The agent works through Android\'s accessibility service — that\'s how it sees the screen and performs taps and gestures. Turn it on for \"Open Android Use Companion\".</string>
+    <string name="onboarding_service_running">Service: running ✓</string>
+    <string name="onboarding_service_not_enabled">Service: not enabled yet</string>
+    <string name="onboarding_privacy_title">Privacy &amp; control</string>
+    <string name="onboarding_privacy_on_device_body">The agent runs here. The control endpoint binds to this device only (127.0.0.1).</string>
+    <string name="onboarding_privacy_leaves_body">Only your task and screen context, sent to the model provider you choose (api.anthropic.com) to decide the next action.</string>
+    <string name="onboarding_privacy_key_body">Stored encrypted in the Android Keystore — it never leaves the device except to the provider.</string>
+    <string name="onboarding_apikey_title">Add your API key</string>
+    <string name="onboarding_apikey_body">Paste an Anthropic API key to let the agent run. You can skip this and add it later — you\'ll be prompted when you start a task.</string>
+    <string name="onboarding_apikey_label">Anthropic API key (sk-ant-…)</string>
+    <string name="onboarding_prefs_title">Preferences</string>
+    <string name="onboarding_prefs_hint">You can change these any time in Agent Chat → Settings.</string>
+    <string name="onboarding_ready_title">You\'re set</string>
+    <string name="onboarding_ready_accessibility_on">Accessibility: on ✓</string>
+    <string name="onboarding_ready_accessibility_off">Accessibility: off — enable it to let the agent act</string>
+    <string name="onboarding_ready_key_set">API key: set ✓</string>
+    <string name="onboarding_ready_key_unset">API key: not set — add it when you start a task</string>
+    <string name="onboarding_try_title">Try a first task:</string>
+    <string name="onboarding_try_example">\"Open Settings and tell me the Android version\"</string>
+
+    <!-- SessionsActivity (History) -->
+    <string name="sessions_title">History</string>
+    <string name="sessions_empty">No saved conversations yet.</string>
+    <string name="sessions_more_options">More options for %1$s</string>
+    <string name="sessions_resume">Resume</string>
+    <string name="sessions_rename">Rename</string>
+    <string name="sessions_archive">Archive</string>
+    <string name="sessions_unarchive">Unarchive</string>
+    <string name="sessions_archived">Archived</string>
+    <string name="sessions_delete_q">Delete conversation?</string>
+    <string name="sessions_delete_body">This permanently deletes \"%1$s\".</string>
+    <string name="sessions_rename_title">Rename conversation</string>
+    <string name="sessions_busy_open">Stop the current task before opening another conversation</string>
+    <string name="sessions_busy_delete">Stop the current task before deleting it</string>
+
+    <!-- In-control overlay / notification / confirmation sheet (non-Compose surfaces) -->
+    <string name="overlay_acting">👐 Open Android Use is acting</string>
+    <string name="overlay_acting_desc">Open Android Use is acting. Opens the agent chat.</string>
+    <string name="notif_channel_name">Agent activity</string>
+    <string name="notif_channel_desc">Shown while the agent is operating your phone.</string>
+    <string name="notif_title">Open Android Use is acting</string>
+    <string name="notif_text">Tap Stop to halt the agent.</string>
+    <string name="confirm_wants_to">The agent wants to:</string>
+    <string name="confirm_allow">Allow</string>
+    <string name="confirm_deny">Deny</string>
 </resources>

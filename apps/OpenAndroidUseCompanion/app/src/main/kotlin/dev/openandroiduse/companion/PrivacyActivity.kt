@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.openandroiduse.companion.agent.AgentController
 import dev.openandroiduse.companion.agent.AgentSettings
@@ -70,7 +71,7 @@ private fun PrivacyScreen(
 ) {
     val context = LocalContext.current
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Privacy & data") }) },
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.privacy_title)) }) },
     ) { contentPadding ->
         Column(
             modifier = Modifier
@@ -80,64 +81,44 @@ private fun PrivacyScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("How your data is handled", style = MaterialTheme.typography.titleMedium)
-            PrivacyPoint(
-                "On-device",
-                "The agent runs here. Its control endpoint binds to this device only " +
-                    "(127.0.0.1) and is reachable from a computer solely via USB debugging.",
-            )
-            PrivacyPoint(
-                "What leaves the device",
-                "Only your task and the on-screen context (a text view of the screen and " +
-                    "screenshots) — sent to the model provider you choose (api.anthropic.com) " +
-                    "to decide the next action. Nothing else is uploaded.",
-            )
-            PrivacyPoint(
-                "Your API key",
-                "Stored encrypted in the Android Keystore with a non-exportable key; the " +
-                    "plaintext never touches disk and leaves the device only toward the provider.",
-            )
-            PrivacyPoint(
-                "Saved conversations",
-                "Conversations are saved on this device as text so you can revisit and resume " +
-                    "them. Screenshots are never written to disk. Delete any conversation, or all " +
-                    "of them, below or from History.",
-            )
-            PrivacyPoint(
-                "Kill switch",
-                "Press Stop any time. Disabling the accessibility service fully cuts the agent off.",
-            )
+            Text(stringResource(R.string.privacy_heading), style = MaterialTheme.typography.titleMedium)
+            PrivacyPoint(stringResource(R.string.privacy_on_device_title), stringResource(R.string.privacy_on_device_body))
+            PrivacyPoint(stringResource(R.string.privacy_leaves_title), stringResource(R.string.privacy_leaves_body))
+            PrivacyPoint(stringResource(R.string.privacy_key_title), stringResource(R.string.privacy_key_body))
+            PrivacyPoint(stringResource(R.string.privacy_saved_title), stringResource(R.string.privacy_saved_body))
+            PrivacyPoint(stringResource(R.string.privacy_kill_title), stringResource(R.string.privacy_kill_body))
 
             HorizontalDivider()
 
-            Text("Data controls", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.privacy_data_controls), style = MaterialTheme.typography.titleMedium)
+            val clearedKey = stringResource(R.string.privacy_clear_key_toast)
+            val clearedConv = stringResource(R.string.privacy_clear_conv_toast)
+            val deletedAll = stringResource(R.string.privacy_delete_all_toast)
             DangerControl(
-                label = "Clear API key",
-                confirmTitle = "Clear API key?",
-                confirmBody = "The agent won't run until you add a key again.",
+                label = stringResource(R.string.privacy_clear_key),
+                confirmTitle = stringResource(R.string.privacy_clear_key_q),
+                confirmBody = stringResource(R.string.privacy_clear_key_body),
                 onConfirmed = {
                     onClearKey()
-                    Toast.makeText(context, "API key cleared", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, clearedKey, Toast.LENGTH_SHORT).show()
                 },
             )
             DangerControl(
-                label = "Clear current conversation",
-                confirmTitle = "Clear current conversation?",
-                confirmBody = "Removes the in-progress conversation from the chat. Saved " +
-                    "conversations in History are not affected.",
+                label = stringResource(R.string.privacy_clear_conv),
+                confirmTitle = stringResource(R.string.privacy_clear_conv_q),
+                confirmBody = stringResource(R.string.privacy_clear_conv_body),
                 onConfirmed = {
                     onClearConversation()
-                    Toast.makeText(context, "Conversation cleared", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, clearedConv, Toast.LENGTH_SHORT).show()
                 },
             )
             DangerControl(
-                label = "Delete all saved conversations",
-                confirmTitle = "Delete all conversations?",
-                confirmBody = "Permanently deletes every saved conversation on this device. " +
-                    "This can't be undone.",
+                label = stringResource(R.string.privacy_delete_all),
+                confirmTitle = stringResource(R.string.privacy_delete_all_q),
+                confirmBody = stringResource(R.string.privacy_delete_all_body),
                 onConfirmed = {
                     onDeleteAllSessions()
-                    Toast.makeText(context, "All conversations deleted", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, deletedAll, Toast.LENGTH_SHORT).show()
                 },
             )
         }
@@ -170,10 +151,10 @@ private fun DangerControl(
             text = { Text(confirmBody) },
             confirmButton = {
                 TextButton(onClick = { asking = false; onConfirmed() }) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
-            dismissButton = { TextButton(onClick = { asking = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { asking = false }) { Text(stringResource(R.string.action_cancel)) } },
         )
     }
 }

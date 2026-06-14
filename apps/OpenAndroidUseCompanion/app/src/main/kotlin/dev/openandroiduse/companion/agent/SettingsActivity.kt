@@ -37,11 +37,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import dev.openandroiduse.companion.AboutActivity
 import dev.openandroiduse.companion.OnboardingActivity
 import dev.openandroiduse.companion.PrivacyActivity
+import dev.openandroiduse.companion.R
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
 
 /**
@@ -97,7 +99,7 @@ private fun SettingsScreen(
     var dynamic by remember { mutableStateOf(settings.dynamicColor) }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Settings") }) },
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.settings_title)) }) },
     ) { contentPadding ->
         Column(
             modifier = Modifier
@@ -108,16 +110,17 @@ private fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // --- API key ---
-            SectionTitle("API key")
+            SectionTitle(stringResource(R.string.settings_section_api_key))
             Text(
-                if (hasKey) "An Anthropic API key is configured. Enter a new one to replace it."
-                else "Add an Anthropic API key to let the agent run.",
+                stringResource(
+                    if (hasKey) R.string.settings_api_key_configured else R.string.settings_api_key_add,
+                ),
                 style = MaterialTheme.typography.bodyMedium,
             )
             OutlinedTextField(
                 value = apiKey,
                 onValueChange = { apiKey = it },
-                placeholder = { Text("sk-ant-…") },
+                placeholder = { Text(stringResource(R.string.settings_api_key_placeholder)) },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
@@ -131,24 +134,24 @@ private fun SettingsScreen(
                         apiKey = ""
                         hasKey = true
                         Thread({ ModelCatalog.refresh(settings) }, "oau-model-refresh").start()
-                        Toast.makeText(context, "Key saved", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.settings_key_saved), Toast.LENGTH_SHORT).show()
                     },
                     enabled = apiKey.isNotBlank(),
-                ) { Text("Save key") }
+                ) { Text(stringResource(R.string.settings_save_key)) }
                 OutlinedButton(
                     onClick = {
                         settings.clearApiKey()
                         hasKey = false
-                        Toast.makeText(context, "Key cleared", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.settings_key_cleared), Toast.LENGTH_SHORT).show()
                     },
                     enabled = hasKey,
-                ) { Text("Clear key") }
+                ) { Text(stringResource(R.string.settings_clear_key)) }
             }
 
             HorizontalDivider()
 
             // --- Model ---
-            SectionTitle("Model")
+            SectionTitle(stringResource(R.string.label_model))
             ModelDropdown(
                 models = settings.availableModels(),
                 selected = model,
@@ -161,21 +164,21 @@ private fun SettingsScreen(
             HorizontalDivider()
 
             // --- Behavior ---
-            SectionTitle("Behavior")
+            SectionTitle(stringResource(R.string.settings_section_behavior))
             SettingToggle(
-                "Ask before each action batch",
-                "Show a confirmation sheet before the agent taps or types.",
+                stringResource(R.string.pref_confirm_title),
+                stringResource(R.string.pref_confirm_body),
                 confirmActions,
             ) { confirmActions = it; settings.confirmActions = it }
             SettingToggle(
-                "Speak narration aloud",
-                "The agent reads its narration out loud while it works.",
+                stringResource(R.string.pref_speak_title),
+                stringResource(R.string.pref_speak_body),
                 speak,
             ) { speak = it; settings.speakNarration = it }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 SettingToggle(
-                    "Use system colors (Material You)",
-                    "Match Android 12+ dynamic color instead of the app's brand palette.",
+                    stringResource(R.string.settings_material_you_title),
+                    stringResource(R.string.settings_material_you_body),
                     dynamic,
                 ) {
                     dynamic = it
@@ -187,15 +190,15 @@ private fun SettingsScreen(
             HorizontalDivider()
 
             // --- More ---
-            SectionTitle("More")
+            SectionTitle(stringResource(R.string.settings_section_more))
             OutlinedButton(onClick = onOpenPrivacy, modifier = Modifier.fillMaxWidth()) {
-                Text("Privacy & data")
+                Text(stringResource(R.string.settings_privacy))
             }
             OutlinedButton(onClick = onOpenAbout, modifier = Modifier.fillMaxWidth()) {
-                Text("About & licenses")
+                Text(stringResource(R.string.settings_about))
             }
             OutlinedButton(onClick = onRerunSetup, modifier = Modifier.fillMaxWidth()) {
-                Text("Re-run setup")
+                Text(stringResource(R.string.settings_rerun_setup))
             }
         }
     }

@@ -115,7 +115,7 @@ private fun OnboardingScreen(
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Set up · Step ${step + 1} of $STEP_COUNT") }) },
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.onboarding_step, step + 1, STEP_COUNT)) }) },
     ) { contentPadding ->
         Column(modifier = Modifier.padding(contentPadding).fillMaxSize()) {
             Crossfade(targetState = step, label = "onboarding-step", modifier = Modifier.weight(1f)) { current ->
@@ -155,17 +155,17 @@ private fun OnboardingScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (step > 0 && step < 5) {
-                    OutlinedButton(onClick = { step-- }) { Text("Back") }
+                    OutlinedButton(onClick = { step-- }) { Text(stringResource(R.string.onboarding_back)) }
                 }
                 Spacer(Modifier.weight(1f))
                 when (step) {
-                    0 -> Button(onClick = { step = 1 }) { Text("Get started") }
+                    0 -> Button(onClick = { step = 1 }) { Text(stringResource(R.string.onboarding_get_started)) }
                     1 -> Button(onClick = { step = 2 }) {
-                        Text(if (serviceRunning) "Continue" else "Skip for now")
+                        Text(stringResource(if (serviceRunning) R.string.onboarding_continue else R.string.onboarding_skip))
                     }
-                    2 -> Button(onClick = { step = 3 }) { Text("Continue") }
+                    2 -> Button(onClick = { step = 3 }) { Text(stringResource(R.string.onboarding_continue)) }
                     3 -> {
-                        TextButton(onClick = { step = 4 }) { Text("Skip for now") }
+                        TextButton(onClick = { step = 4 }) { Text(stringResource(R.string.onboarding_skip)) }
                         Button(onClick = {
                             val key = apiKey.trim()
                             if (key.isNotEmpty()) {
@@ -174,16 +174,16 @@ private fun OnboardingScreen(
                                 onRefreshModels()
                             }
                             step = 4
-                        }) { Text("Save & continue") }
+                        }) { Text(stringResource(R.string.onboarding_save_continue)) }
                     }
                     4 -> Button(onClick = {
                         settings.confirmActions = confirmActions
                         settings.speakNarration = speakNarration
                         step = 5
-                    }) { Text("Continue") }
+                    }) { Text(stringResource(R.string.onboarding_continue)) }
                     else -> {
-                        TextButton(onClick = { onComplete(false) }) { Text("Done") }
-                        Button(onClick = { onComplete(true) }) { Text("Open Agent Chat") }
+                        TextButton(onClick = { onComplete(false) }) { Text(stringResource(R.string.onboarding_done)) }
+                        Button(onClick = { onComplete(true) }) { Text(stringResource(R.string.action_open_chat)) }
                     }
                 }
             }
@@ -193,45 +193,35 @@ private fun OnboardingScreen(
 
 @Composable
 private fun WelcomeStep() {
-    Text("A second pair of hands", style = MaterialTheme.typography.headlineSmall)
-    Text(
-        "Open Android Use is an AI agent that operates this phone for you — it sees " +
-            "the screen and taps, types, and scrolls on your behalf. Everything runs " +
-            "on this device; you stay in control and can stop it at any time.",
-        style = MaterialTheme.typography.bodyMedium,
-    )
-    Text("This quick setup takes about a minute.", style = MaterialTheme.typography.bodyMedium)
+    Text(stringResource(R.string.onboarding_welcome_title), style = MaterialTheme.typography.headlineSmall)
+    Text(stringResource(R.string.onboarding_welcome_body), style = MaterialTheme.typography.bodyMedium)
+    Text(stringResource(R.string.onboarding_welcome_time), style = MaterialTheme.typography.bodyMedium)
 }
 
 @Composable
 private fun AccessibilityStep(serviceRunning: Boolean, onOpen: () -> Unit) {
-    Text("Enable the accessibility service", style = MaterialTheme.typography.headlineSmall)
-    Text(
-        "The agent works through Android's accessibility service — that's how it sees " +
-            "the screen and performs taps and gestures. Turn it on for \"Open Android " +
-            "Use Companion\".",
-        style = MaterialTheme.typography.bodyMedium,
-    )
+    Text(stringResource(R.string.onboarding_accessibility_title), style = MaterialTheme.typography.headlineSmall)
+    Text(stringResource(R.string.onboarding_accessibility_body), style = MaterialTheme.typography.bodyMedium)
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Text(
-            if (serviceRunning) "Service: running ✓" else "Service: not enabled yet",
+            stringResource(if (serviceRunning) R.string.onboarding_service_running else R.string.onboarding_service_not_enabled),
             modifier = Modifier.padding(16.dp),
             style = MaterialTheme.typography.titleMedium,
         )
     }
     Button(onClick = onOpen, modifier = Modifier.fillMaxWidth()) {
-        Text("Open Accessibility Settings")
+        Text(stringResource(R.string.action_open_accessibility))
     }
     Text(stringResource(R.string.restricted_setting_hint), style = MaterialTheme.typography.bodySmall)
 }
 
 @Composable
 private fun PrivacyStep() {
-    Text("Privacy & control", style = MaterialTheme.typography.headlineSmall)
-    PrivacyPoint("On-device", "The agent runs here. The control endpoint binds to this device only (127.0.0.1).")
-    PrivacyPoint("What leaves the device", "Only your task and screen context, sent to the model provider you choose (api.anthropic.com) to decide the next action.")
-    PrivacyPoint("Your API key", "Stored encrypted in the Android Keystore — it never leaves the device except to the provider.")
-    PrivacyPoint("Kill switch", "Press Stop any time. Disabling the accessibility service fully cuts the agent off.")
+    Text(stringResource(R.string.onboarding_privacy_title), style = MaterialTheme.typography.headlineSmall)
+    PrivacyPoint(stringResource(R.string.privacy_on_device_title), stringResource(R.string.onboarding_privacy_on_device_body))
+    PrivacyPoint(stringResource(R.string.privacy_leaves_title), stringResource(R.string.onboarding_privacy_leaves_body))
+    PrivacyPoint(stringResource(R.string.privacy_key_title), stringResource(R.string.onboarding_privacy_key_body))
+    PrivacyPoint(stringResource(R.string.privacy_kill_title), stringResource(R.string.privacy_kill_body))
 }
 
 @Composable
@@ -250,21 +240,17 @@ private fun ApiKeyStep(
     model: String,
     onModelChange: (String) -> Unit,
 ) {
-    Text("Add your API key", style = MaterialTheme.typography.headlineSmall)
-    Text(
-        "Paste an Anthropic API key to let the agent run. You can skip this and add " +
-            "it later — you'll be prompted when you start a task.",
-        style = MaterialTheme.typography.bodyMedium,
-    )
+    Text(stringResource(R.string.onboarding_apikey_title), style = MaterialTheme.typography.headlineSmall)
+    Text(stringResource(R.string.onboarding_apikey_body), style = MaterialTheme.typography.bodyMedium)
     OutlinedTextField(
         value = apiKey,
         onValueChange = onApiKeyChange,
-        label = { Text("Anthropic API key (sk-ant-…)") },
+        label = { Text(stringResource(R.string.onboarding_apikey_label)) },
         singleLine = true,
         visualTransformation = PasswordVisualTransformation(),
         modifier = Modifier.fillMaxWidth(),
     )
-    Text("Model", style = MaterialTheme.typography.titleSmall)
+    Text(stringResource(R.string.label_model), style = MaterialTheme.typography.titleSmall)
     ModelDropdown(models = models, selected = model, onSelected = onModelChange)
 }
 
@@ -294,20 +280,20 @@ private fun PreferencesStep(
     speakNarration: Boolean,
     onSpeakChange: (Boolean) -> Unit,
 ) {
-    Text("Preferences", style = MaterialTheme.typography.headlineSmall)
+    Text(stringResource(R.string.onboarding_prefs_title), style = MaterialTheme.typography.headlineSmall)
     ToggleRow(
-        "Ask before each action batch",
-        "Show a confirmation sheet before the agent taps or types.",
+        stringResource(R.string.pref_confirm_title),
+        stringResource(R.string.pref_confirm_body),
         confirmActions,
         onConfirmChange,
     )
     ToggleRow(
-        "Speak narration aloud",
-        "The agent reads its narration out loud while it works.",
+        stringResource(R.string.pref_speak_title),
+        stringResource(R.string.pref_speak_body),
         speakNarration,
         onSpeakChange,
     )
-    Text("You can change these any time in Agent Chat → Settings.", style = MaterialTheme.typography.bodySmall)
+    Text(stringResource(R.string.onboarding_prefs_hint), style = MaterialTheme.typography.bodySmall)
 }
 
 @Composable
@@ -324,13 +310,13 @@ private fun ToggleRow(title: String, body: String, checked: Boolean, onChange: (
 
 @Composable
 private fun ReadyStep(serviceRunning: Boolean, hasKey: Boolean) {
-    Text("You're set", style = MaterialTheme.typography.headlineSmall)
+    Text(stringResource(R.string.onboarding_ready_title), style = MaterialTheme.typography.headlineSmall)
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(if (serviceRunning) "Accessibility: on ✓" else "Accessibility: off — enable it to let the agent act")
-            Text(if (hasKey) "API key: set ✓" else "API key: not set — add it when you start a task")
+            Text(stringResource(if (serviceRunning) R.string.onboarding_ready_accessibility_on else R.string.onboarding_ready_accessibility_off))
+            Text(stringResource(if (hasKey) R.string.onboarding_ready_key_set else R.string.onboarding_ready_key_unset))
         }
     }
-    Text("Try a first task:", style = MaterialTheme.typography.titleSmall)
-    Text("\"Open Settings and tell me the Android version\"", style = MaterialTheme.typography.bodyMedium)
+    Text(stringResource(R.string.onboarding_try_title), style = MaterialTheme.typography.titleSmall)
+    Text(stringResource(R.string.onboarding_try_example), style = MaterialTheme.typography.bodyMedium)
 }

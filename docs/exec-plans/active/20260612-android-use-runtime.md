@@ -178,10 +178,12 @@ build script, and docs synced.
     and **Compose UI test infrastructure** (`ui-test-junit4`) with smoke tests for
     Settings/History plus an instrumented Keystore round-trip — all riding the
     existing `emulator-smoke` pass.
-  - [ ] 4.6 a11y/i18n/responsive: richer markdown (links/tables), full
-    content-description/large-font/reduce-motion pass, migrate inline copy to
-    `strings.xml` (~140 strings across the Activities), foldable/tablet layouts
-    (`WindowSizeClass`).
+  - [~] 4.6 a11y/i18n/responsive
+    (`docs/exec-plans/active/20260614-phase46-a11y-i18n-responsive.md`): sub-PRs
+    4.6a i18n (externalize ~280 strings, translation-ready) → 4.6b accessibility →
+    4.6c responsive polish → 4.6d markdown links+tables → 4.6e tablet/foldable
+    two-pane. 4.6a-1 done: static screens + overlay/notification/confirmation
+    externalized to `strings.xml`. Actual translations are a future Localization phase.
 - [ ] **Phase 4.7 — Distribution & Play readiness**: (a) tagged GitHub release of
   the signed APK; (b) Play Store **signed AAB** (the Android 13+ "Restricted
   setting" prompt is an install-source gate removed by a Play install, *not* by
@@ -189,6 +191,10 @@ build script, and docs synced.
   `QUERY_ALL_PACKAGES` Play-policy decision for `list_apps` (justified `<queries>`
   vs. a narrower approach); (e) the true foreground-service type deferred from 4.4;
   (f) store-listing assets + a privacy policy.
+- [ ] **Localization (ship languages)**: with the UI fully externalized by Phase 4.6,
+  add `res/values-<locale>/` translations (zh-CN first, fitting the inherited-Chinese
+  context) with a translation/review workflow. Carved out of 4.6 so the i18n framework
+  lands without a translation-quality commitment.
 - [ ] **Phase 5 — Multi-provider BYOK** (`docs/design-docs/phase5-multi-provider-byok.md`):
   Claude + Gemini via an in-house Kotlin `AgentBackend` interface + official
   per-provider SDKs (keep `anthropic-java`; add `com.google.genai` for Gemini);
@@ -255,6 +261,11 @@ build script, and docs synced.
   check. **Play-readiness work is split into a dedicated Phase 4.7** (signing/AAB,
   `QUERY_ALL_PACKAGES` policy, FGS type, listing/privacy policy) so 4.6 stays a pure
   UX/i18n phase. Hardware verification + the signing keystore remain founder-gated.
+- 2026-06-14: Phase 4.6 i18n ships **externalize-only** — every string moves to resources
+  (translation-ready) but the app stays English; actual translations (zh-CN first) are a
+  dedicated future **Localization** phase, so the framework lands without committing to
+  translation quality/maintenance now. 4.6 also includes tablet/foldable two-pane and
+  markdown links+tables (founder's scope choices); Play distribution stays in 4.7.
 - 2026-06-14: Brand identity — the app icon is a designed adaptive vector: the
   agent's hand (touch-gesture, blue→violet gradient) tapping out an AI sparkle
   (open mint "sparkle crown" with gaps so it stays distinct from the hand, incl.
