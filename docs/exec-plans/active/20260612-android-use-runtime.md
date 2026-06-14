@@ -127,12 +127,24 @@ build script, and docs synced.
   Store **signed AAB** distribution — the Android 13+ "Restricted setting"
   prompt is an install-source gate that disappears via Play install, *not* via
   release signing; (c) release signing keystore/config (founder-held).
-- [ ] **Phase 4 — Product UI/UX** (`docs/design-docs/phase4-product-ui.md`):
+- [~] **Phase 4 — Product UI/UX** (`docs/design-docs/phase4-product-ui.md`):
   Compose/Material 3 presentation layer; 4.1 guided onboarding wizard → 4.2
   design-system foundation → 4.3 chat polish → 4.4 trust/control surface → 4.5
   settings & privacy → 4.6 a11y/i18n/responsive + Play readiness.
-- [ ] Phase 3.x backlog: models-API-driven model list, per-action consent
-  granularity, task memory (opt-in).
+  - [~] PR-A (foundation): Compose + Material 3 enabled (Kotlin 2.0 compose
+    plugin), `OpenAndroidUseTheme` on the brand "Aurora" palette, designed brand
+    icon — the agent's hand tapping out an AI sparkle (+ gradient background +
+    monochrome themed variant), and `MainActivity`/`AboutActivity` migrated to
+    Compose. `ChatActivity` stays Views (chunk 4.3).
+  - [ ] PR-B (onboarding wizard 4.1): guided first-run flow (welcome → enable
+    accessibility w/ restricted-settings handling → API key → ready), gating on a
+    new `AgentSettings.onboardingCompleted` flag.
+- [ ] **Phase 5 — Multi-provider BYOK** (`docs/design-docs/phase5-multi-provider-byok.md`):
+  Claude + Gemini via an in-house Kotlin `AgentBackend` interface + official
+  per-provider SDKs (keep `anthropic-java`; add `com.google.genai` for Gemini);
+  per-provider key + model in settings. Built after the Phase 4 foundation.
+- [ ] Phase 3.x backlog (agent intelligence): models-API-driven live model list
+  (per provider), per-action consent granularity, task memory (opt-in).
 
 ## Decisions
 
@@ -166,4 +178,19 @@ build script, and docs synced.
   above: the presentation layer may adopt Compose/Material 3 for a world-class
   product UI, while the control surface (AccessibilityService, loopback server,
   snapshot/action, agent loop) stays dependency-free. See
-  `docs/design-docs/phase4-product-ui.md`.
+  `docs/design-docs/phase4-product-ui.md`. PR-A enables Compose and migrates the
+  two simple screens; the control-surface-stays-androidx-free rule is the
+  guardrail (packages `CompanionService`/`HttpServer`/snapshot/action must not
+  import androidx).
+- 2026-06-14: Multi-provider BYOK (Phase 5) is implemented via a small in-house
+  Kotlin `AgentBackend` interface + the official first-party SDK per provider
+  (keep `anthropic-java`; add `com.google.genai` for Gemini). GenKit and the
+  Vercel AI SDK are rejected as JS/server-side: both would force a backend proxy
+  and break the on-device, key-stays-local model. See
+  `docs/design-docs/phase5-multi-provider-byok.md`.
+- 2026-06-14: Brand identity — the app icon is a designed adaptive vector: the
+  agent's hand (touch-gesture, blue→violet gradient) tapping out an AI sparkle
+  (open mint "sparkle crown" with gaps so it stays distinct from the hand, incl.
+  in monochrome), in the brand "Aurora" palette (indigo gradient ground),
+  replacing the borrowed system drawable; a monochrome layer supports Android 13+
+  themed icons, and the same palette drives the Compose theme.

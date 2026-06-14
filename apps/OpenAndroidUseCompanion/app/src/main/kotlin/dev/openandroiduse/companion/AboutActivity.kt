@@ -1,90 +1,112 @@
 package dev.openandroiduse.companion
 
-import android.app.Activity
 import android.content.Intent
-import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
-import android.widget.Button
-import android.widget.LinearLayout
-import android.widget.ScrollView
-import android.widget.TextView
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
 
 /**
  * About / attribution surface: app identity and version, project + contact
- * links, and the open-source licenses notice (this app under PolyForm Perimeter,
- * the engine under MIT, the bundled Anthropic SDK under Apache-2.0). This
- * doubles as the open-source-licenses screen a Play Store listing expects.
- *
- * Deliberately plain Views and dependency-free, matching MainActivity; Phase 4
- * (docs/design-docs/phase4-product-ui.md) restyles it under the new design
- * system.
+ * links, and the open-source licenses notice. Doubles as the licenses screen a
+ * Play Store listing expects.
  */
-class AboutActivity : Activity() {
+class AboutActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val padding = (16 * resources.displayMetrics.density).toInt()
-        val layout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(padding, padding, padding, padding)
-        }
-
-        layout.addView(TextView(this).apply {
-            text = getString(R.string.app_name)
-            textSize = 22f
-            setTypeface(typeface, Typeface.BOLD)
-        })
-
-        layout.addView(TextView(this).apply {
-            textSize = 14f
-            setPadding(0, padding / 2, 0, 0)
-            text = "${getString(R.string.about_tagline)}\nVersion ${BuildConfig.VERSION_NAME}"
-        })
-
-        layout.addView(sectionTitle(getString(R.string.about_links_title), padding))
-        addLink(layout, getString(R.string.about_github_label)) {
-            openUri(getString(R.string.about_github_url))
-        }
-        addLink(layout, getString(R.string.about_x_label)) {
-            openUri(getString(R.string.about_x_url))
-        }
-        addLink(layout, getString(R.string.about_email_label)) {
-            val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${getString(R.string.about_email)}"))
-            if (intent.resolveActivity(packageManager) != null) {
-                startActivity(intent)
+        setContent {
+            OpenAndroidUseTheme {
+                AboutScreen(
+                    version = BuildConfig.VERSION_NAME,
+                    onOpenUrl = ::openUri,
+                    onEmail = ::sendEmail,
+                )
             }
         }
-
-        layout.addView(sectionTitle(getString(R.string.about_licenses_title), padding))
-        layout.addView(TextView(this).apply {
-            textSize = 13f
-            text = getString(R.string.about_licenses_body)
-        })
-
-        setContentView(ScrollView(this).apply { addView(layout) })
-    }
-
-    private fun sectionTitle(text: String, padding: Int): TextView =
-        TextView(this).apply {
-            this.text = text
-            textSize = 16f
-            setTypeface(typeface, Typeface.BOLD)
-            setPadding(0, padding, 0, padding / 2)
-        }
-
-    private fun addLink(parent: LinearLayout, label: String, onClick: () -> Unit) {
-        parent.addView(Button(this).apply {
-            text = label
-            setOnClickListener { onClick() }
-        })
     }
 
     private fun openUri(url: String) {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
         if (intent.resolveActivity(packageManager) != null) {
             startActivity(intent)
+        }
+    }
+
+    private fun sendEmail(address: String) {
+        val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$address"))
+        if (intent.resolveActivity(packageManager) != null) {
+            startActivity(intent)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AboutScreen(
+    version: String,
+    onOpenUrl: (String) -> Unit,
+    onEmail: (String) -> Unit,
+) {
+    Scaffold(
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) },
+    ) { contentPadding ->
+        Column(
+            modifier = Modifier
+                .padding(contentPadding)
+                .padding(16.dp)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = "${stringResource(R.string.about_tagline)}\nVersion $version",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+
+            Text(
+                text = stringResource(R.string.about_links_title),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            val githubUrl = stringResource(R.string.about_github_url)
+            val xUrl = stringResource(R.string.about_x_url)
+            val email = stringResource(R.string.about_email)
+            OutlinedButton(onClick = { onOpenUrl(githubUrl) }, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.about_github_label))
+            }
+            OutlinedButton(onClick = { onOpenUrl(xUrl) }, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.about_x_label))
+            }
+            OutlinedButton(onClick = { onEmail(email) }, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.about_email_label))
+            }
+
+            Text(
+                text = stringResource(R.string.about_licenses_title),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                text = stringResource(R.string.about_licenses_body),
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
     }
 }

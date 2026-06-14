@@ -71,8 +71,17 @@ largely for free).
 
 4. **Design system & identity**
    - Material 3 / dynamic color, full dark mode, type + spacing tokens.
-   - A real adaptive app icon (today it borrows a system drawable), an
-     Android 12+ splash screen, meaningful motion and haptics.
+   - A real adaptive app icon — **shipped in PR-A**: the brand mark is the
+     agent's hand tapping out an **AI sparkle** (the touch-gesture hand in a
+     blue→violet gradient, with an open mint "sparkle crown" blooming above the
+     fingertip — arms cut with gaps so it stays distinct from the hand, including
+     in monochrome), in the brand "Aurora" palette (indigo gradient ground),
+     with a monochrome layer for Android 13+ themed icons
+     (`res/drawable/ic_launcher_foreground.xml` + `ic_launcher_monochrome.xml`,
+     gradient `ic_launcher_background.xml`). The same palette drives the app
+     theme (`ui/theme/`). Reference render:
+     ![App icon](assets/phase4-app-icon.png)
+   - Still to do: an Android 12+ splash screen, meaningful motion and haptics.
 
 5. **Settings & privacy / transparency**
    - Model picker (ties to the models-API backlog item), confirmation and voice

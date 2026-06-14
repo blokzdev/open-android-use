@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
@@ -18,6 +19,7 @@ android {
 
     buildFeatures {
         buildConfig = true
+        compose = true
     }
 
     buildTypes {
@@ -54,11 +56,23 @@ android {
 // 20260612-phase3-on-device-agent.md): the *control surface* — accessibility
 // service, loopback endpoint, snapshot/action code — stays dependency-free
 // (org.json, ServerSocket, programmatic UI). The on-device agent feature
-// (the `agent` package) is the one sanctioned exception: it talks to the
-// Claude API through the official first-party Anthropic Java SDK rather than
-// hand-rolled HTTP. Nothing under the control surface may import com.anthropic.
+// (the `agent` package) talks to the Claude API through the official Anthropic
+// Java SDK. Phase 4 adds Jetpack Compose / Material 3 for the *presentation
+// layer only* (Activities, theme, screens); the control surface must not import
+// androidx/compose, and nothing under it may import com.anthropic.
 dependencies {
     implementation("com.anthropic:anthropic-java:2.40.1")
+
+    // Presentation layer only (Phase 4): Jetpack Compose + Material 3. The BOM
+    // pins mutually-compatible Compose library versions; the Compose compiler
+    // comes from the Kotlin 2.0 plugin applied above.
+    implementation(platform("androidx.compose:compose-bom:2024.09.03"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.activity:activity-compose:1.9.2")
+    debugImplementation("androidx.compose.ui:ui-tooling")
 
     // JVM unit tests only: a real org.json so SnapshotBuilder-format JSON can
     // be exercised without a device (android.jar ships stubs in unit tests).

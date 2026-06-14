@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Thin activity shell theme. Compose draws the actual UI (Material 3 via
+      OpenAndroidUseTheme), so the platform theme only needs to be a no-action-bar
+      container. Using a platform parent keeps the app off AppCompat/androidx
+      beyond the Compose libraries already added for the presentation layer.
+    -->
+    <style name="Theme.OpenAndroidUse" parent="@android:style/Theme.Material.Light.NoActionBar" />
+</resources>
