@@ -3,4 +3,18 @@
     <string name="app_name">Open Android Use Companion</string>
     <string name="accessibility_service_label">Open Android Use Companion</string>
     <string name="accessibility_service_description">Lets the Open Android Use agent see the screen and perform UI actions on your behalf. The control endpoint listens on this device only (127.0.0.1) and is reachable from a computer solely through USB debugging. Disable this service at any time to cut the agent off.</string>
+
+    <string name="restricted_setting_hint">On Android 13+, if you sideloaded this app you may see a “Restricted setting” notice when enabling accessibility. To allow it: open Settings &gt; Apps &gt; Open Android Use Companion, tap the ⋮ menu (top-right), choose “Allow restricted settings,” then return and enable the service. (This step goes away when the app is installed from the Play Store.)</string>
+
+    <string name="about_button">About</string>
+    <string name="about_tagline">A second pair of hands for your Android device.</string>
+    <string name="about_links_title">Project &amp; contact</string>
+    <string name="about_github_label">GitHub</string>
+    <string name="about_github_url">https://github.com/blokzdev</string>
+    <string name="about_x_label">X (Twitter)</string>
+    <string name="about_x_url">https://x.com/blokzdev</string>
+    <string name="about_email_label">support@blokz.dev</string>
+    <string name="about_email">support@blokz.dev</string>
+    <string name="about_licenses_title">Licenses &amp; attribution</string>
+    <string name="about_licenses_body">This app (Open Android Use Companion) © 2026 Blokz Development Co., licensed under the PolyForm Perimeter 1.0.0 (source-available, no-compete).\n\nIt builds on open-computer-use (MIT, © 2026 Leo / iFurySt).\n\nBundled third-party: Anthropic Java SDK — Apache License 2.0, © Anthropic, PBC.\n\nFull texts: see the LICENSE and NOTICE files in the project repository.</string>
 </resources>

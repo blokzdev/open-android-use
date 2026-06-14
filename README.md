@@ -67,6 +67,27 @@ go through `dispatchGesture`, and `type_text`/`set_value` carry full Unicode
 companion is disabled mid-session. Hardware verification steps:
 [VERIFICATION.md](VERIFICATION.md).
 
+### Install on your phone
+
+You don't need a tagged release to try it — install the debug APK directly.
+
+1. **Get the APK.** Either build it (`make companion-build` →
+   `dist/companion/open-android-use-companion.apk`) or download the
+   `open-android-use-companion-apk` artifact from the latest **android-runtime**
+   CI run.
+2. **Install** over USB: `adb install -r open-android-use-companion.apk`.
+3. **Enable accessibility.** Open the app → *Open Accessibility Settings* →
+   enable "Open Android Use Companion".
+   - **Android 13+ "Restricted setting":** a sideloaded app is blocked from
+     gaining accessibility until you allow it. Go *Settings → Apps → Open
+     Android Use Companion → ⋮ (top-right) → Allow restricted settings*, then
+     return and enable the service. This is an **install-source** gate that
+     affects any sideloaded app — it is *not* about debug vs. release signing,
+     and it disappears once the app is installed from the Play Store (or a Play
+     testing track), not by signing a release APK.
+4. **Run the agent:** *Open Agent Chat* → add your Anthropic API key → ask
+   "Open Settings and tell me the Android version".
+
 **On-device agent (Phase 3.1 — no computer, no cable):** the companion app
 also ships a complete agent. Open the app → *Open Agent Chat*, add your
 Anthropic API key (stored Keystore-encrypted, sent only to
@@ -148,6 +169,23 @@ Coordinate accuracy is preserved across any downsampling — coordinate tools (`
 These variables only affect macOS today. The Windows and Linux runtimes return native-size PNGs without downsampling.
 
 See [docs/IMAGE_CAPTURE.md](docs/IMAGE_CAPTURE.md) for the full capture → downsample → encode pipeline, the constraint interaction (maxDimension / maxBytes / minScale), coordinate-mapping details, and worked examples.
+
+## License (open-core)
+
+This repository is open-core:
+
+- **Engine — MIT.** The host-side Go bridge (`apps/OpenAndroidUse`), the
+  inherited desktop runtimes, and the npm packaging are licensed under the
+  [MIT License](LICENSE), preserving the upstream copyright (© 2026 Leo /
+  iFurySt).
+- **Android app — PolyForm Perimeter 1.0.0.** The on-device companion and agent
+  (`apps/OpenAndroidUseCompanion`) — the product destined for the Play Store —
+  is source-available but **no-compete**: read, run, modify, and share it, but
+  not to ship a competing product. © 2026 Blokz Development Co. See
+  [`apps/OpenAndroidUseCompanion/LICENSE`](apps/OpenAndroidUseCompanion/LICENSE).
+
+Upstream credit and third-party attribution (the bundled Anthropic Java SDK,
+Apache-2.0) are in [`NOTICE`](NOTICE).
 
 ## Acknowledge
 

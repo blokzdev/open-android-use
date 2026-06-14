@@ -86,6 +86,15 @@ artifact by `.github/workflows/android-runtime.yml`).
 - [ ] **V21. Accessibility service enable flow**: open the companion app, tap
   "Open Accessibility Settings", enable "Open Android Use Companion", return.
   Pass: status shows "Service: running — endpoint live on 127.0.0.1:8355".
+  - **V21a. Restricted-settings gate (Android 13+, sideloaded)**: if enabling
+    accessibility is blocked by a "Restricted setting" dialog, the in-app hint
+    (shown while the service is OFF) should point to *Settings → Apps → Open
+    Android Use Companion → ⋮ → Allow restricted settings*. Pass: following that
+    clears the block and the service enables; the hint disappears once running.
+- [ ] **V21b. About sheet**: from the main screen tap "About". Pass: shows the
+  app version (0.2.3), and the GitHub / X / email links open the right targets;
+  the "Licenses & attribution" block names PolyForm Perimeter (app), MIT
+  (engine), and the Apache-2.0 Anthropic SDK.
 - [ ] **V22. Companion endpoint over adb forward**:
   `adb forward tcp:8355 tcp:8355` then `curl http://127.0.0.1:8355/health`
   Pass: `{"ok":true,"service":"open-android-use-companion","version":"0.2.3","protocol":1,"screenshot":<bool>}`

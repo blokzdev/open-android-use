@@ -1,0 +1,55 @@
+open-android-use
+================
+
+A "Second Pair of Hands" for Android. This repository is open-core:
+
+  * Engine — the host-side Go bridge (apps/OpenAndroidUse), the inherited
+    desktop runtimes (macOS/Windows/Linux), and the npm packaging — is licensed
+    under the MIT License. See LICENSE.
+
+  * The Android app (apps/OpenAndroidUseCompanion) — the on-device companion
+    and agent, the product destined for the Play Store — is licensed under the
+    PolyForm Perimeter License 1.0.0 (source-available, no-compete),
+    Copyright (c) 2026 Blokz Development Co.
+    See apps/OpenAndroidUseCompanion/LICENSE.
+
+
+Upstream
+--------
+
+This project is a fork of open-computer-use (a QwenLM fork of
+iFurySt/open-codex-computer-use). The MIT-licensed engine retains the original
+copyright notice:
+
+  Copyright (c) 2026 Leo (iFurySt)
+  https://github.com/iFurySt/open-codex-computer-use
+
+We thank the original author for the foundational work on accessibility-driven
+computer-use patterns.
+
+
+Third-party software bundled in the Android app
+-----------------------------------------------
+
+The companion APK bundles the following third-party component. Its license is
+reproduced here because the build excludes the duplicate license metadata
+embedded in the dependency's jars (to avoid packaging merge conflicts); this
+NOTICE preserves the required attribution.
+
+  Anthropic Java SDK (com.anthropic:anthropic-java) 2.40.1
+  Licensed under the Apache License, Version 2.0
+  https://www.apache.org/licenses/LICENSE-2.0
+  https://github.com/anthropics/anthropic-sdk-java
+
+  Copyright Anthropic, PBC.
+
+  Licensed under the Apache License, Version 2.0 (the "License"); you may not
+  use this file except in compliance with the License. You may obtain a copy of
+  the License at http://www.apache.org/licenses/LICENSE-2.0. Unless required by
+  applicable law or agreed to in writing, software distributed under the License
+  is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied. See the License for the specific language
+  governing permissions and limitations under the License.
+
+The companion's control surface (AccessibilityService, loopback HTTP endpoint,
+snapshot/action code) is otherwise dependency-free; see docs/SUPPLY_CHAIN_SECURITY.md.
