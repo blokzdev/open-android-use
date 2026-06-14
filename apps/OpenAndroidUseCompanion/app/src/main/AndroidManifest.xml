@@ -29,6 +29,11 @@
             android:exported="false"
             android:label="Agent" />
 
+        <activity
+            android:name=".AboutActivity"
+            android:exported="false"
+            android:label="About" />
+
 
         <service
             android:name=".CompanionService"

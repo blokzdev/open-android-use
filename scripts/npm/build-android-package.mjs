@@ -202,6 +202,7 @@ function buildPackage(options) {
         version,
         description:
           "Computer Use for Android: host-side MCP bridge driving a phone or emulator over adb.",
+        author: "Blokz Development Co.",
         license: "MIT",
         repository: {
           type: "git",

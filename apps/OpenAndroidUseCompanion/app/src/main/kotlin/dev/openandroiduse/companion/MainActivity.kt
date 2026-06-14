@@ -17,6 +17,7 @@ import android.widget.TextView
 class MainActivity : Activity() {
 
     private lateinit var statusView: TextView
+    private lateinit var restrictedHintView: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,10 +47,27 @@ class MainActivity : Activity() {
             }
         })
 
+        // Shown only while the service is off: sideloaded apps on Android 13+
+        // must clear the "Restricted setting" gate before accessibility can be
+        // enabled. Hidden once the service is running so it does not nag.
+        restrictedHintView = TextView(this).apply {
+            textSize = 13f
+            setPadding(0, padding, 0, 0)
+            text = getString(R.string.restricted_setting_hint)
+        }
+        layout.addView(restrictedHintView)
+
         layout.addView(Button(this).apply {
             text = "Open Agent Chat"
             setOnClickListener {
                 startActivity(Intent(this@MainActivity, dev.openandroiduse.companion.agent.ChatActivity::class.java))
+            }
+        })
+
+        layout.addView(Button(this).apply {
+            text = getString(R.string.about_button)
+            setOnClickListener {
+                startActivity(Intent(this@MainActivity, AboutActivity::class.java))
             }
         })
 
@@ -70,10 +88,12 @@ class MainActivity : Activity() {
     }
 
     private fun refreshStatus() {
-        statusView.text = if (CompanionService.isRunning) {
+        val running = CompanionService.isRunning
+        statusView.text = if (running) {
             "Service: running — endpoint live on 127.0.0.1:${CompanionService.PORT}"
         } else {
             "Service: OFF — enable it in Accessibility Settings to start"
         }
+        restrictedHintView.visibility = if (running) android.view.View.GONE else android.view.View.VISIBLE
     }
 }

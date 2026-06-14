@@ -40,10 +40,17 @@ The Android companion's control surface (accessibility service, loopback
 endpoint, snapshot/action code) is deliberately dependency-free. Exceptions
 are registered here, one entry per dependency, with the reasoning:
 
-| Dependency | Where | Why | Added |
-|---|---|---|---|
-| `com.anthropic:anthropic-java` 2.40.1 (Maven Central) | `apps/OpenAndroidUseCompanion` `agent` package only | First-party Anthropic SDK for the on-device agent's Claude API access; hand-rolled HTTP against a streaming LLM API is a larger risk than a pinned official SDK. Decision record: `docs/exec-plans/completed/20260612-phase3-on-device-agent.md`. | 2026-06-12 |
+| Dependency | License | Where | Why | Added |
+|---|---|---|---|---|
+| `com.anthropic:anthropic-java` 2.40.1 (Maven Central) | Apache-2.0 | `apps/OpenAndroidUseCompanion` `agent` package only | First-party Anthropic SDK for the on-device agent's Claude API access; hand-rolled HTTP against a streaming LLM API is a larger risk than a pinned official SDK. Decision record: `docs/exec-plans/completed/20260612-phase3-on-device-agent.md`. | 2026-06-12 |
 
 Rules for the register: pin exact versions, never ranges; the control-surface
 packages must not import any of these; bumping a version is a reviewed change
 that updates this table in the same commit.
+
+Redistribution note: the app's Gradle build excludes the duplicate
+`META-INF/LICENSE*` / `NOTICE*` files the SDK's transitive jars ship (they
+collide at packaging time). The required Apache-2.0 attribution for the bundled
+SDK is therefore preserved in the repository-root `NOTICE` file, and surfaced
+in-app on the About screen. Any future bundled dependency must be added to both
+this table and `NOTICE` in the same commit.

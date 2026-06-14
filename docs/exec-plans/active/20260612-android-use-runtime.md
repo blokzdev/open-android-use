@@ -110,15 +110,29 @@ build script, and docs synced.
   confirmation sheet), voice (TTS narration + push-to-talk), code-review
   hardening, and a keyless emulator agent-loop smoke in CI. Merged in PR #2.
   Sub-plan: `docs/exec-plans/completed/20260612-phase3-on-device-agent.md`.
-- [ ] Device smoke on real hardware: run `VERIFICATION.md` V1–V41 (needs
-  founder's device; blocked in container).
+- [~] Device smoke on real hardware: first agent turn verified end-to-end on a
+  real device (Samsung, Android 13+) — "Open Settings and tell me the Android
+  version" succeeded. Full `VERIFICATION.md` V1–V41 ledger still in progress.
+- [x] Open-core licensing + onboarding docs: engine stays MIT, the Android app
+  (`apps/OpenAndroidUseCompanion`) is PolyForm Perimeter 1.0.0 © Blokz
+  Development Co.; root `NOTICE` (upstream + Apache-2.0 Anthropic SDK); README
+  "Install on your phone" + restricted-settings docs; in-app restricted-settings
+  hint + dependency-free About sheet.
 - [x] npm distribution of the Android bridge binary, staged: standalone
   `open-android-use` package (six host targets + Node launcher) assembled by
   `make android-npm` / `scripts/npm/build-android-package.mjs`, built and
   uploaded as a CI artifact on every push. Registry publish remains a manual
   maintainer step (`npm publish dist/npm/open-android-use`).
+- [ ] **Distribution**: (a) tagged GitHub release of the signed APK; (b) Play
+  Store **signed AAB** distribution — the Android 13+ "Restricted setting"
+  prompt is an install-source gate that disappears via Play install, *not* via
+  release signing; (c) release signing keystore/config (founder-held).
+- [ ] **Phase 4 — Product UI/UX** (`docs/design-docs/phase4-product-ui.md`):
+  Compose/Material 3 presentation layer; 4.1 guided onboarding wizard → 4.2
+  design-system foundation → 4.3 chat polish → 4.4 trust/control surface → 4.5
+  settings & privacy → 4.6 a11y/i18n/responsive + Play readiness.
 - [ ] Phase 3.x backlog: models-API-driven model list, per-action consent
-  granularity, task memory (opt-in), release signing / distribution.
+  granularity, task memory (opt-in).
 
 ## Decisions
 
@@ -138,3 +152,18 @@ build script, and docs synced.
 - 2026-06-12: Bridge treats the companion as opt-in (`OPEN_ANDROID_USE_COMPANION=1`)
   rather than auto-on: predictable behavior until hardware verification; `doctor`
   always reports availability so users discover it.
+- 2026-06-14: Open-core licensing. The engine (Go bridge, desktop runtimes, npm
+  packaging) stays MIT, retaining the upstream © Leo notice; the Android app
+  (`apps/OpenAndroidUseCompanion`) — the Play-Store product — is PolyForm
+  Perimeter 1.0.0 (source-available, no-compete) © Blokz Development Co. The
+  bundled Anthropic SDK (Apache-2.0) is attributed in root `NOTICE` because the
+  build strips its `META-INF` license files.
+- 2026-06-14: The Android 13+ "Restricted setting" prompt is an install-source
+  gate (every sideloaded app hits it), not a debug-vs-release-signing issue; it
+  is removed by installing from the Play Store, not by signing a release APK.
+  Documented in README + in-app hint.
+- 2026-06-14: Phase 4 refines (does not discard) the "no-androidx UI" decision
+  above: the presentation layer may adopt Compose/Material 3 for a world-class
+  product UI, while the control surface (AccessibilityService, loopback server,
+  snapshot/action, agent loop) stays dependency-free. See
+  `docs/design-docs/phase4-product-ui.md`.
