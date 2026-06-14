@@ -7,4 +7,15 @@
       beyond the Compose libraries already added for the presentation layer.
     -->
     <style name="Theme.OpenAndroidUse" parent="@android:style/Theme.Material.Light.NoActionBar" />
+
+    <!--
+      Phase 4.7a: Android 12+ splash. Brand indigo ground + the monochrome brand
+      mark; hands off to the real (Compose) theme once the launcher Activity calls
+      installSplashScreen(). Applied to MainActivity only.
+    -->
+    <style name="Theme.OpenAndroidUse.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_monochrome</item>
+        <item name="postSplashScreenTheme">@style/Theme.OpenAndroidUse</item>
+    </style>
 </resources>

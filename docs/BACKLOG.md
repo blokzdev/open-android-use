@@ -67,3 +67,15 @@ Each entry: **idea** — why deferred · _priority_ · origin.
 - **Responsive follow-ups from 4.6c** — content max-width for Onboarding and the chat
   message list; an adaptive (height-fraction) "Agent's view" instead of the fixed 200dp.
   _Low._ Origin: Phase 4.6c.
+
+## UX delights (captured during the Phase 4.7 sweep, not yet scheduled)
+
+- **Model picker as a bottom sheet** — replace the dropdown with a sheet showing each model
+  with a short description/"recommended" hint. _Low._ Origin: Phase 4.7.
+- **Richer confirmation sheet** — per-action icons and an "always allow for this app" option in
+  `ConfirmationSheet`. _Low–Medium._ Origin: Phase 4.7.
+- **Draggable in-control badge showing the live action** — let the user reposition the badge and
+  show the current tool/step on it. _Low._ Origin: Phase 4.7.
+- **Conversation folders / tags** — organize History beyond pin/archive. _Low._ Origin: Phase 4.7.
+- **Pull-to-refresh on History**; **AMOLED (true-black) theme** option; **message reactions /
+  feedback** (👍/👎 on answers to inform future tuning). _Low._ Origin: Phase 4.7.
