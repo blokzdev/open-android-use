@@ -2,10 +2,12 @@ package dev.openandroiduse.companion.agent
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTouchHeightIsEqualTo
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -30,9 +32,13 @@ class SessionsScreenTest {
     private fun seed(title: String) {
         val store = SessionStore(context)
         store.deleteAll()
+        save(store, "seed-1", title)
+    }
+
+    private fun save(store: SessionStore, id: String, title: String) {
         store.save(
             SessionPayload(
-                id = "seed-1",
+                id = id,
                 title = title,
                 createdAt = 1L,
                 updatedAt = System.currentTimeMillis(),
@@ -64,6 +70,21 @@ class SessionsScreenTest {
         SessionStore(context).deleteAll()
         ActivityScenario.launch(SessionsActivity::class.java).use {
             composeTestRule.onNodeWithText("No saved conversations yet.").assertIsDisplayed()
+        }
+    }
+
+    /** Phase 4.7c-2: the search field filters the list by title. */
+    @Test
+    fun searchFiltersByTitle() {
+        val store = SessionStore(context)
+        store.deleteAll()
+        save(store, "s1", "Turn Bluetooth on")
+        save(store, "s2", "Open the Settings app")
+        ActivityScenario.launch(SessionsActivity::class.java).use {
+            composeTestRule.onNodeWithText("Open the Settings app").assertIsDisplayed()
+            composeTestRule.onNode(hasSetTextAction()).performTextInput("bluetooth")
+            composeTestRule.onNodeWithText("Open the Settings app").assertDoesNotExist()
+            composeTestRule.onNodeWithText("Turn Bluetooth on").assertIsDisplayed()
         }
     }
 

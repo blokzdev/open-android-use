@@ -14,9 +14,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.DropdownMenu
@@ -68,20 +71,63 @@ internal fun SessionsList(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-    } else {
-        val sections = remember(sessions) {
-            SessionGrouping.group(sessions, System.currentTimeMillis())
-        }
-        LazyColumn(
-            modifier = modifier.fillMaxSize().padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            for (section in sections) {
-                item(key = "header-${section.bucket}") {
-                    SectionHeader(section.bucket)
+        return
+    }
+
+    var query by remember { mutableStateOf("") }
+    var showArchived by remember { mutableStateOf(false) }
+    val hasArchived = remember(sessions) { sessions.any { it.archived } }
+    // Filter (archived toggle → search) then group; archived are hidden by default.
+    val filtered = remember(sessions, query, showArchived) {
+        val base = if (showArchived) sessions else sessions.filterNot { it.archived }
+        SessionSearch.filter(base, query)
+    }
+    val sections = remember(filtered) { SessionGrouping.group(filtered, System.currentTimeMillis()) }
+
+    Column(modifier.fillMaxSize().padding(12.dp)) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text(stringResource(R.string.sessions_search_hint)) },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            trailingIcon = {
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = { query = "" }) {
+                        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.sessions_search_clear))
+                    }
                 }
-                items(section.sessions, key = { it.id }) { meta ->
-                    SessionRow(meta, onResume, onRename, onArchive, onDelete, onPin)
+            },
+        )
+        if (hasArchived) {
+            FilterChip(
+                selected = showArchived,
+                onClick = { showArchived = !showArchived },
+                label = { Text(stringResource(R.string.sessions_show_archived)) },
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+        if (sections.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    stringResource(R.string.sessions_no_matches),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().padding(top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                for (section in sections) {
+                    item(key = "header-${section.bucket}") {
+                        SectionHeader(section.bucket)
+                    }
+                    items(section.sessions, key = { it.id }) { meta ->
+                        SessionRow(meta, onResume, onRename, onArchive, onDelete, onPin)
+                    }
                 }
             }
         }

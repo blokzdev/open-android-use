@@ -453,6 +453,15 @@ need a real device.
   time-of-day under the last bubble of its run; conversations saved before 4.7b-3a (no stored
   time) simply show no caption (no "1970"/epoch artifact).
 
+### Phase 4.7c-2a — History: search + archived filter
+
+- [ ] **V104. Search**: in History with several conversations, type in the search field. Pass: the
+  list filters live by title and by last-message preview (case-insensitive); clearing (the ✕)
+  restores the full list; a no-match query shows "No matching conversations".
+- [ ] **V105. Archived hidden by default**: archive a conversation. Pass: it disappears from the
+  default list; a "Show archived" chip appears (only when archived ones exist) and toggling it
+  brings archived rows back (with their badge). Works on both phone and the two-pane History.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |
