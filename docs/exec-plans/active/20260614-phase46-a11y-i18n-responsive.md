@@ -49,7 +49,9 @@ Guardrail: control surface stays dependency-free; 4.6 work is presentation-layer
 - [x] 4.6a-1: externalized the static screens + overlay/notification/confirmation surfaces;
   consolidated `strings.xml` (~120 entries: app/shared/main/settings/privacy/onboarding/
   sessions/overlay/notif/confirm). Builds + unit tests green in-container.
-- [ ] 4.6a-2: ChatActivity + AgentController notes + ToolChipLabel; enable lint guard.
+- [x] 4.6a-2: `ChatActivity` (~35 strings + suggested prompts) and the `AgentController`
+  transcript notes (via `AgentSettings.appContext` + a `str()` resolver). `ToolChipLabel`
+  verbs left as a documented exception (see Decisions). Builds + unit tests + APK green.
 - [ ] 4.6b accessibility · [ ] 4.6c responsive · [ ] 4.6d markdown · [ ] 4.6e two-pane.
 
 ## Decisions
@@ -57,6 +59,13 @@ Guardrail: control surface stays dependency-free; 4.6 work is presentation-layer
   translations (zh-CN + others) are deferred to a dedicated future **Localization** phase
   recorded in the roadmap, so the framework lands now without a translation-quality commitment.
 - 2026-06-14: 4.6a split into two PRs — static screens/overlays first, then the larger/
-  fluider `ChatActivity` and the agent-core `AgentController` notes (which need a `Context`),
-  keeping each diff reviewable and the tree green; the lint `HardcodedText` guard is enabled
-  only after the last literals are gone (no baseline needed).
+  fluider `ChatActivity` and the agent-core `AgentController` notes (which take a `Context`
+  via `AgentSettings.appContext`), keeping each diff reviewable and the tree green.
+- 2026-06-14: `ToolChipLabel` (the tool-chip verbs like "Tap"/"Read the screen") stays
+  English for now — it's a pure JVM-unit-tested helper with no `Context`, so localizing it
+  would force its test onto an Android runtime. Folded into the future Localization phase.
+  The `▸`/`✗` transcript tokens and the diagnostic error-chain in `AgentController.fail`
+  also stay (they are structured/smoke-pinned, not prose).
+- 2026-06-14: No lint `HardcodedText` guard — that detector targets XML `android:text`, which
+  this Compose-only app doesn't use; a custom/detekt rule for `Text("literal")` is the real
+  future guard. Completeness is enforced by review for now.

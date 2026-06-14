@@ -146,4 +146,50 @@
     <string name="confirm_wants_to">The agent wants to:</string>
     <string name="confirm_allow">Allow</string>
     <string name="confirm_deny">Deny</string>
+
+    <!-- ChatActivity -->
+    <string name="chat_title">Agent</string>
+    <string name="chat_history">History</string>
+    <string name="chat_export">Export</string>
+    <string name="chat_new">New</string>
+    <string name="chat_agent_view_title">What the agent sees</string>
+    <string name="chat_agent_view_placeholder">You\'re the agent\'s second pair of eyes — its view will appear here as it works.</string>
+    <string name="chat_agent_view_enlarged">What the agent sees, enlarged</string>
+    <string name="chat_screenshot_desc">Latest screenshot the agent captured</string>
+    <string name="chat_empty_title">Your second pair of hands</string>
+    <string name="chat_empty_body">Ask me to do something on this phone — I\'ll narrate and act, and you can stop me any time.</string>
+    <string name="chat_recent_title">Pick up where you left off:</string>
+    <string name="chat_try">Try:</string>
+    <string name="chat_readiness_needs_key">Add your API key to run tasks.</string>
+    <string name="chat_readiness_add_key">Add key</string>
+    <string name="chat_readiness_needs_accessibility">Enable the accessibility service so I can act.</string>
+    <string name="chat_readiness_enable">Enable</string>
+    <string name="chat_readiness_needs_both">Enable accessibility and add an API key to start.</string>
+    <string name="chat_readiness_fix">Fix</string>
+    <string name="chat_composer_placeholder">What should I do on this phone?</string>
+    <string name="chat_send">Send</string>
+    <string name="chat_mic_voice_input">Voice input</string>
+    <string name="chat_mic_listening">Listening</string>
+    <string name="chat_show_thinking">Show thinking</string>
+    <string name="chat_hide_thinking">Hide thinking</string>
+    <string name="chat_note_add_key">Add API key</string>
+    <string name="chat_note_enable_service">Enable service</string>
+    <string name="chat_speech_unavailable">Speech recognition is not available</string>
+    <string name="chat_nothing_to_export">Nothing to export yet</string>
+    <string name="chat_export_failed">Couldn\'t prepare the export</string>
+    <string name="chat_export_chooser">Export conversation</string>
+    <string name="suggested_prompt_1">Open Settings and tell me the Android version</string>
+    <string name="suggested_prompt_2">Turn Bluetooth on</string>
+    <string name="suggested_prompt_3">Summarize my latest notification</string>
+
+    <!-- Agent loop transcript notes (AgentController) -->
+    <string name="agent_note_no_service">⚠ The companion accessibility service is not running. Enable it first.</string>
+    <string name="agent_note_no_key">⚠ No API key configured. Add your Anthropic API key in settings.</string>
+    <string name="agent_note_refusal">The request was declined by the model\'s safety system%1$s. Rephrase the task rather than retrying it as-is.</string>
+    <string name="agent_note_paused">Paused — you touched the screen. Send a message to continue.</string>
+    <string name="agent_note_stopped">Stopped.</string>
+    <string name="agent_note_max_tokens">The turn hit its output limit; say \"continue\" to resume.</string>
+    <string name="agent_note_denied">Action batch denied by the user.</string>
+    <string name="agent_note_stream_error">The response stream ended unexpectedly: %1$s</string>
+    <string name="agent_note_max_turns">The task exceeded %1$d tool turns and was stopped.</string>
 </resources>

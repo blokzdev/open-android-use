@@ -182,8 +182,9 @@ build script, and docs synced.
     (`docs/exec-plans/active/20260614-phase46-a11y-i18n-responsive.md`): sub-PRs
     4.6a i18n (externalize ~280 strings, translation-ready) → 4.6b accessibility →
     4.6c responsive polish → 4.6d markdown links+tables → 4.6e tablet/foldable
-    two-pane. 4.6a-1 done: static screens + overlay/notification/confirmation
-    externalized to `strings.xml`. Actual translations are a future Localization phase.
+    two-pane. 4.6a done: all screens + the agent-loop notes externalized to
+    `strings.xml` (ToolChipLabel verbs deferred to Localization). Actual
+    translations are a future Localization phase.
 - [ ] **Phase 4.7 — Distribution & Play readiness**: (a) tagged GitHub release of
   the signed APK; (b) Play Store **signed AAB** (the Android 13+ "Restricted
   setting" prompt is an install-source gate removed by a Play install, *not* by
