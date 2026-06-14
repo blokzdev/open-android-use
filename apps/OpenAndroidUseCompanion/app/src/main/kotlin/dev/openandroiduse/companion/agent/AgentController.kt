@@ -101,6 +101,15 @@ object AgentController {
     var latestScreenshotBase64: String? = null
         private set
 
+    /**
+     * Where the agent last tapped, as a normalized 0..1 fraction of the latest
+     * screenshot, for the chat's "Agent's view" marker. In-memory only; paired
+     * with [latestScreenshotBase64] and cleared on reset.
+     */
+    @Volatile
+    var latestTapNormalized: Pair<Float, Float>? = null
+        private set
+
     private val history = mutableListOf<HistoryEntry>()
     private var worker: Thread? = null
 
@@ -152,6 +161,8 @@ object AgentController {
             onInteractionEvent(eventPackage, ownPackage)
         }
         GestureTrail.attach(service)
+        InControlOverlay.attach(service) { requestStop() }
+        AgentNotification.show(service)
         speakNarration = settings.speakNarration
         if (speakNarration) {
             VoiceNarrator.ensureInitialized(service)
@@ -168,6 +179,8 @@ object AgentController {
                 } finally {
                     service.interactionListener = null
                     GestureTrail.detach(service)
+                    InControlOverlay.detach(service)
+                    AgentNotification.cancel(service)
                     VoiceNarrator.stop()
                 }
             },
@@ -213,6 +226,7 @@ object AgentController {
         if (isRunning) return
         history.clear()
         latestScreenshotBase64 = null
+        latestTapNormalized = null
         synchronized(transcript) { transcript.clear() }
     }
 
@@ -434,6 +448,7 @@ object AgentController {
         }
         outcome.screenshotPngBase64?.let { png ->
             latestScreenshotBase64 = png
+            latestTapNormalized = executor.lastTapNormalized
             listener?.onScreenshotCaptured(png)
         }
 

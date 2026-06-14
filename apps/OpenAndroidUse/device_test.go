@@ -398,6 +398,57 @@ func TestUIAutomatorDumpRetriesOnce(t *testing.T) {
 	}
 }
 
+func TestUIAutomatorDumpEscalatingRetries(t *testing.T) {
+	attempts := 0
+	base := deviceHandler(t)
+	bridge, _ := newTestBridge(func(args []string) ([]byte, error) {
+		joined := strings.Join(args, " ")
+		if strings.Contains(joined, "cat "+dumpDevicePath) {
+			attempts++
+			if attempts <= 3 {
+				return []byte("not xml"), nil
+			}
+		}
+		return base(args)
+	})
+	dump, err := bridge.uiautomatorDump()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(dump, "<hierarchy") {
+		t.Fatal("escalating retry did not return hierarchy")
+	}
+	// 1 initial + 3 backoff attempts: succeeds on the 4th.
+	want := len(uiautomatorDumpBackoff) + 1
+	if attempts != want {
+		t.Fatalf("attempts = %d, want %d", attempts, want)
+	}
+}
+
+func TestUIAutomatorDumpExhaustsRetries(t *testing.T) {
+	attempts := 0
+	base := deviceHandler(t)
+	bridge, _ := newTestBridge(func(args []string) ([]byte, error) {
+		joined := strings.Join(args, " ")
+		if strings.Contains(joined, "cat "+dumpDevicePath) {
+			attempts++
+			return []byte("not xml"), nil
+		}
+		return base(args)
+	})
+	_, err := bridge.uiautomatorDump()
+	if err == nil {
+		t.Fatal("expected error after exhausting retries")
+	}
+	if !strings.Contains(err.Error(), "attempts") {
+		t.Fatalf("error should report attempt count: %v", err)
+	}
+	want := len(uiautomatorDumpBackoff) + 1
+	if attempts != want {
+		t.Fatalf("attempts = %d, want %d", attempts, want)
+	}
+}
+
 func containsLine(lines []string, want string) bool {
 	for _, line := range lines {
 		if line == want {

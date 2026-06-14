@@ -4,6 +4,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Push-to-talk task input (Phase 3.1c). -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Ongoing "agent is acting" notification with a Stop action (Phase 4.4);
+         Android 13+ runtime permission, requested from the chat screen. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- The agent's list_apps / app resolution must see every launchable app;
          Android 11+ package-visibility filtering would otherwise hide most of
          them. Sideloaded/debug distribution, so the Play policy on this
@@ -40,6 +43,10 @@
             android:exported="false"
             android:label="Set up" />
 
+
+        <receiver
+            android:name=".StopAgentReceiver"
+            android:exported="false" />
 
         <service
             android:name=".CompanionService"

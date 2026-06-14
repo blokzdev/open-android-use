@@ -54,8 +54,11 @@ build script, and docs synced.
   Mitigation: snapshot carries a single scale factor; all element frames are emitted
   in screenshot pixel space and every action divides by the same factor; unit tests
   pin the round trip.
-- Risk: `uiautomator dump` flakiness (returns stale or empty tree on some OEM ROMs).
-  Mitigation: retry once, fail with actionable error text; Phase 2 replaces it.
+- Risk: `uiautomator dump` flakiness (stale/empty tree, "could not get idle
+  state", null root node — esp. right after boot and on Android 11+).
+  Mitigation: escalating-backoff retries (4 attempts: 0/500ms/1s/2s) + a 10s
+  foreground wait, with an "after N attempts" error; the companion path (live
+  AccessibilityService) avoids it entirely when enabled.
 - Risk: protocol drift from the other three runtimes.
   Mitigation: tool names/schemas copied from the Linux runtime verbatim; tests assert
   the 9-tool surface and schema fields.
@@ -150,9 +153,13 @@ build script, and docs synced.
     marquee **"Agent's view"** (an additive `AgentController.latestScreenshotBase64`
     + `onScreenshotCaptured` default-no-op hook; in-memory only). Pure helpers
     unit-tested.
-  - [ ] 4.4 trust/control surface: tap-location highlight on the Agent's-view
-    (overlay the gesture coordinate on the screenshot); persistent "agent in
-    control" badge over other apps; foreground-service notification with Stop.
+  - [x] 4.4 trust/control surface: persistent "agent in control" badge over
+    other apps (touchable accessibility overlay, `InControlOverlay`) with a
+    Stop-from-anywhere button; an ongoing notification with a Stop action
+    (`AgentNotification` + `StopAgentReceiver`, POST_NOTIFICATIONS-gated, not a
+    foreground service); and a tap-location highlight on the Agent's-view (pure
+    `TapHighlight`, additive `AgentController.latestTapNormalized`). True FGS type
+    deferred to 4.6/Play.
   - [ ] 4.5 settings & privacy screen: recent-task prompts for quick re-run
     (ephemeral; distinct from opt-in task memory); export/share a conversation.
   - [ ] 4.6 a11y/i18n/responsive + Play: richer markdown (links/tables), full

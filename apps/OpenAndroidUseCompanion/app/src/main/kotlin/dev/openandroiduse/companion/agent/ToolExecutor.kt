@@ -30,6 +30,17 @@ class ToolExecutor(private val service: CompanionService) {
     private val snapshots = mutableMapOf<String, AppSnapshot>()
     private var cachedLaunchableApps: List<Pair<String, String>>? = null
 
+    // Latest captured screenshot's scale + pixel dimensions, used to map a
+    // dispatched gesture point into a normalized fraction for the chat's marker.
+    private var lastScale = 1.0
+    private var lastShotWidth = 0
+    private var lastShotHeight = 0
+
+    /** Where the last gesture landed, normalized 0..1 over the screenshot; read by AgentController. */
+    @Volatile
+    var lastTapNormalized: Pair<Float, Float>? = null
+        private set
+
     fun callTool(name: String, args: JSONObject): Outcome = try {
         when (name) {
             "list_apps" -> listApps()
@@ -247,16 +258,30 @@ class ToolExecutor(private val service: CompanionService) {
     private fun perform(action: JSONObject): Outcome? {
         TouchPauseMonitor.noteAgentAction()
         when (action.optString("type")) {
-            "tap", "longPress" -> GestureTrail.tap(action.optInt("x"), action.optInt("y"))
-            "swipe" -> GestureTrail.swipe(
-                action.optInt("fromX"), action.optInt("fromY"),
-                action.optInt("toX"), action.optInt("toY"),
-            )
+            "tap", "longPress" -> {
+                GestureTrail.tap(action.optInt("x"), action.optInt("y"))
+                noteTap(action.optInt("x"), action.optInt("y"))
+            }
+            "swipe" -> {
+                GestureTrail.swipe(
+                    action.optInt("fromX"), action.optInt("fromY"),
+                    action.optInt("toX"), action.optInt("toY"),
+                )
+                noteTap(action.optInt("toX"), action.optInt("toY"))
+            }
         }
         val result = ActionExecutor.execute(service, action.toString())
         TouchPauseMonitor.noteAgentAction()
         if (result.optBoolean("ok")) return null
         return error(result.optString("error", "action failed"))
+    }
+
+    /** Records where a gesture landed (device px) as a normalized screenshot fraction. */
+    private fun noteTap(deviceX: Int, deviceY: Int) {
+        if (lastShotWidth <= 0 || lastShotHeight <= 0) return
+        lastTapNormalized = TapHighlight.devicePixelToNormalized(
+            deviceX, deviceY, lastScale, lastShotWidth, lastShotHeight,
+        )
     }
 
     private fun settleAndSnapshot(app: String, previous: AppSnapshot): Outcome {
@@ -274,6 +299,9 @@ class ToolExecutor(private val service: CompanionService) {
         } finally {
             bitmap.recycle()
         }
+        lastScale = downscaled.scale
+        lastShotWidth = downscaled.width
+        lastShotHeight = downscaled.height
         val tree = SnapshotBuilder.build(service)
         if (!tree.optBoolean("ok")) return null
         val snapshotPkg = tree.optString("package").ifEmpty { pkg }
