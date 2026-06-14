@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import dev.openandroiduse.companion.agent.AgentSettings
 import dev.openandroiduse.companion.agent.ChatActivity
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
 
@@ -37,14 +38,26 @@ import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
  */
 class MainActivity : ComponentActivity() {
 
+    private lateinit var settings: AgentSettings
     private var serviceRunning by mutableStateOf(false)
+    private var hasApiKey by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        settings = AgentSettings(this)
+
+        // First run: route to the onboarding wizard, then never again.
+        if (!settings.onboardingCompleted) {
+            startActivity(Intent(this, OnboardingActivity::class.java))
+            finish()
+            return
+        }
+
         setContent {
             OpenAndroidUseTheme {
                 MainScreen(
                     running = serviceRunning,
+                    hasApiKey = hasApiKey,
                     port = CompanionService.PORT,
                     restrictedHint = stringResource(R.string.restricted_setting_hint),
                     onOpenAccessibility = {
@@ -64,6 +77,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         serviceRunning = CompanionService.isRunning
+        hasApiKey = settings.hasApiKey()
     }
 }
 
@@ -71,6 +85,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun MainScreen(
     running: Boolean,
+    hasApiKey: Boolean,
     port: Int,
     restrictedHint: String,
     onOpenAccessibility: () -> Unit,
@@ -94,17 +109,28 @@ private fun MainScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
-                        text = if (running) "Service: running" else "Service: off",
+                        text = when (readiness(running, hasApiKey)) {
+                            Readiness.READY -> "Agent ready"
+                            Readiness.NEEDS_ACCESSIBILITY -> "Accessibility off"
+                            Readiness.NEEDS_KEY -> "API key needed"
+                            Readiness.NEEDS_BOTH -> "Setup needed"
+                        },
                         style = MaterialTheme.typography.titleMedium,
                     )
                     Text(
                         text = if (running) {
-                            "Endpoint live on 127.0.0.1:$port"
+                            "Service: running — endpoint live on 127.0.0.1:$port"
                         } else {
-                            "Enable the accessibility service to start"
+                            "Service: off — enable the accessibility service to start"
                         },
                         style = MaterialTheme.typography.bodyMedium,
                     )
+                    if (!hasApiKey) {
+                        Text(
+                            text = "API key not set — add it in Agent Chat to enable the agent.",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
                 }
             }
 

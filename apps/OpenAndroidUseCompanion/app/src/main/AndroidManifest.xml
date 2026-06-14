@@ -35,6 +35,11 @@
             android:exported="false"
             android:label="About" />
 
+        <activity
+            android:name=".OnboardingActivity"
+            android:exported="false"
+            android:label="Set up" />
+
 
         <service
             android:name=".CompanionService"
