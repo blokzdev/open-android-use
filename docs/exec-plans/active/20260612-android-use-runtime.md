@@ -160,8 +160,18 @@ build script, and docs synced.
     foreground service); and a tap-location highlight on the Agent's-view (pure
     `TapHighlight`, additive `AgentController.latestTapNormalized`). True FGS type
     deferred to 4.6/Play.
-  - [ ] 4.5 settings & privacy screen: recent-task prompts for quick re-run
-    (ephemeral; distinct from opt-in task memory); export/share a conversation.
+  - [x] 4.5 settings & privacy + multi-session conversations
+    (`docs/exec-plans/active/20260614-phase45-settings-sessions.md`): real
+    Settings screen (key + Clear, model, confirm/voice toggles, Material You)
+    and a browsable Privacy & data screen (trust story + clear key/conversation/
+    delete-all controls); the cramped in-chat dialog is gone. Recent prompts were
+    **superseded by full sessions** — a persistent, auto-named History list
+    (`SessionStore`, text-only JSON in filesDir) the user can revisit, **resume
+    with context**, rename, archive, delete; resume rebuilds the model history
+    from the transcript (`SessionHistory`) rather than serializing SDK types
+    (screenshots never persist). Whole-conversation export to Markdown via
+    FileProvider. New JVM tests (codec, history rebuild, title, export) + an
+    instrumented `SessionStore` test; APK + instrumentation build green.
   - [ ] 4.6 a11y/i18n/responsive + Play: richer markdown (links/tables), full
     content-description/large-font/reduce-motion pass, migrate inline chat copy to
     `strings.xml`, foldable/tablet layouts.
@@ -214,6 +224,15 @@ build script, and docs synced.
   Vercel AI SDK are rejected as JS/server-side: both would force a backend proxy
   and break the on-device, key-stays-local model. See
   `docs/design-docs/phase5-multi-provider-byok.md`.
+- 2026-06-14: Phase 4.5 resume rebuilds the model history from the saved
+  transcript (`SessionHistory.rebuild`) instead of serializing the Anthropic
+  `MessageParam` blocks. The SDK's configured Jackson mapper is Kotlin-`internal`
+  and its modules aren't on the compile classpath; replicating it would couple us
+  to SDK internals and add dependencies. Rebuilding from text is dependency-free,
+  SDK-version-stable, and matches the privacy invariant — conversations persist
+  text-only (filesDir JSON), screenshots never touch disk, and the agent
+  re-observes the device live on resume. Recent prompts are superseded by this
+  full multi-session model. See the 4.5 sub-plan.
 - 2026-06-14: Brand identity — the app icon is a designed adaptive vector: the
   agent's hand (touch-gesture, blue→violet gradient) tapping out an AI sparkle
   (open mint "sparkle crown" with gaps so it stays distinct from the hand, incl.

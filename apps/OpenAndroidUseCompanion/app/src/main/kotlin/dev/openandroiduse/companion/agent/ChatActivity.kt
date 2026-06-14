@@ -42,7 +42,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -61,7 +60,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -106,12 +104,18 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
     private var input by mutableStateOf("")
     private var agentView by mutableStateOf<ImageBitmap?>(null)
     private var tapPoint by mutableStateOf<Pair<Float, Float>?>(null)
-    private var showSettings by mutableStateOf(false)
     private var expandView by mutableStateOf(false)
+    private var recentSessions by mutableStateOf<List<SessionMeta>>(emptyList())
+    private lateinit var sessions: SessionStore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         settings = AgentSettings(this)
+        sessions = SessionStore(this)
+        // Resume a saved session if launched from History (rebuilds context).
+        intent.getStringExtra(EXTRA_SESSION_ID)?.let { id ->
+            if (!AgentController.isRunning) sessions.load(id)?.let { AgentController.restore(it) }
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
             android.content.pm.PackageManager.PERMISSION_GRANTED
@@ -119,7 +123,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
             requestNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
         }
         setContent {
-            OpenAndroidUseTheme {
+            OpenAndroidUseTheme(dynamicColor = settings.dynamicColor) {
                 ChatScreen(
                     messages = messages,
                     running = running,
@@ -129,6 +133,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
                     agentView = agentView,
                     tapPoint = tapPoint,
                     modelLabel = settings.model,
+                    recentSessions = recentSessions,
                     onInputChange = { input = it },
                     onSend = ::sendTask,
                     onStop = {
@@ -136,21 +141,22 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
                     },
                     onMic = ::startListening,
                     onNewConversation = {
-                        AgentController.resetConversation()
+                        persistCurrentSession()
+                        AgentController.newConversation()
                         messages = emptyList()
                         agentView = null
                         tapPoint = null
+                        recentSessions = sessions.list()
                     },
-                    onShare = ::shareLastAnswer,
-                    onOpenSettings = { showSettings = true },
+                    onShare = ::exportConversation,
+                    onResumeSession = ::resumeSession,
+                    onOpenSettings = { startActivity(Intent(this, SettingsActivity::class.java)) },
+                    onOpenHistory = { startActivity(Intent(this, SessionsActivity::class.java)) },
                     onOpenAccessibility = {
                         startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
                     },
                     onExpandView = { expandView = true },
                 )
-                if (showSettings) {
-                    SettingsDialog(settings = settings, onDismiss = { showSettings = false })
-                }
                 val shot = agentView
                 if (expandView && shot != null) {
                     Dialog(onDismissRequest = { expandView = false }) {
@@ -174,6 +180,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
         messages = AgentController.transcriptSnapshot()
         AgentController.latestScreenshotBase64?.let { decodeAgentView(it) }
         tapPoint = AgentController.latestTapNormalized
+        recentSessions = sessions.list()
         if (hasKey) {
             Thread({ ModelCatalog.refresh(settings) }, "oau-model-refresh").start()
         }
@@ -181,6 +188,8 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
 
     override fun onPause() {
         super.onPause()
+        // Persist the conversation so it survives the process and shows in History.
+        persistCurrentSession()
         if (AgentController.listener === this) AgentController.listener = null
     }
 
@@ -193,7 +202,14 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
     // --- AgentController.Listener (loop thread → main) ---
 
     override fun onTaskStateChanged(running: Boolean) {
-        mainHandler.post { this.running = running }
+        mainHandler.post {
+            this.running = running
+            // A finished task is a natural save point.
+            if (!running) {
+                persistCurrentSession()
+                recentSessions = sessions.list()
+            }
+        }
     }
 
     override fun onTranscriptChanged() {
@@ -224,7 +240,9 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
         if (text.isEmpty()) return
         // Graceful degradation: surface what's missing + the fix; keep the text.
         when (readiness(CompanionService.isRunning, settings.hasApiKey())) {
-            Readiness.NEEDS_KEY, Readiness.NEEDS_BOTH -> { showSettings = true; return }
+            Readiness.NEEDS_KEY, Readiness.NEEDS_BOTH -> {
+                startActivity(Intent(this, SettingsActivity::class.java)); return
+            }
             Readiness.NEEDS_ACCESSIBILITY -> {
                 startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)); return
             }
@@ -234,14 +252,49 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
         AgentController.startTask(text, settings)
     }
 
-    private fun shareLastAnswer() {
-        val answer = messages.lastOrNull { it.first == AgentController.KIND_ASSISTANT }?.second
-            ?: messages.lastOrNull()?.second ?: return
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, answer)
+    /** Persist the in-memory conversation (text-only) for History; no-op if empty. */
+    private fun persistCurrentSession() {
+        AgentController.snapshotForPersistence()?.let { sessions.save(it) }
+    }
+
+    private fun resumeSession(id: String) {
+        if (AgentController.isRunning) {
+            Toast.makeText(this, "Stop the current task first", Toast.LENGTH_SHORT).show()
+            return
         }
-        startActivity(Intent.createChooser(intent, "Share"))
+        persistCurrentSession()
+        sessions.load(id)?.let { AgentController.restore(it) }
+        messages = AgentController.transcriptSnapshot()
+        agentView = null
+        tapPoint = null
+    }
+
+    /** Export the whole conversation as a Markdown file shared via FileProvider. */
+    private fun exportConversation() {
+        val lines = messages
+        if (lines.isEmpty()) {
+            Toast.makeText(this, "Nothing to export yet", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val title = lines.firstOrNull { it.first == AgentController.KIND_USER }
+            ?.second?.let { SessionTitle.derive(it) } ?: SessionTitle.FALLBACK
+        val markdown = ConversationExport.toMarkdown(title, lines)
+        val uri = runCatching {
+            val dir = java.io.File(cacheDir, "exports").apply { mkdirs() }
+            val file = java.io.File(dir, "conversation-${System.currentTimeMillis()}.md")
+            file.writeText(markdown)
+            androidx.core.content.FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+        }.getOrElse {
+            Toast.makeText(this, "Couldn't prepare the export", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/markdown"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_TITLE, "$title.md")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        startActivity(Intent.createChooser(intent, "Export conversation"))
     }
 
     // --- push-to-talk ---
@@ -285,6 +338,11 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
         )
     }
 
+    companion object {
+        /** Intent extra: a SessionStore id to resume when the chat opens. */
+        const val EXTRA_SESSION_ID = "session_id"
+    }
+
 }
 
 private val SUGGESTED_PROMPTS = listOf(
@@ -304,13 +362,16 @@ private fun ChatScreen(
     agentView: ImageBitmap?,
     tapPoint: Pair<Float, Float>?,
     modelLabel: String,
+    recentSessions: List<SessionMeta>,
     onInputChange: (String) -> Unit,
     onSend: () -> Unit,
     onStop: () -> Unit,
     onMic: () -> Unit,
     onNewConversation: () -> Unit,
     onShare: () -> Unit,
+    onResumeSession: (String) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenHistory: () -> Unit,
     onOpenAccessibility: () -> Unit,
     onExpandView: () -> Unit,
 ) {
@@ -329,7 +390,8 @@ private fun ChatScreen(
                     }
                 },
                 actions = {
-                    TextButton(onClick = onShare) { Text("Share") }
+                    TextButton(onClick = onOpenHistory) { Text("History") }
+                    TextButton(onClick = onShare) { Text("Export") }
                     TextButton(onClick = onNewConversation) { Text("New") }
                 },
             )
@@ -346,7 +408,7 @@ private fun ChatScreen(
                 AgentViewCard(agentView, tapPoint, running, onStop, onExpandView)
             }
             if (messages.isEmpty()) {
-                EmptyState(onPrompt = onInputChange)
+                EmptyState(recentSessions, onResumeSession, onPrompt = onInputChange)
             } else {
                 LazyColumn(
                     state = listState,
@@ -434,7 +496,11 @@ private fun AgentViewCard(
 }
 
 @Composable
-private fun EmptyState(onPrompt: (String) -> Unit) {
+private fun EmptyState(
+    recentSessions: List<SessionMeta>,
+    onResumeSession: (String) -> Unit,
+    onPrompt: (String) -> Unit,
+) {
     Column(
         Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -447,6 +513,20 @@ private fun EmptyState(onPrompt: (String) -> Unit) {
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
         )
+        // Quick re-run: pick up a recent conversation right where you left off.
+        val recent = recentSessions.filterNot { it.archived }.take(3)
+        if (recent.isNotEmpty()) {
+            Spacer(Modifier.heightIn(min = 8.dp))
+            Text("Pick up where you left off:", style = MaterialTheme.typography.labelLarge)
+            recent.forEach { meta ->
+                OutlinedButton(
+                    onClick = { onResumeSession(meta.id) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(meta.title, maxLines = 1)
+                }
+            }
+        }
         Spacer(Modifier.heightIn(min = 8.dp))
         Text("Try:", style = MaterialTheme.typography.labelLarge)
         SUGGESTED_PROMPTS.forEach { prompt ->
@@ -634,62 +714,3 @@ private fun NoteCard(text: String, onOpenSettings: () -> Unit, onOpenAccessibili
     }
 }
 
-@Composable
-private fun SettingsDialog(settings: AgentSettings, onDismiss: () -> Unit) {
-    var apiKey by remember { mutableStateOf("") }
-    val models = remember { settings.availableModels().let { if (settings.model in it) it else listOf(settings.model) + it } }
-    var model by remember { mutableStateOf(settings.model) }
-    var confirmActions by remember { mutableStateOf(settings.confirmActions) }
-    var speak by remember { mutableStateOf(settings.speakNarration) }
-    var menuOpen by remember { mutableStateOf(false) }
-    val context = LocalContext.current
-
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface) {
-            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Agent settings", style = MaterialTheme.typography.titleMedium)
-                Text(if (settings.hasApiKey()) "API key: configured (enter a new one to replace)" else "Anthropic API key", style = MaterialTheme.typography.bodySmall)
-                OutlinedTextField(
-                    value = apiKey,
-                    onValueChange = { apiKey = it },
-                    placeholder = { Text("sk-ant-…") },
-                    singleLine = true,
-                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Text("Model", style = MaterialTheme.typography.labelLarge)
-                OutlinedButton(onClick = { menuOpen = true }, modifier = Modifier.fillMaxWidth()) { Text(model) }
-                androidx.compose.material3.DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    models.forEach { id ->
-                        androidx.compose.material3.DropdownMenuItem(text = { Text(id) }, onClick = { model = id; menuOpen = false })
-                    }
-                }
-                ToggleRow("Ask before each action batch", confirmActions) { confirmActions = it }
-                ToggleRow("Speak narration aloud", speak) { speak = it }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = onDismiss) { Text("Cancel") }
-                    Button(onClick = {
-                        val key = apiKey.trim()
-                        if (key.isNotEmpty()) {
-                            settings.storeApiKey(key)
-                            Thread({ ModelCatalog.refresh(settings) }, "oau-model-refresh").start()
-                        }
-                        settings.model = model
-                        settings.confirmActions = confirmActions
-                        settings.speakNarration = speak
-                        Toast.makeText(context, "Saved", Toast.LENGTH_SHORT).show()
-                        onDismiss()
-                    }) { Text("Save") }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ToggleRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = onChange)
-    }
-}

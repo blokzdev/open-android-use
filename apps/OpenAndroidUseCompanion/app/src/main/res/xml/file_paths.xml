@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Exported conversation Markdown lives in cache/exports and is shared via
+         FileProvider (Phase 4.5). Cache so the OS can reclaim it. -->
+    <cache-path name="exports" path="exports/" />
+</paths>

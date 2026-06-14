@@ -113,6 +113,22 @@ object AgentController {
     private val history = mutableListOf<HistoryEntry>()
     private var worker: Thread? = null
 
+    // --- Session identity (Phase 4.5 multi-session persistence) ---
+    // The conversation in memory belongs to a session; the UI layer persists it
+    // via SessionStore (on task end / pause) and can restore a past one.
+
+    /** Stable id of the in-memory conversation, for SessionStore. */
+    @Volatile
+    var currentSessionId: String = newSessionId()
+        private set
+
+    private var sessionCreatedAt: Long = System.currentTimeMillis()
+
+    /** Title: auto-derived from the first prompt, or carried over on restore. */
+    private var sessionTitle: String? = null
+
+    private fun newSessionId(): String = java.util.UUID.randomUUID().toString()
+
     /**
      * Append-only transcript backing the chat UI: the Activity is backgrounded
      * for most of a task (the agent is driving other apps), so it re-renders
@@ -151,6 +167,10 @@ object AgentController {
         pausedByTouch = false
         isRunning = true
         listener?.onTaskStateChanged(true)
+        // First prompt of a fresh session names it (like modern chat apps).
+        if (sessionTitle == null && history.isEmpty()) {
+            sessionTitle = SessionTitle.derive(userText)
+        }
         log(KIND_USER, userText)
         history.add(HistoryEntry(userMessage(userText)))
         TouchPauseMonitor.reset()
@@ -228,6 +248,69 @@ object AgentController {
         latestScreenshotBase64 = null
         latestTapNormalized = null
         synchronized(transcript) { transcript.clear() }
+        // Start a fresh session so the next task is saved separately and the old
+        // one (already persisted by the UI) is left intact.
+        currentSessionId = newSessionId()
+        sessionCreatedAt = System.currentTimeMillis()
+        sessionTitle = null
+    }
+
+    /** Clearer name for [resetConversation] now that conversations are sessions. */
+    fun newConversation() = resetConversation()
+
+    /**
+     * A snapshot of the in-memory conversation for SessionStore, or null when
+     * there is nothing worth saving. Only the transcript is persisted; the model
+     * history is rebuilt from it on [restore].
+     */
+    @Synchronized
+    fun snapshotForPersistence(): SessionPayload? {
+        val lines = transcriptSnapshot()
+        if (lines.isEmpty()) return null
+        val title = sessionTitle
+            ?: lines.firstOrNull { it.first == KIND_USER }?.second?.let { SessionTitle.derive(it) }
+            ?: SessionTitle.FALLBACK
+        return SessionPayload(
+            id = currentSessionId,
+            title = title,
+            createdAt = sessionCreatedAt,
+            updatedAt = System.currentTimeMillis(),
+            archived = false,
+            transcript = lines.map { StoredMessage(it.first, it.second) },
+        )
+    }
+
+    /**
+     * Replaces the in-memory conversation with a saved session so the agent
+     * resumes it with its conversational context (history rebuilt from the
+     * transcript; the device is re-observed live). Ignored while a task runs.
+     */
+    @Synchronized
+    fun restore(payload: SessionPayload): Boolean {
+        if (isRunning) return false
+        history.clear()
+        for (param in SessionHistory.rebuild(payload.transcript.map { it.kind to it.text })) {
+            history.add(HistoryEntry(param))
+        }
+        synchronized(transcript) {
+            transcript.clear()
+            for (line in payload.transcript) {
+                transcript.add(line.kind to StringBuilder(line.text))
+            }
+        }
+        latestScreenshotBase64 = null
+        latestTapNormalized = null
+        currentSessionId = payload.id
+        sessionCreatedAt = payload.createdAt
+        sessionTitle = payload.title
+        listener?.onTranscriptChanged()
+        return true
+    }
+
+    /** Keeps the live title in sync when the user renames the active session. */
+    @Synchronized
+    fun noteRenamed(id: String, title: String) {
+        if (id == currentSessionId) sessionTitle = title
     }
 
     private fun runLoop(

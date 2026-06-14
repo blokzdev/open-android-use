@@ -47,6 +47,17 @@ class AgentSettings(context: Context) {
         }
 
     /**
+     * Phase 4.5: opt into Material You dynamic color (Android 12+). Off by
+     * default so the app leads with the brand "Aurora" palette that matches the
+     * icon; honored by OpenAndroidUseTheme at every Compose surface.
+     */
+    var dynamicColor: Boolean
+        get() = prefs.getBoolean(PREF_DYNAMIC_COLOR, false)
+        set(value) {
+            prefs.edit().putBoolean(PREF_DYNAMIC_COLOR, value).apply()
+        }
+
+    /**
      * Test/diagnostic hook with no UI: overrides the API base URL so the
      * emulator smoke can run the real agent loop against a loopback stub
      * model server. Null means api.anthropic.com (the SDK default).
@@ -132,6 +143,7 @@ class AgentSettings(context: Context) {
         private const val PREF_CONFIRM_ACTIONS = "confirm_actions"
         private const val PREF_SPEAK_NARRATION = "speak_narration"
         private const val PREF_ONBOARDING_COMPLETED = "onboarding_completed"
+        private const val PREF_DYNAMIC_COLOR = "dynamic_color"
         private const val PREF_BASE_URL = "base_url_override"
         private const val PREF_AVAILABLE_MODELS = "available_models"
         private const val PREF_KEY_CIPHERTEXT = "api_key_ciphertext"
