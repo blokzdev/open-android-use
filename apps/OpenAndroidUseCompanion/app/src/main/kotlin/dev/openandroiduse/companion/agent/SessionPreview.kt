@@ -9,9 +9,9 @@ object SessionPreview {
 
     private const val MAX_LENGTH = 100
 
-    fun derive(transcript: List<Pair<String, String>>): String {
-        val line = transcript.lastOrNull { it.first == AgentController.KIND_ASSISTANT && it.second.isNotBlank() }?.second
-            ?: transcript.lastOrNull { it.first == AgentController.KIND_USER && it.second.isNotBlank() }?.second
+    fun derive(transcript: List<TranscriptEntry>): String {
+        val line = transcript.lastOrNull { it.kind == AgentController.KIND_ASSISTANT && it.text.isNotBlank() }?.text
+            ?: transcript.lastOrNull { it.kind == AgentController.KIND_USER && it.text.isNotBlank() }?.text
             ?: return ""
         val cleaned = line.replace(Regex("\\s+"), " ").trim()
         if (cleaned.length <= MAX_LENGTH) return cleaned

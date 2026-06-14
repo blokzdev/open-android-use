@@ -145,7 +145,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
     private val requestNotifications =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
-    private var messages by mutableStateOf<List<Pair<String, String>>>(emptyList())
+    private var messages by mutableStateOf<List<TranscriptEntry>>(emptyList())
     private var running by mutableStateOf(false)
     private var serviceOn by mutableStateOf(false)
     private var hasKey by mutableStateOf(false)
@@ -373,7 +373,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
     /** Re-run the most recent user task after a failure (Phase 4.7b-2 error → Retry). */
     private fun retryLastTask() {
         if (AgentController.isRunning) return
-        val lastUser = messages.lastOrNull { it.first == AgentController.KIND_USER }?.second ?: return
+        val lastUser = messages.lastOrNull { it.kind == AgentController.KIND_USER }?.text ?: return
         when (readiness(CompanionService.isRunning, settings.hasApiKey())) {
             Readiness.NEEDS_KEY, Readiness.NEEDS_BOTH -> {
                 startActivity(Intent(this, SettingsActivity::class.java)); return
@@ -419,9 +419,9 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
             Toast.makeText(this, getString(R.string.chat_nothing_to_export), Toast.LENGTH_SHORT).show()
             return
         }
-        val title = lines.firstOrNull { it.first == AgentController.KIND_USER }
-            ?.second?.let { SessionTitle.derive(it) } ?: SessionTitle.FALLBACK
-        val markdown = ConversationExport.toMarkdown(title, lines)
+        val title = lines.firstOrNull { it.kind == AgentController.KIND_USER }
+            ?.text?.let { SessionTitle.derive(it) } ?: SessionTitle.FALLBACK
+        val markdown = ConversationExport.toMarkdown(title, lines.map { it.kind to it.text })
         val uri = runCatching {
             val dir = java.io.File(cacheDir, "exports").apply { mkdirs() }
             val file = java.io.File(dir, "conversation-${System.currentTimeMillis()}.md")
@@ -506,7 +506,7 @@ private val SUGGESTED_PROMPTS = listOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ChatScreen(
-    messages: List<Pair<String, String>>,
+    messages: List<TranscriptEntry>,
     running: Boolean,
     readiness: Readiness,
     listening: Boolean,
@@ -610,8 +610,8 @@ private fun ChatScreen(
                             // error note and the agent is idle (re-runs the last user task).
                             val onRetryHere = if (!running && index == messages.lastIndex) onRetry else null
                             MessageItem(
-                                entry.first,
-                                entry.second,
+                                entry.kind,
+                                entry.text,
                                 onOpenSettings,
                                 onOpenAccessibility,
                                 onCopy = onCopyMessage,
@@ -621,7 +621,7 @@ private fun ChatScreen(
                         }
                         // A typing cue where the next answer will land — only while the
                         // agent is composing (not once its reply is already streaming in).
-                        if (running && messages.lastOrNull()?.first != AgentController.KIND_ASSISTANT) {
+                        if (running && messages.lastOrNull()?.kind != AgentController.KIND_ASSISTANT) {
                             item("typing") { TypingIndicator() }
                         }
                     }

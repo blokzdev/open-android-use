@@ -433,6 +433,14 @@ need a real device.
 - [ ] **V99. Two-pane parity**: on a tablet/foldable, the same grouping / preview / pin behavior
   works in the side History pane.
 
+### Phase 4.7b-3a — Timestamp plumbing (no visible change)
+
+- [ ] **V100. Back-compat + resume preserves times**: open a conversation saved before this build
+  (a v1/v2 session file) — it still loads and resumes normally. Run a new task, leave and resume
+  it from History. Pass: nothing regresses (chat renders, export works, History preview/pin/group
+  intact); per-message start times are now captured and survive a resume (visible rendering lands
+  in 4.7b-3b).
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |

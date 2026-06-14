@@ -71,11 +71,16 @@ tests, dependency-free control surface). Founder selected all themes + opportuni
   a last-message preview, a pin badge, and a Pin/Unpin action (both phone + two-pane). JVM tests
   (`SessionGroupingTest`, `SessionPreviewTest`, extended `SessionCodecTest`) + instrumented
   `pinMovesSessionToPinnedSection`. Builds + tests + APK + instrumentation green.
-- [ ] 4.7c-2 History (search · archived filter · multi-select bulk archive/delete) ·
-  [ ] 4.7a-3 tokens/motion · [ ] 4.7d Home/onboarding · [ ] 4.7e Settings/Privacy.
-- _Deferred:_ 4.7b-3 (per-message timestamps + role grouping) → BACKLOG — the timestamp half is a
-  wide transcript/persistence schema change for marginal value and is hard to verify without a
-  device; revisit if requested.
+- [x] 4.7b-3a — **timestamp plumbing** (no visible change): a per-message `createdAt` now flows
+  through the transcript model — `AgentController` transcript lines (`Line`) + `transcriptSnapshot`
+  (→ new `TranscriptEntry`), `StoredMessage`, and `SessionCodec` (v3, back-compat `t`). All call
+  sites (`ChatActivity` `messages`, `SessionPreview`, export, emulator test) updated; resume
+  preserves saved times. JVM/instrumented tests green. Foundation for 4.7b-3b.
+- [ ] 4.7b-3b History/chat (render per-message timestamps + role grouping + export times) ·
+  [ ] 4.7c-2 History (search · archived filter · multi-select) · [ ] 4.7a-3 tokens/motion ·
+  [ ] 4.7d Home/onboarding · [ ] 4.7e Settings/Privacy.
+- _Founder call (2026-06-14):_ do the full per-message timestamps + role grouping (un-deferred
+  from BACKLOG) for a more intuitive, elegant chat — split into plumbing (4.7b-3a) + UI (4.7b-3b).
 
 ## Decisions
 - 2026-06-14: "UX elevation" inserted as Phase **4.7**; the prior Play-readiness work is now

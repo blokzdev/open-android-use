@@ -14,9 +14,9 @@ class SessionCodecTest {
         updatedAt = 2000L,
         archived = false,
         transcript = listOf(
-            StoredMessage(AgentController.KIND_USER, "Turn Bluetooth on"),
+            StoredMessage(AgentController.KIND_USER, "Turn Bluetooth on", createdAt = 1500L),
             StoredMessage(AgentController.KIND_TOOL, "▸ click Settings"),
-            StoredMessage(AgentController.KIND_ASSISTANT, "Done."),
+            StoredMessage(AgentController.KIND_ASSISTANT, "Done.", createdAt = 1800L),
         ),
         pinned = true,
         preview = "Done.",
@@ -35,6 +35,10 @@ class SessionCodecTest {
         assertEquals("Done.", back.transcript[2].text)
         assertTrue(back.pinned)
         assertEquals("Done.", back.preview)
+        // Per-message timestamps round-trip; an unset one stays 0.
+        assertEquals(1500L, back.transcript[0].createdAt)
+        assertEquals(0L, back.transcript[1].createdAt)
+        assertEquals(1800L, back.transcript[2].createdAt)
     }
 
     @Test

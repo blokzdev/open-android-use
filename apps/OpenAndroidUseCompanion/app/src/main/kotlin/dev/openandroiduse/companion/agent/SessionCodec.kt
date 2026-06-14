@@ -12,9 +12,10 @@ import org.json.JSONObject
  */
 object SessionCodec {
 
-    // v2 (Phase 4.7c) adds `pinned` + `preview`; decode stays back-compatible with
-    // v1 files via opt* defaults (pinned=false, preview="").
-    const val VERSION = 2
+    // v2 (Phase 4.7c) adds `pinned` + `preview`; v3 (Phase 4.7b-3) adds a per-message timestamp
+    // (`t`). Decode stays back-compatible with older files via opt* defaults (pinned=false,
+    // preview="", t=0).
+    const val VERSION = 3
 
     fun encode(payload: SessionPayload): String {
         val root = JSONObject()
@@ -28,7 +29,9 @@ object SessionCodec {
         root.put("preview", payload.preview)
         val transcript = JSONArray()
         for (line in payload.transcript) {
-            transcript.put(JSONObject().put("kind", line.kind).put("text", line.text))
+            val o = JSONObject().put("kind", line.kind).put("text", line.text)
+            if (line.createdAt != 0L) o.put("t", line.createdAt)
+            transcript.put(o)
         }
         root.put("transcript", transcript)
         return root.toString()
@@ -39,7 +42,7 @@ object SessionCodec {
         val transcript = root.optJSONArray("transcript") ?: JSONArray()
         val messages = (0 until transcript.length()).map { i ->
             val o = transcript.getJSONObject(i)
-            StoredMessage(o.optString("kind"), o.optString("text"))
+            StoredMessage(o.optString("kind"), o.optString("text"), o.optLong("t", 0L))
         }
         return SessionPayload(
             id = root.getString("id"),
