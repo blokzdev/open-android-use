@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,6 +32,7 @@ import dev.openandroiduse.companion.agent.AgentSettings
 import dev.openandroiduse.companion.agent.ChatActivity
 import dev.openandroiduse.companion.agent.SessionsActivity
 import dev.openandroiduse.companion.agent.SettingsActivity
+import dev.openandroiduse.companion.ui.ResponsiveContent
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
 
 /**
@@ -59,6 +61,7 @@ class MainActivity : ComponentActivity() {
             return
         }
 
+        enableEdgeToEdge()
         setContent {
             OpenAndroidUseTheme(dynamicColor = settings.dynamicColor) {
                 MainScreen(
@@ -114,12 +117,11 @@ private fun MainScreen(
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) },
     ) { contentPadding ->
+        ResponsiveContent(contentPadding) { inner ->
         Column(
-            modifier = Modifier
-                .padding(contentPadding)
-                .padding(16.dp)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+            modifier = inner
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             ElevatedCard {
@@ -179,6 +181,7 @@ private fun MainScreen(
                 text = stringResource(R.string.main_kill_switch_hint),
                 style = MaterialTheme.typography.bodySmall,
             )
+        }
         }
     }
 }

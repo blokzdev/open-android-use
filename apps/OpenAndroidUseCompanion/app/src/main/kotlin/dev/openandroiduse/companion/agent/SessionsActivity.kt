@@ -6,6 +6,7 @@ import android.text.format.DateUtils
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -59,6 +60,7 @@ class SessionsActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         settings = AgentSettings(this)
         store = SessionStore(this)
+        enableEdgeToEdge()
         setContent {
             OpenAndroidUseTheme(dynamicColor = settings.dynamicColor) {
                 SessionsScreen(

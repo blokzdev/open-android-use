@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import dev.openandroiduse.companion.agent.AgentController
 import dev.openandroiduse.companion.agent.AgentSettings
 import dev.openandroiduse.companion.agent.SessionStore
+import dev.openandroiduse.companion.ui.ResponsiveContent
 import dev.openandroiduse.companion.ui.markHeading
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
 
@@ -51,6 +53,7 @@ class PrivacyActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         settings = AgentSettings(this)
         sessions = SessionStore(this)
+        enableEdgeToEdge()
         setContent {
             OpenAndroidUseTheme(dynamicColor = settings.dynamicColor) {
                 PrivacyScreen(
@@ -74,12 +77,11 @@ private fun PrivacyScreen(
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.privacy_title)) }) },
     ) { contentPadding ->
+        ResponsiveContent(contentPadding) { inner ->
         Column(
-            modifier = Modifier
-                .padding(contentPadding)
-                .padding(16.dp)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+            modifier = inner
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(stringResource(R.string.privacy_heading), style = MaterialTheme.typography.titleMedium, modifier = Modifier.markHeading())
@@ -122,6 +124,7 @@ private fun PrivacyScreen(
                     Toast.makeText(context, deletedAll, Toast.LENGTH_SHORT).show()
                 },
             )
+        }
         }
     }
 }
