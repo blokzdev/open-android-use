@@ -220,3 +220,7 @@ build script, and docs synced.
   in monochrome), in the brand "Aurora" palette (indigo gradient ground),
   replacing the borrowed system drawable; a monochrome layer supports Android 13+
   themed icons, and the same palette drives the Compose theme.
+- 2026-06-14: Unscheduled "someday/maybe" ideas now live in `docs/BACKLOG.md`
+  (wired into the CLAUDE.md memory harness), keeping this plan for scheduled work.
+  The robust no-companion bridge snapshot (deferred during the get_app_state
+  hardening) is recorded there.
