@@ -10,6 +10,7 @@ import android.util.Base64
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -82,6 +83,10 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val pendingSync = AtomicBoolean(false)
     private var speechRecognizer: android.speech.SpeechRecognizer? = null
+    private val requestAudioPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) startListening()
+        }
 
     private var messages by mutableStateOf<List<Pair<String, String>>>(emptyList())
     private var running by mutableStateOf(false)
@@ -224,7 +229,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
         if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) !=
             android.content.pm.PackageManager.PERMISSION_GRANTED
         ) {
-            requestPermissions(arrayOf(android.Manifest.permission.RECORD_AUDIO), REQUEST_RECORD_AUDIO)
+            requestAudioPermission.launch(android.Manifest.permission.RECORD_AUDIO)
             return
         }
         if (!android.speech.SpeechRecognizer.isRecognitionAvailable(this)) {
@@ -259,18 +264,6 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
         )
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_RECORD_AUDIO &&
-            grantResults.firstOrNull() == android.content.pm.PackageManager.PERMISSION_GRANTED
-        ) {
-            startListening()
-        }
-    }
-
-    private companion object {
-        const val REQUEST_RECORD_AUDIO = 41
-    }
 }
 
 private val SUGGESTED_PROMPTS = listOf(
