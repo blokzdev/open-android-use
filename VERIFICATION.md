@@ -238,6 +238,23 @@ Anthropic API key at hand (Android 11+ device):
 - [ ] **V56. Stop always reachable**: mid-task. Pass: Stop is visible in the
   "agent's view" status row and the composer; tapping it halts within one action.
 
+### Phase 4.4 — Trust & control surface
+
+- [ ] **V57. In-control badge over other apps**: start a task that leaves the
+  app. Pass: a floating "👐 Open Android Use is acting · Stop" chip appears over
+  whatever app is foreground; it disappears when the task ends.
+- [ ] **V58. Badge Stop works from anywhere**: tap the badge's Stop while the
+  agent is in another app. Pass: the agent halts within one action.
+- [ ] **V59. Badge opens chat**: tap the badge label. Pass: the Agent Chat comes
+  to the foreground.
+- [ ] **V60. Ongoing notification + Stop**: with notifications allowed, during a
+  task. Pass: an ongoing "Open Android Use is acting" notification shows a Stop
+  action that halts the agent; it clears when the task ends. (Deny notifications →
+  no notification, but the badge still works.)
+- [ ] **V61. Tap-location highlight**: during a task, watch the "Agent's view" in
+  chat. Pass: a mint ring marks where the agent just tapped, aligned to the
+  screenshot; it tracks subsequent taps and clears on New conversation.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |

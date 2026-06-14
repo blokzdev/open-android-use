@@ -2,6 +2,7 @@ package dev.openandroiduse.companion.agent
 
 import android.content.Intent
 import android.graphics.BitmapFactory
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -11,14 +12,17 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -50,8 +54,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -87,6 +95,8 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (granted) startListening()
         }
+    private val requestNotifications =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     private var messages by mutableStateOf<List<Pair<String, String>>>(emptyList())
     private var running by mutableStateOf(false)
@@ -95,12 +105,19 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
     private var listening by mutableStateOf(false)
     private var input by mutableStateOf("")
     private var agentView by mutableStateOf<ImageBitmap?>(null)
+    private var tapPoint by mutableStateOf<Pair<Float, Float>?>(null)
     private var showSettings by mutableStateOf(false)
     private var expandView by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         settings = AgentSettings(this)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            requestNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
         setContent {
             OpenAndroidUseTheme {
                 ChatScreen(
@@ -110,6 +127,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
                     listening = listening,
                     input = input,
                     agentView = agentView,
+                    tapPoint = tapPoint,
                     modelLabel = settings.model,
                     onInputChange = { input = it },
                     onSend = ::sendTask,
@@ -121,6 +139,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
                         AgentController.resetConversation()
                         messages = emptyList()
                         agentView = null
+                        tapPoint = null
                     },
                     onShare = ::shareLastAnswer,
                     onOpenSettings = { showSettings = true },
@@ -154,6 +173,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
         hasKey = settings.hasApiKey()
         messages = AgentController.transcriptSnapshot()
         AgentController.latestScreenshotBase64?.let { decodeAgentView(it) }
+        tapPoint = AgentController.latestTapNormalized
         if (hasKey) {
             Thread({ ModelCatalog.refresh(settings) }, "oau-model-refresh").start()
         }
@@ -189,6 +209,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
     override fun onScreenshotCaptured(pngBase64: String) {
         // Already off the main thread (loop thread): decode here, post the bitmap.
         decodeAgentView(pngBase64)
+        mainHandler.post { tapPoint = AgentController.latestTapNormalized }
     }
 
     private fun decodeAgentView(b64: String) {
@@ -281,6 +302,7 @@ private fun ChatScreen(
     listening: Boolean,
     input: String,
     agentView: ImageBitmap?,
+    tapPoint: Pair<Float, Float>?,
     modelLabel: String,
     onInputChange: (String) -> Unit,
     onSend: () -> Unit,
@@ -321,7 +343,7 @@ private fun ChatScreen(
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
             if (running || agentView != null) {
-                AgentViewCard(agentView, running, onStop, onExpandView)
+                AgentViewCard(agentView, tapPoint, running, onStop, onExpandView)
             }
             if (messages.isEmpty()) {
                 EmptyState(onPrompt = onInputChange)
@@ -356,7 +378,13 @@ private fun ModelChip(model: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun AgentViewCard(view: ImageBitmap?, running: Boolean, onStop: () -> Unit, onExpand: () -> Unit) {
+private fun AgentViewCard(
+    view: ImageBitmap?,
+    tapPoint: Pair<Float, Float>?,
+    running: Boolean,
+    onStop: () -> Unit,
+    onExpand: () -> Unit,
+) {
     ElevatedCard(Modifier.fillMaxWidth().padding(12.dp)) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -368,14 +396,33 @@ private fun AgentViewCard(view: ImageBitmap?, running: Boolean, onStop: () -> Un
                 }
             }
             if (view != null) {
-                Image(
-                    bitmap = view,
-                    contentDescription = "Latest screenshot the agent captured",
-                    modifier = Modifier
+                Box(
+                    Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 220.dp)
+                        .height(200.dp)
                         .clickable { onExpand() },
-                )
+                ) {
+                    Image(
+                        bitmap = view,
+                        contentDescription = "Latest screenshot the agent captured",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    if (tapPoint != null) {
+                        val (fx, fy) = tapPoint
+                        Canvas(Modifier.fillMaxSize()) {
+                            // Map the normalized point onto the Fit-scaled image rect.
+                            val s = minOf(size.width / view.width, size.height / view.height)
+                            val dw = view.width * s
+                            val dh = view.height * s
+                            val ox = (size.width - dw) / 2f
+                            val oy = (size.height - dh) / 2f
+                            val center = Offset(ox + fx * dw, oy + fy * dh)
+                            drawCircle(Color(0xFF5EEAD4), radius = 11.dp.toPx(), center = center, style = Stroke(width = 3.dp.toPx()))
+                            drawCircle(Color(0x335EEAD4), radius = 11.dp.toPx(), center = center)
+                        }
+                    }
+                }
             } else {
                 Text(
                     "You're the agent's second pair of eyes — its view will appear here as it works.",

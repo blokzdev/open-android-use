@@ -150,9 +150,13 @@ build script, and docs synced.
     marquee **"Agent's view"** (an additive `AgentController.latestScreenshotBase64`
     + `onScreenshotCaptured` default-no-op hook; in-memory only). Pure helpers
     unit-tested.
-  - [ ] 4.4 trust/control surface: tap-location highlight on the Agent's-view
-    (overlay the gesture coordinate on the screenshot); persistent "agent in
-    control" badge over other apps; foreground-service notification with Stop.
+  - [x] 4.4 trust/control surface: persistent "agent in control" badge over
+    other apps (touchable accessibility overlay, `InControlOverlay`) with a
+    Stop-from-anywhere button; an ongoing notification with a Stop action
+    (`AgentNotification` + `StopAgentReceiver`, POST_NOTIFICATIONS-gated, not a
+    foreground service); and a tap-location highlight on the Agent's-view (pure
+    `TapHighlight`, additive `AgentController.latestTapNormalized`). True FGS type
+    deferred to 4.6/Play.
   - [ ] 4.5 settings & privacy screen: recent-task prompts for quick re-run
     (ephemeral; distinct from opt-in task memory); export/share a conversation.
   - [ ] 4.6 a11y/i18n/responsive + Play: richer markdown (links/tables), full
