@@ -79,3 +79,8 @@ Each entry: **idea** — why deferred · _priority_ · origin.
 - **Conversation folders / tags** — organize History beyond pin/archive. _Low._ Origin: Phase 4.7.
 - **Pull-to-refresh on History**; **AMOLED (true-black) theme** option; **message reactions /
   feedback** (👍/👎 on answers to inform future tuning). _Low._ Origin: Phase 4.7.
+- **In-bubble partial text selection** — 4.7b-1 replaced the assistant bubble's
+  `SelectionContainer` with a long-press Copy/Share menu (whole-message), since long-press can't
+  drive both text selection and a context menu. Re-add fine-grained selection (e.g. a "Select
+  text" menu action opening a selectable view, or a selection toolbar) if users want to copy a
+  fragment. _Low._ Origin: Phase 4.7b-1.

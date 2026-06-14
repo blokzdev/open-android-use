@@ -52,8 +52,14 @@ tests, dependency-free control surface). Founder selected all themes + opportuni
   `SessionsScreenTest.deleteThenUndoRestoresSession`. _(Remaining Toasts are non-destructive
   "busy" notices; spacing/type tokens + reduce-motion transition wrappers deferred to 4.7a-3
   so this PR stays a focused, reviewable Undo change.)_
-- [ ] 4.7a-3 tokens/motion · [ ] 4.7b chat · [ ] 4.7c History · [ ] 4.7d Home/onboarding
-  · [ ] 4.7e Settings/Privacy.
+- [x] 4.7b-1 — **chat: per-message Copy/Share + jump-to-latest**: long-press a user/assistant
+  bubble → context menu (Copy to clipboard with a confirming Snackbar / Share via the system
+  chooser); a `SmallFloatingActionButton` appears only when the newest message is off-screen and
+  jumps to it; new turns no longer auto-scroll while the user reads history (auto-scroll gated on
+  "already at bottom"). Builds + tests + APK + instrumentation green. _(In-bubble partial text
+  selection was traded for the long-press menu → backlogged.)_
+- [ ] 4.7a-3 tokens/motion · [ ] 4.7b-2 chat (timestamps/grouping · streaming indicator · retry)
+  · [ ] 4.7c History · [ ] 4.7d Home/onboarding · [ ] 4.7e Settings/Privacy.
 
 ## Decisions
 - 2026-06-14: "UX elevation" inserted as Phase **4.7**; the prior Play-readiness work is now
