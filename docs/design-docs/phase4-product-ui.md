@@ -89,6 +89,14 @@ largely for free).
    - A transparency screen: what the app can see, what leaves the device (only
      to api.anthropic.com), how the key is stored (Keystore), and the kill
      switch always one tap away. Restyle the interim About sheet here.
+   - **Shipped in 4.5** as `SettingsActivity` + `PrivacyActivity` (About kept
+     separate for the licenses screen Play expects), a Material You toggle, and
+     honest data controls (clear key / clear conversation / delete all). The
+     "recent prompts for quick re-run" backlog item grew into **persistent,
+     resumable multi-session conversations** — a named History list
+     (`SessionStore`, text-only on disk; screenshots never persist) the user can
+     revisit, resume (model history rebuilt from the transcript), rename,
+     archive, delete, and export to Markdown.
 
 6. **Accessibility, localization, responsive, Play readiness**
    - An accessibility app must itself be exemplary: screen-reader friendly,

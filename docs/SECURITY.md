@@ -13,6 +13,14 @@
 - Linux runtime 的 screenshot 是 best-effort；如果 GNOME Wayland 返回黑图，bridge 会省略 image block，避免把无效截图误当成真实画面。
 - fixture app 的合成状态只写到本地临时 JSON 文件，目的是支撑 deterministic smoke test；当前写入走原子替换，减少测试期间的读写竞争。
 - 当前仓库不引入第三方服务，也不上传截图、AX tree 或输入内容。
+- Android companion (Phase 4.5): conversations are saved **on the device, text-only**
+  (one JSON file per session under the app's private `filesDir`, written atomically) so
+  the user can revisit and resume them from History. Screenshots are **never** written to
+  disk — they stay in memory only, and a resumed conversation's model history is rebuilt
+  from the text transcript. Users can delete any single conversation or all of them, and
+  clear the API key, from the in-app Privacy & data screen. Conversation export writes a
+  Markdown file to the app cache and shares it via a `FileProvider` with a per-share,
+  read-only URI grant.
 
 ## 授权与最小权限
 

@@ -39,9 +39,36 @@
             android:label="About" />
 
         <activity
+            android:name=".agent.SettingsActivity"
+            android:exported="false"
+            android:label="Settings" />
+
+        <activity
+            android:name=".PrivacyActivity"
+            android:exported="false"
+            android:label="Privacy &amp; data" />
+
+        <activity
+            android:name=".agent.SessionsActivity"
+            android:exported="false"
+            android:label="History" />
+
+        <activity
             android:name=".OnboardingActivity"
             android:exported="false"
             android:label="Set up" />
+
+        <!-- Shares the exported-conversation Markdown file (Phase 4.5) without
+             world-readable storage; grants are per-share and read-only. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
 
         <receiver

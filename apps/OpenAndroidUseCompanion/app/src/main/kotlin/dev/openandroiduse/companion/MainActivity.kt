@@ -29,6 +29,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.openandroiduse.companion.agent.AgentSettings
 import dev.openandroiduse.companion.agent.ChatActivity
+import dev.openandroiduse.companion.agent.SessionsActivity
+import dev.openandroiduse.companion.agent.SettingsActivity
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
 
 /**
@@ -54,7 +56,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            OpenAndroidUseTheme {
+            OpenAndroidUseTheme(dynamicColor = settings.dynamicColor) {
                 MainScreen(
                     running = serviceRunning,
                     hasApiKey = hasApiKey,
@@ -65,6 +67,12 @@ class MainActivity : ComponentActivity() {
                     },
                     onOpenChat = {
                         startActivity(Intent(this, ChatActivity::class.java))
+                    },
+                    onOpenHistory = {
+                        startActivity(Intent(this, SessionsActivity::class.java))
+                    },
+                    onOpenSettings = {
+                        startActivity(Intent(this, SettingsActivity::class.java))
                     },
                     onOpenAbout = {
                         startActivity(Intent(this, AboutActivity::class.java))
@@ -90,6 +98,8 @@ private fun MainScreen(
     restrictedHint: String,
     onOpenAccessibility: () -> Unit,
     onOpenChat: () -> Unit,
+    onOpenHistory: () -> Unit,
+    onOpenSettings: () -> Unit,
     onOpenAbout: () -> Unit,
 ) {
     Scaffold(
@@ -143,6 +153,12 @@ private fun MainScreen(
             }
             Button(onClick = onOpenChat, modifier = Modifier.fillMaxWidth()) {
                 Text("Open Agent Chat")
+            }
+            OutlinedButton(onClick = onOpenHistory, modifier = Modifier.fillMaxWidth()) {
+                Text("History")
+            }
+            OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
+                Text("Settings")
             }
             OutlinedButton(onClick = onOpenAbout, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.about_button))
