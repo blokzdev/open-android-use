@@ -44,6 +44,14 @@ object AgentController {
     interface Listener {
         fun onTaskStateChanged(running: Boolean)
         fun onTranscriptChanged()
+
+        /**
+         * The agent just captured a screenshot it is about to send to the model.
+         * Lets the chat show "what the agent sees". Default no-op so non-UI
+         * listeners (e.g. the emulator smoke) are unaffected. [pngBase64] is the
+         * already-downscaled PNG; it is in-memory only, never written to disk.
+         */
+        fun onScreenshotCaptured(pngBase64: String) {}
     }
 
     /**
@@ -82,6 +90,15 @@ object AgentController {
 
     @Volatile
     var isRunning = false
+        private set
+
+    /**
+     * The latest screenshot the agent captured (already-downscaled PNG, Base64),
+     * for the chat's "Agent's view". In-memory only, never persisted; replaced on
+     * each capture and cleared on conversation reset.
+     */
+    @Volatile
+    var latestScreenshotBase64: String? = null
         private set
 
     private val history = mutableListOf<HistoryEntry>()
@@ -195,6 +212,7 @@ object AgentController {
     fun resetConversation() {
         if (isRunning) return
         history.clear()
+        latestScreenshotBase64 = null
         synchronized(transcript) { transcript.clear() }
     }
 
@@ -413,6 +431,10 @@ object AgentController {
         val outcome = executor.callTool(toolUse.name(), args)
         if (outcome.isError) {
             log(KIND_TOOL, "✗ ${toolUse.name()} failed — the agent will see the error and adapt")
+        }
+        outcome.screenshotPngBase64?.let { png ->
+            latestScreenshotBase64 = png
+            listener?.onScreenshotCaptured(png)
         }
 
         val blocks = mutableListOf(

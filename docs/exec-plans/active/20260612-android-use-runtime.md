@@ -142,6 +142,22 @@ build script, and docs synced.
     `AgentSettings.onboardingCompleted`. Plus an agent-readiness model
     (`Readiness.kt`): home + chat surface what's missing (accessibility / key)
     and degrade gracefully instead of failing silently.
+  - [x] PR-C (chat polish 4.3): `ChatActivity` rebuilt in Compose — live
+    streaming, humanized tool chips (`ToolChipLabel`), collapsible thinking,
+    light markdown answers (`ChatMarkdown`, select/copy/share), suggested-prompt
+    empty state, error/needs-key cards (`NoteClassifier`), header model chip +
+    New conversation + haptics + IME-aware composer, always-visible Stop, and the
+    marquee **"Agent's view"** (an additive `AgentController.latestScreenshotBase64`
+    + `onScreenshotCaptured` default-no-op hook; in-memory only). Pure helpers
+    unit-tested.
+  - [ ] 4.4 trust/control surface: tap-location highlight on the Agent's-view
+    (overlay the gesture coordinate on the screenshot); persistent "agent in
+    control" badge over other apps; foreground-service notification with Stop.
+  - [ ] 4.5 settings & privacy screen: recent-task prompts for quick re-run
+    (ephemeral; distinct from opt-in task memory); export/share a conversation.
+  - [ ] 4.6 a11y/i18n/responsive + Play: richer markdown (links/tables), full
+    content-description/large-font/reduce-motion pass, migrate inline chat copy to
+    `strings.xml`, foldable/tablet layouts.
 - [ ] **Phase 5 — Multi-provider BYOK** (`docs/design-docs/phase5-multi-provider-byok.md`):
   Claude + Gemini via an in-house Kotlin `AgentBackend` interface + official
   per-provider SDKs (keep `anthropic-java`; add `com.google.genai` for Gemini);
