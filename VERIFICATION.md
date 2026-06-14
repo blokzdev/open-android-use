@@ -351,6 +351,13 @@ need a real device.
 - [ ] **V81. RTL**: enable a RTL pseudo-locale (or force RTL). Pass: layouts mirror
   correctly (start/end honored); no clipped or left-stuck elements.
 
+### Phase 4.6d — Richer markdown
+
+- [ ] **V82. Links & tables in answers**: ask the agent something whose reply includes a
+  Markdown link and a `| pipe | table |`. Pass: the link renders underlined/colored and
+  opens in the browser when tapped; the table renders as aligned rows (header bold) and
+  scrolls horizontally if wider than the screen rather than overflowing.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |

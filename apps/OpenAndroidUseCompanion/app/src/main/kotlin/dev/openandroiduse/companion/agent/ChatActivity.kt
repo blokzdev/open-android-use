@@ -16,6 +16,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -73,12 +75,16 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -716,29 +722,62 @@ private fun AssistantBubble(text: String) {
 
 @Composable
 private fun MarkdownBlock(block: MdBlock) {
+    val linkColor = MaterialTheme.colorScheme.primary
     when (block) {
-        is MdBlock.Paragraph -> Text(block.spans.toAnnotated(), style = MaterialTheme.typography.bodyMedium)
+        is MdBlock.Paragraph -> Text(block.spans.toAnnotated(linkColor), style = MaterialTheme.typography.bodyMedium)
         is MdBlock.BulletList -> Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             block.items.forEach { spans ->
-                Row { Text("•  "); Text(spans.toAnnotated(), style = MaterialTheme.typography.bodyMedium) }
+                Row { Text("•  "); Text(spans.toAnnotated(linkColor), style = MaterialTheme.typography.bodyMedium) }
             }
         }
         is MdBlock.NumberedList -> Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             block.items.forEachIndexed { i, spans ->
-                Row { Text("${i + 1}.  "); Text(spans.toAnnotated(), style = MaterialTheme.typography.bodyMedium) }
+                Row { Text("${i + 1}.  "); Text(spans.toAnnotated(linkColor), style = MaterialTheme.typography.bodyMedium) }
             }
+        }
+        is MdBlock.Table -> MarkdownTable(block, linkColor)
+    }
+}
+
+@Composable
+private fun MarkdownTable(table: MdBlock.Table, linkColor: Color) {
+    // Horizontal scroll so wide tables don't overflow narrow screens.
+    Column(Modifier.horizontalScroll(rememberScrollState())) {
+        TableRow(table.header, linkColor, header = true)
+        table.rows.forEach { TableRow(it, linkColor, header = false) }
+    }
+}
+
+@Composable
+private fun TableRow(cells: List<List<MdSpan>>, linkColor: Color, header: Boolean) {
+    Row {
+        cells.forEach { spans ->
+            Text(
+                spans.toAnnotated(linkColor),
+                modifier = Modifier.width(140.dp).padding(horizontal = 6.dp, vertical = 4.dp),
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = if (header) FontWeight.Bold else null,
+            )
         }
     }
 }
 
-private fun List<MdSpan>.toAnnotated(): AnnotatedString = buildAnnotatedString {
+private fun List<MdSpan>.toAnnotated(linkColor: Color): AnnotatedString = buildAnnotatedString {
     this@toAnnotated.forEach { span ->
         val style = SpanStyle(
             fontWeight = if (span.bold) FontWeight.Bold else null,
             fontStyle = if (span.italic) FontStyle.Italic else null,
             fontFamily = if (span.code) FontFamily.Monospace else null,
         )
-        withStyle(style) { append(span.text) }
+        val url = span.url
+        if (url != null) {
+            val linkStyles = TextLinkStyles(
+                style = style.copy(color = linkColor, textDecoration = TextDecoration.Underline),
+            )
+            withLink(LinkAnnotation.Url(url, linkStyles)) { append(span.text) }
+        } else {
+            withStyle(style) { append(span.text) }
+        }
     }
 }
 
