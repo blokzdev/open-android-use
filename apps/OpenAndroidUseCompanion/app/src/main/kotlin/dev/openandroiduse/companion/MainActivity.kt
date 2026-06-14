@@ -1,99 +1,133 @@
 package dev.openandroiduse.companion
 
-import android.app.Activity
 import android.content.Intent
-import android.graphics.Typeface
 import android.os.Bundle
 import android.provider.Settings
-import android.widget.Button
-import android.widget.LinearLayout
-import android.widget.TextView
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import dev.openandroiduse.companion.agent.ChatActivity
+import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
 
 /**
  * Status and consent surface: shows whether the accessibility service (and so
  * the loopback endpoint) is running, and routes the user to system settings to
  * enable or disable it. Disabling the service is the kill switch.
  */
-class MainActivity : Activity() {
+class MainActivity : ComponentActivity() {
 
-    private lateinit var statusView: TextView
-    private lateinit var restrictedHintView: TextView
+    private var serviceRunning by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val padding = (16 * resources.displayMetrics.density).toInt()
-        val layout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(padding, padding, padding, padding)
-        }
-
-        layout.addView(TextView(this).apply {
-            text = getString(R.string.app_name)
-            textSize = 22f
-            setTypeface(typeface, Typeface.BOLD)
-        })
-
-        statusView = TextView(this).apply {
-            textSize = 16f
-            setPadding(0, padding, 0, padding)
-        }
-        layout.addView(statusView)
-
-        layout.addView(Button(this).apply {
-            text = "Open Accessibility Settings"
-            setOnClickListener {
-                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        setContent {
+            OpenAndroidUseTheme {
+                MainScreen(
+                    running = serviceRunning,
+                    port = CompanionService.PORT,
+                    restrictedHint = stringResource(R.string.restricted_setting_hint),
+                    onOpenAccessibility = {
+                        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                    },
+                    onOpenChat = {
+                        startActivity(Intent(this, ChatActivity::class.java))
+                    },
+                    onOpenAbout = {
+                        startActivity(Intent(this, AboutActivity::class.java))
+                    },
+                )
             }
-        })
-
-        // Shown only while the service is off: sideloaded apps on Android 13+
-        // must clear the "Restricted setting" gate before accessibility can be
-        // enabled. Hidden once the service is running so it does not nag.
-        restrictedHintView = TextView(this).apply {
-            textSize = 13f
-            setPadding(0, padding, 0, 0)
-            text = getString(R.string.restricted_setting_hint)
         }
-        layout.addView(restrictedHintView)
-
-        layout.addView(Button(this).apply {
-            text = "Open Agent Chat"
-            setOnClickListener {
-                startActivity(Intent(this@MainActivity, dev.openandroiduse.companion.agent.ChatActivity::class.java))
-            }
-        })
-
-        layout.addView(Button(this).apply {
-            text = getString(R.string.about_button)
-            setOnClickListener {
-                startActivity(Intent(this@MainActivity, AboutActivity::class.java))
-            }
-        })
-
-        layout.addView(TextView(this).apply {
-            textSize = 13f
-            setPadding(0, padding, 0, 0)
-            text = "Enable \"Open Android Use Companion\" to start the control endpoint " +
-                "(127.0.0.1:${CompanionService.PORT}, reachable from a computer only via " +
-                "`adb forward`). Disable the service at any time to cut the agent off."
-        })
-
-        setContentView(layout)
     }
 
     override fun onResume() {
         super.onResume()
-        refreshStatus()
+        serviceRunning = CompanionService.isRunning
     }
+}
 
-    private fun refreshStatus() {
-        val running = CompanionService.isRunning
-        statusView.text = if (running) {
-            "Service: running — endpoint live on 127.0.0.1:${CompanionService.PORT}"
-        } else {
-            "Service: OFF — enable it in Accessibility Settings to start"
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MainScreen(
+    running: Boolean,
+    port: Int,
+    restrictedHint: String,
+    onOpenAccessibility: () -> Unit,
+    onOpenChat: () -> Unit,
+    onOpenAbout: () -> Unit,
+) {
+    Scaffold(
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) },
+    ) { contentPadding ->
+        Column(
+            modifier = Modifier
+                .padding(contentPadding)
+                .padding(16.dp)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            ElevatedCard {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = if (running) "Service: running" else "Service: off",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = if (running) {
+                            "Endpoint live on 127.0.0.1:$port"
+                        } else {
+                            "Enable the accessibility service to start"
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+
+            if (!running) {
+                Text(text = restrictedHint, style = MaterialTheme.typography.bodySmall)
+            }
+
+            Button(onClick = onOpenAccessibility, modifier = Modifier.fillMaxWidth()) {
+                Text("Open Accessibility Settings")
+            }
+            Button(onClick = onOpenChat, modifier = Modifier.fillMaxWidth()) {
+                Text("Open Agent Chat")
+            }
+            OutlinedButton(onClick = onOpenAbout, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.about_button))
+            }
+
+            Text(
+                text = "Disable the service at any time to cut the agent off. The " +
+                    "endpoint binds 127.0.0.1 only and is reachable from a computer " +
+                    "solely via `adb forward`.",
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
-        restrictedHintView.visibility = if (running) android.view.View.GONE else android.view.View.VISIBLE
     }
 }

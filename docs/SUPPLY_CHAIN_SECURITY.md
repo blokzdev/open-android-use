@@ -43,10 +43,16 @@ are registered here, one entry per dependency, with the reasoning:
 | Dependency | License | Where | Why | Added |
 |---|---|---|---|---|
 | `com.anthropic:anthropic-java` 2.40.1 (Maven Central) | Apache-2.0 | `apps/OpenAndroidUseCompanion` `agent` package only | First-party Anthropic SDK for the on-device agent's Claude API access; hand-rolled HTTP against a streaming LLM API is a larger risk than a pinned official SDK. Decision record: `docs/exec-plans/completed/20260612-phase3-on-device-agent.md`. | 2026-06-12 |
+| Jetpack Compose (BOM `2024.09.03`) + Material 3 + `androidx.activity:activity-compose` 1.9.2 | Apache-2.0 | `apps/OpenAndroidUseCompanion` presentation layer (Activities, `ui/theme`, screens) | Phase 4 world-class UI; Compose/Material 3 is the modern Android UI standard (dynamic color, dark mode, accessibility). Presentation layer only. Design: `docs/design-docs/phase4-product-ui.md`. | 2026-06-14 |
 
-Rules for the register: pin exact versions, never ranges; the control-surface
-packages must not import any of these; bumping a version is a reviewed change
-that updates this table in the same commit.
+Rules for the register: pin exact versions (Compose libs are pinned via the BOM),
+never ranges; bumping a version is a reviewed change that updates this table in
+the same commit. **Layer boundary:** the *control surface* — `CompanionService`,
+`HttpServer`, snapshot/action code, the accessibility/loopback core — must not
+import any of these (no `com.anthropic`, no `androidx`/`compose`). The `agent`
+package may use the Anthropic SDK; the presentation layer (Activities, `ui/`) may
+use Compose. Phase 5 will add one more `agent`-package SDK (`com.google.genai`
+for Gemini) under the same rules.
 
 Redistribution note: the app's Gradle build excludes the duplicate
 `META-INF/LICENSE*` / `NOTICE*` files the SDK's transitive jars ship (they

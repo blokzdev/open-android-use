@@ -1,0 +1,28 @@
+<!--
+  Brand mark: a tap rippling out from a phone screen — concentric squircles (the
+  app's own shape) emanating from a mint core. 108x108 adaptive-icon viewport;
+  the mark sits within the ~66dp safe zone so it survives round/squircle masking.
+  Mint core, blue + violet ripple rings, on the indigo gradient background.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Outer ripple ring (violet) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFA78BFA"
+        android:strokeWidth="5"
+        android:pathData="M38,28 H70 a10,10 0 0 1 10,10 V70 a10,10 0 0 1 -10,10 H38 a10,10 0 0 1 -10,-10 V38 a10,10 0 0 1 10,-10 Z" />
+    <!-- Inner ripple ring (blue) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FF60A5FA"
+        android:strokeWidth="5"
+        android:pathData="M43,36 H65 a7,7 0 0 1 7,7 V65 a7,7 0 0 1 -7,7 H43 a7,7 0 0 1 -7,-7 V43 a7,7 0 0 1 7,-7 Z" />
+    <!-- Core (mint) — the touch point / phone screen -->
+    <path
+        android:fillColor="#FF5EEAD4"
+        android:pathData="M49,45 H59 a4,4 0 0 1 4,4 V59 a4,4 0 0 1 -4,4 H49 a4,4 0 0 1 -4,-4 V49 a4,4 0 0 1 4,-4 Z" />
+</vector>
