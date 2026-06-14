@@ -61,6 +61,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -108,10 +110,17 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
     private var recentSessions by mutableStateOf<List<SessionMeta>>(emptyList())
     private lateinit var sessions: SessionStore
 
+    /** The dynamic-color value this instance was themed with, to detect a Settings toggle. */
+    private var appliedDynamicColor = false
+
+    /** Transcript revision last written to SessionStore, so onPause doesn't re-save no-ops. */
+    private var lastSavedRevision = -1
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         settings = AgentSettings(this)
         sessions = SessionStore(this)
+        appliedDynamicColor = settings.dynamicColor
         // Resume a saved session if launched from History (rebuilds context).
         intent.getStringExtra(EXTRA_SESSION_ID)?.let { id ->
             if (!AgentController.isRunning) sessions.load(id)?.let { AgentController.restore(it) }
@@ -148,7 +157,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
                         tapPoint = null
                         recentSessions = sessions.list()
                     },
-                    onShare = ::exportConversation,
+                    onExport = ::exportConversation,
                     onResumeSession = ::resumeSession,
                     onOpenSettings = { startActivity(Intent(this, SettingsActivity::class.java)) },
                     onOpenHistory = { startActivity(Intent(this, SessionsActivity::class.java)) },
@@ -171,8 +180,22 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        // singleTask: a resume from History re-enters this one instance instead of
+        // stacking a duplicate ChatActivity. Load the requested session.
+        intent.getStringExtra(EXTRA_SESSION_ID)?.let { resumeSession(it) }
+    }
+
     override fun onResume() {
         super.onResume()
+        // A Material You toggle in Settings changes the theme this instance was built
+        // with; rebuild so the brand/system palette applies without an app restart.
+        if (settings.dynamicColor != appliedDynamicColor) {
+            recreate()
+            return
+        }
         AgentController.listener = this
         running = AgentController.isRunning
         serviceOn = CompanionService.isRunning
@@ -252,9 +275,18 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
         AgentController.startTask(text, settings)
     }
 
-    /** Persist the in-memory conversation (text-only) for History; no-op if empty. */
+    /**
+     * Persist the in-memory conversation (text-only) for History; no-op if empty or
+     * unchanged since the last save, so merely opening Settings/History doesn't bump
+     * the session's updatedAt and reshuffle the list.
+     */
     private fun persistCurrentSession() {
-        AgentController.snapshotForPersistence()?.let { sessions.save(it) }
+        val revision = AgentController.transcriptRevision
+        if (revision == lastSavedRevision) return
+        AgentController.snapshotForPersistence()?.let {
+            sessions.save(it)
+            lastSavedRevision = revision
+        }
     }
 
     private fun resumeSession(id: String) {
@@ -368,7 +400,7 @@ private fun ChatScreen(
     onStop: () -> Unit,
     onMic: () -> Unit,
     onNewConversation: () -> Unit,
-    onShare: () -> Unit,
+    onExport: () -> Unit,
     onResumeSession: (String) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenHistory: () -> Unit,
@@ -391,7 +423,7 @@ private fun ChatScreen(
                 },
                 actions = {
                     TextButton(onClick = onOpenHistory) { Text("History") }
-                    TextButton(onClick = onShare) { Text("Export") }
+                    TextButton(onClick = onExport) { Text("Export") }
                     TextButton(onClick = onNewConversation) { Text("New") }
                 },
             )
@@ -580,7 +612,12 @@ private fun Composer(
             enabled = !running,
             maxLines = 4,
         )
-        TextButton(onClick = onMic, enabled = !running) { Text(if (listening) "…" else "🎤") }
+        val micLabel = if (listening) "Listening" else "Voice input"
+        TextButton(
+            onClick = onMic,
+            enabled = !running,
+            modifier = Modifier.semantics { contentDescription = micLabel },
+        ) { Text(if (listening) "…" else "🎤") }
         if (running) {
             Button(onClick = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); onStop() }) { Text("Stop") }
         } else {

@@ -9,10 +9,13 @@
 > **CI automation:** `scripts/run-android-smoke-tests.sh` (CI: the
 > `emulator-smoke` job in `.github/workflows/android-runtime.yml`, which boots a
 > real API-30 emulator) automates the scriptable subset — roughly V1–V5, V7,
-> V14, V20–V23, V26, V29, the V27 routing guard, and the session-store I/O behind
-> V67/V68/V70 (`SessionStoreInstrumentedTest`). A green emulator-smoke run
-> is strong evidence, but the real-hardware pass below remains authoritative
-> (OEM ROMs, IMEs, secure surfaces, and touch behavior differ).
+> V14, V20–V23, V26, V29, the V27 routing guard, the session-store I/O behind
+> V67/V68/V70 (`SessionStoreInstrumentedTest`), the API-key Keystore round-trip
+> behind V33 (`AgentSettingsInstrumentedTest`), and the Settings/History screens
+> rendering + menus behind V62/V70 (Compose UI tests `SettingsScreenTest` /
+> `SessionsScreenTest`). A green emulator-smoke run is strong evidence, but the
+> real-hardware pass below remains authoritative (OEM ROMs, IMEs, secure surfaces,
+> and touch behavior differ).
 
 ## How to set up
 

@@ -44,9 +44,13 @@ class MainActivity : ComponentActivity() {
     private var serviceRunning by mutableStateOf(false)
     private var hasApiKey by mutableStateOf(false)
 
+    /** The dynamic-color value this instance was themed with, to detect a Settings toggle. */
+    private var appliedDynamicColor = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         settings = AgentSettings(this)
+        appliedDynamicColor = settings.dynamicColor
 
         // First run: route to the onboarding wizard, then never again.
         if (!settings.onboardingCompleted) {
@@ -84,6 +88,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Re-theme if Material You was toggled in Settings since this screen was built.
+        if (this::settings.isInitialized && settings.dynamicColor != appliedDynamicColor) {
+            recreate()
+            return
+        }
         serviceRunning = CompanionService.isRunning
         hasApiKey = settings.hasApiKey()
     }
