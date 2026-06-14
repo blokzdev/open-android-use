@@ -11,6 +11,7 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import dev.openandroiduse.companion.CompanionService
+import dev.openandroiduse.companion.R
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -71,7 +72,7 @@ object ConfirmationSheet {
                 setPadding(dp(16), dp(12), dp(16), dp(12))
             }
             layout.addView(TextView(service).apply {
-                text = "The agent wants to:"
+                text = service.getString(R.string.confirm_wants_to)
                 textSize = 13f
                 setTextColor(0xFF666666.toInt())
             })
@@ -83,7 +84,7 @@ object ConfirmationSheet {
             })
             val buttons = LinearLayout(service).apply { orientation = LinearLayout.HORIZONTAL }
             buttons.addView(Button(service).apply {
-                text = "Deny"
+                text = service.getString(R.string.confirm_deny)
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                 setOnClickListener {
                     allowed.set(false)
@@ -92,7 +93,7 @@ object ConfirmationSheet {
                 }
             })
             buttons.addView(Button(service).apply {
-                text = "Allow"
+                text = service.getString(R.string.confirm_allow)
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                 setOnClickListener {
                     allowed.set(true)

@@ -78,7 +78,8 @@ private fun AboutScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = "${stringResource(R.string.about_tagline)}\nVersion $version",
+                text = stringResource(R.string.about_tagline) + "\n" +
+                    stringResource(R.string.about_version, version),
                 style = MaterialTheme.typography.bodyMedium,
             )
 

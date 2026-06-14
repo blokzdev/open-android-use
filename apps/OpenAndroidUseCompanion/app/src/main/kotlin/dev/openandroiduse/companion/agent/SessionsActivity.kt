@@ -36,9 +36,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import dev.openandroiduse.companion.R
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
 
 /**
@@ -65,7 +67,7 @@ class SessionsActivity : ComponentActivity() {
                     onArchive = { id, archived -> store.setArchived(id, archived); reload() },
                     onDelete = { id ->
                         if (AgentController.isRunning && id == AgentController.currentSessionId) {
-                            toast("Stop the current task before deleting it")
+                            toast(getString(R.string.sessions_busy_delete))
                         } else {
                             store.delete(id); reload()
                         }
@@ -86,7 +88,7 @@ class SessionsActivity : ComponentActivity() {
 
     private fun resume(id: String) {
         if (AgentController.isRunning) {
-            toast("Stop the current task before opening another conversation")
+            toast(getString(R.string.sessions_busy_open))
             return
         }
         startActivity(
@@ -107,12 +109,12 @@ private fun SessionsScreen(
     onDelete: (String) -> Unit,
 ) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text("History") }) },
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.sessions_title)) }) },
     ) { padding ->
         if (sessions.isEmpty()) {
             Box(Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
-                    "No saved conversations yet.",
+                    stringResource(R.string.sessions_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -165,7 +167,7 @@ private fun SessionRow(
                             modifier = Modifier.padding(start = 8.dp),
                         ) {
                             Text(
-                                "Archived",
+                                stringResource(R.string.sessions_archived),
                                 style = MaterialTheme.typography.labelSmall,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                             )
@@ -174,18 +176,19 @@ private fun SessionRow(
                 }
             }
             Box {
+                val moreDesc = stringResource(R.string.sessions_more_options, meta.title)
                 TextButton(
                     onClick = { menuOpen = true },
-                    modifier = Modifier.semantics { contentDescription = "More options for ${meta.title}" },
+                    modifier = Modifier.semantics { contentDescription = moreDesc },
                 ) { Text("⋯") }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    DropdownMenuItem(text = { Text("Resume") }, onClick = { menuOpen = false; onResume(meta.id) })
-                    DropdownMenuItem(text = { Text("Rename") }, onClick = { menuOpen = false; renaming = true })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.sessions_resume)) }, onClick = { menuOpen = false; onResume(meta.id) })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.sessions_rename)) }, onClick = { menuOpen = false; renaming = true })
                     DropdownMenuItem(
-                        text = { Text(if (meta.archived) "Unarchive" else "Archive") },
+                        text = { Text(stringResource(if (meta.archived) R.string.sessions_unarchive else R.string.sessions_archive)) },
                         onClick = { menuOpen = false; onArchive(meta.id, !meta.archived) },
                     )
-                    DropdownMenuItem(text = { Text("Delete") }, onClick = { menuOpen = false; confirmDelete = true })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.action_delete)) }, onClick = { menuOpen = false; confirmDelete = true })
                 }
             }
         }
@@ -200,14 +203,14 @@ private fun SessionRow(
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete conversation?") },
-            text = { Text("This permanently deletes \"${meta.title}\".") },
+            title = { Text(stringResource(R.string.sessions_delete_q)) },
+            text = { Text(stringResource(R.string.sessions_delete_body, meta.title)) },
             confirmButton = {
                 TextButton(onClick = { confirmDelete = false; onDelete(meta.id) }) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.action_cancel)) } },
         )
     }
 }
@@ -217,7 +220,7 @@ private fun RenameDialog(current: String, onDismiss: () -> Unit, onConfirm: (Str
     var text by remember { mutableStateOf(current) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Rename conversation") },
+        title = { Text(stringResource(R.string.sessions_rename_title)) },
         text = {
             OutlinedTextField(
                 value = text,
@@ -226,7 +229,7 @@ private fun RenameDialog(current: String, onDismiss: () -> Unit, onConfirm: (Str
                 modifier = Modifier.fillMaxWidth(),
             )
         },
-        confirmButton = { TextButton(onClick = { onConfirm(text) }) { Text("Save") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = { onConfirm(text) }) { Text(stringResource(R.string.action_save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
 }

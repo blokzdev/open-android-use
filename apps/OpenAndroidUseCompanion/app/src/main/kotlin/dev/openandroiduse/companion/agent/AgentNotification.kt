@@ -35,8 +35,12 @@ object AgentNotification {
         }
         val nm = service.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "Agent activity", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "Shown while the agent is operating your phone."
+            NotificationChannel(
+                CHANNEL_ID,
+                service.getString(R.string.notif_channel_name),
+                NotificationManager.IMPORTANCE_LOW,
+            ).apply {
+                description = service.getString(R.string.notif_channel_desc)
             },
         )
 
@@ -54,14 +58,14 @@ object AgentNotification {
         )
         val stopAction = Notification.Action.Builder(
             Icon.createWithResource(service, R.drawable.ic_launcher_monochrome),
-            "Stop",
+            service.getString(R.string.action_stop),
             stopPending,
         ).build()
 
         val notification = Notification.Builder(service, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_monochrome)
-            .setContentTitle("Open Android Use is acting")
-            .setContentText("Tap Stop to halt the agent.")
+            .setContentTitle(service.getString(R.string.notif_title))
+            .setContentText(service.getString(R.string.notif_text))
             .setOngoing(true)
             .setContentIntent(openPending)
             .addAction(stopAction)

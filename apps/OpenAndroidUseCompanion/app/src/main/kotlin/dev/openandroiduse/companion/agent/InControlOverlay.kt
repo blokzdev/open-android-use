@@ -13,6 +13,7 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import dev.openandroiduse.companion.CompanionService
+import dev.openandroiduse.companion.R
 
 /**
  * The "agent is in control" chip, shown over every app while a task runs: the
@@ -44,10 +45,10 @@ object InControlOverlay {
                 setPadding(dp(14), dp(6), dp(6), dp(6))
             }
             chip.addView(TextView(service).apply {
-                text = "👐 Open Android Use is acting"
+                text = service.getString(R.string.overlay_acting)
                 // Screen readers should hear the message, not "open hands"; the chip
                 // opens the chat, so describe it as such.
-                contentDescription = "Open Android Use is acting. Opens the agent chat."
+                contentDescription = service.getString(R.string.overlay_acting_desc)
                 textSize = 13f
                 setTextColor(0xFFFFFFFF.toInt())
                 setPadding(0, 0, dp(8), 0)
@@ -62,7 +63,7 @@ object InControlOverlay {
                 }
             })
             chip.addView(Button(service).apply {
-                text = "Stop"
+                text = service.getString(R.string.action_stop)
                 setOnClickListener { onStop() }
             })
 
