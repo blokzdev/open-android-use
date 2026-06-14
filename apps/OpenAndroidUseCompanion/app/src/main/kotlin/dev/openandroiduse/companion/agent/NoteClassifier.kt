@@ -13,7 +13,8 @@ object NoteClassifier {
         return when {
             "paused" in t && "touch" in t -> NoteStyle.PAUSED
             "api key" in t -> NoteStyle.NEEDS_KEY
-            "accessibility service" in t -> NoteStyle.NEEDS_ACCESSIBILITY
+            // The prompt to enable accessibility — not a passing mention of it.
+            "enable" in t && "accessibility" in t -> NoteStyle.NEEDS_ACCESSIBILITY
             "authentication" in t || "unauthorized" in t || "401" in t ->
                 NoteStyle.ERROR
             "error" in t || "failed" in t || "could not" in t || "couldn't" in t ->
