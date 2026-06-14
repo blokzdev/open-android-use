@@ -81,7 +81,12 @@ tests, dependency-free control surface). Founder selected all themes + opportuni
   separator appears when a turn is ≥5 min after the previous; a subtle locale-aware time caption
   sits under the last bubble of each user/assistant run (legacy `createdAt==0` lines show none).
   Builds + tests + APK + instrumentation green. _(Export-time in the Markdown → backlog.)_
-- [ ] 4.7c-2 History (search · archived filter · multi-select) · [ ] 4.7a-3 tokens/motion ·
+- [x] 4.7c-2a — **History: search + archived filter**: a search field filters by title/preview
+  (pure, unit-tested `SessionSearch`); archived conversations are hidden by default behind a
+  "Show archived" chip (shown only when some exist); a "No matching conversations" empty state.
+  Lives in the shared `SessionsList`, so phone + two-pane both get it. JVM `SessionSearchTest` +
+  instrumented `searchFiltersByTitle`. Builds + tests + APK + instrumentation green.
+- [ ] 4.7c-2b History (multi-select bulk archive/delete) · [ ] 4.7a-3 tokens/motion ·
   [ ] 4.7d Home/onboarding · [ ] 4.7e Settings/Privacy.
 - _Founder call (2026-06-14):_ do the full per-message timestamps + role grouping (un-deferred
   from BACKLOG) for a more intuitive, elegant chat — split into plumbing (4.7b-3a) + UI (4.7b-3b).
