@@ -178,11 +178,11 @@ build script, and docs synced.
     and **Compose UI test infrastructure** (`ui-test-junit4`) with smoke tests for
     Settings/History plus an instrumented Keystore round-trip — all riding the
     existing `emulator-smoke` pass.
-  - [~] 4.6 a11y/i18n/responsive
+  - [x] 4.6 a11y/i18n/responsive — **complete**
     (`docs/exec-plans/active/20260614-phase46-a11y-i18n-responsive.md`): sub-PRs
     4.6a i18n (externalize ~280 strings, translation-ready) → 4.6b accessibility →
     4.6c responsive polish → 4.6d markdown links+tables → 4.6e tablet/foldable
-    two-pane. 4.6a done (i18n: all screens + agent-loop notes externalized;
+    two-pane (manual `WindowSizeClass`; deferred adaptive refinements in `docs/BACKLOG.md`). 4.6a done (i18n: all screens + agent-loop notes externalized;
     ToolChipLabel verbs deferred to Localization). 4.6b done (a11y: reduce-motion,
     48dp targets, heading semantics, agent run-state announced). 4.6c done
     (responsive: edge-to-edge, predictive back, resizeable, content max-width +

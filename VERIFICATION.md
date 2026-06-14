@@ -358,6 +358,15 @@ need a real device.
   opens in the browser when tapped; the table renders as aligned rows (header bold) and
   scrolls horizontally if wider than the screen rather than overflowing.
 
+### Phase 4.6e — Tablet / foldable two-pane
+
+- [ ] **V83. Side-by-side on large screens**: open Agent Chat on a tablet, an unfolded
+  foldable, or a large/split window. Pass: the History list and the Chat show side by side;
+  tapping a conversation swaps the chat in place (no new screen); rename/archive/delete in the
+  pane work; the redundant top-bar "History" action is hidden. On a phone (and folded) it's a
+  single pane and the Main → History flow is unchanged; rotating / folding-unfolding keeps the
+  current chat (no lost state).
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |
