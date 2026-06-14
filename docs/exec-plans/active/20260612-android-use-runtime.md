@@ -126,14 +126,10 @@ build script, and docs synced.
   `make android-npm` / `scripts/npm/build-android-package.mjs`, built and
   uploaded as a CI artifact on every push. Registry publish remains a manual
   maintainer step (`npm publish dist/npm/open-android-use`).
-- [ ] **Distribution**: (a) tagged GitHub release of the signed APK; (b) Play
-  Store **signed AAB** distribution — the Android 13+ "Restricted setting"
-  prompt is an install-source gate that disappears via Play install, *not* via
-  release signing; (c) release signing keystore/config (founder-held).
 - [~] **Phase 4 — Product UI/UX** (`docs/design-docs/phase4-product-ui.md`):
   Compose/Material 3 presentation layer; 4.1 guided onboarding wizard → 4.2
   design-system foundation → 4.3 chat polish → 4.4 trust/control surface → 4.5
-  settings & privacy → 4.6 a11y/i18n/responsive + Play readiness.
+  settings & privacy → 4.5.1 hardening → 4.6 a11y/i18n/responsive → 4.7 Play readiness.
   - [x] PR-A (foundation): Compose + Material 3 enabled (Kotlin 2.0 compose
     plugin), `OpenAndroidUseTheme` on the brand "Aurora" palette, designed brand
     icon — the agent's hand tapping out an AI sparkle (+ gradient background +
@@ -172,9 +168,27 @@ build script, and docs synced.
     (screenshots never persist). Whole-conversation export to Markdown via
     FileProvider. New JVM tests (codec, history rebuild, title, export) + an
     instrumented `SessionStore` test; APK + instrumentation build green.
-  - [ ] 4.6 a11y/i18n/responsive + Play: richer markdown (links/tables), full
-    content-description/large-font/reduce-motion pass, migrate inline chat copy to
-    `strings.xml`, foldable/tablet layouts.
+  - [x] 4.5.1 hardening + 4.6 enablers
+    (`docs/exec-plans/active/20260614-phase451-hardening.md`): fixed the 4.5
+    regressions — Material You now re-themes the back-stack Chat/Home on resume,
+    `ChatActivity` is `singleTask` + `onNewIntent` so resuming from History doesn't
+    stack duplicates, a11y `contentDescription`s for the mic/overflow/in-control
+    chips, `onShare`→`onExport` rename; a session-save churn guard
+    (`AgentController.transcriptRevision`) so routine pauses don't reshuffle History;
+    and **Compose UI test infrastructure** (`ui-test-junit4`) with smoke tests for
+    Settings/History plus an instrumented Keystore round-trip — all riding the
+    existing `emulator-smoke` pass.
+  - [ ] 4.6 a11y/i18n/responsive: richer markdown (links/tables), full
+    content-description/large-font/reduce-motion pass, migrate inline copy to
+    `strings.xml` (~140 strings across the Activities), foldable/tablet layouts
+    (`WindowSizeClass`).
+- [ ] **Phase 4.7 — Distribution & Play readiness**: (a) tagged GitHub release of
+  the signed APK; (b) Play Store **signed AAB** (the Android 13+ "Restricted
+  setting" prompt is an install-source gate removed by a Play install, *not* by
+  release signing); (c) release signing keystore/config (founder-held); (d) the
+  `QUERY_ALL_PACKAGES` Play-policy decision for `list_apps` (justified `<queries>`
+  vs. a narrower approach); (e) the true foreground-service type deferred from 4.4;
+  (f) store-listing assets + a privacy policy.
 - [ ] **Phase 5 — Multi-provider BYOK** (`docs/design-docs/phase5-multi-provider-byok.md`):
   Claude + Gemini via an in-house Kotlin `AgentBackend` interface + official
   per-provider SDKs (keep `anthropic-java`; add `com.google.genai` for Gemini);
@@ -233,6 +247,14 @@ build script, and docs synced.
   text-only (filesDir JSON), screenshots never touch disk, and the agent
   re-observes the device live on resume. Recent prompts are superseded by this
   full multi-session model. See the 4.5 sub-plan.
+- 2026-06-14: Pre-4.6 hardening (4.5.1) precedes the big i18n/a11y phase: fix the
+  4.5 regressions and stand up Compose UI test infrastructure first, so 4.6's
+  every-screen string externalization has a safety net. `ChatActivity` is
+  `singleTask` (single workspace instance; History resumes route in via
+  `onNewIntent`); Material You re-themes back-stack screens via a recreate-on-resume
+  check. **Play-readiness work is split into a dedicated Phase 4.7** (signing/AAB,
+  `QUERY_ALL_PACKAGES` policy, FGS type, listing/privacy policy) so 4.6 stays a pure
+  UX/i18n phase. Hardware verification + the signing keystore remain founder-gated.
 - 2026-06-14: Brand identity — the app icon is a designed adaptive vector: the
   agent's hand (touch-gesture, blue→violet gradient) tapping out an AI sparkle
   (open mint "sparkle crown" with gaps so it stays distinct from the hand, incl.

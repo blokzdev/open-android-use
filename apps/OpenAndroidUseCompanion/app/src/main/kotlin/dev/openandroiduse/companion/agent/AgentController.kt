@@ -127,6 +127,14 @@ object AgentController {
     /** Title: auto-derived from the first prompt, or carried over on restore. */
     private var sessionTitle: String? = null
 
+    /**
+     * Bumped whenever the transcript changes (a logged line or a restore), so the UI
+     * can skip re-persisting an unchanged conversation on a routine pause.
+     */
+    @Volatile
+    var transcriptRevision: Int = 0
+        private set
+
     private fun newSessionId(): String = java.util.UUID.randomUUID().toString()
 
     /**
@@ -149,6 +157,7 @@ object AgentController {
                 transcript.add(kind to StringBuilder(text))
             }
         }
+        transcriptRevision++
         listener?.onTranscriptChanged()
     }
 
@@ -303,6 +312,7 @@ object AgentController {
         currentSessionId = payload.id
         sessionCreatedAt = payload.createdAt
         sessionTitle = payload.title
+        transcriptRevision++
         listener?.onTranscriptChanged()
         return true
     }

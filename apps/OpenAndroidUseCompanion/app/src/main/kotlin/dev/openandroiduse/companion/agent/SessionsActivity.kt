@@ -36,6 +36,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
 
@@ -172,7 +174,10 @@ private fun SessionRow(
                 }
             }
             Box {
-                TextButton(onClick = { menuOpen = true }) { Text("⋯") }
+                TextButton(
+                    onClick = { menuOpen = true },
+                    modifier = Modifier.semantics { contentDescription = "More options for ${meta.title}" },
+                ) { Text("⋯") }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     DropdownMenuItem(text = { Text("Resume") }, onClick = { menuOpen = false; onResume(meta.id) })
                     DropdownMenuItem(text = { Text("Rename") }, onClick = { menuOpen = false; renaming = true })

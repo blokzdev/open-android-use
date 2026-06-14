@@ -45,6 +45,9 @@ object InControlOverlay {
             }
             chip.addView(TextView(service).apply {
                 text = "👐 Open Android Use is acting"
+                // Screen readers should hear the message, not "open hands"; the chip
+                // opens the chat, so describe it as such.
+                contentDescription = "Open Android Use is acting. Opens the agent chat."
                 textSize = 13f
                 setTextColor(0xFFFFFFFF.toInt())
                 setPadding(0, 0, dp(8), 0)

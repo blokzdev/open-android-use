@@ -82,9 +82,13 @@ dependencies {
     testImplementation("org.json:json:20240303")
 
     // Instrumentation tests only (emulator smoke): drive the real agent loop
-    // against an on-device stub model server. Never in the shipped APK.
+    // against an on-device stub model server, plus Compose UI smoke for the
+    // settings/privacy/history screens. Never in the shipped APK.
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test:core:1.6.1")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("junit:junit:4.13.2")
+    androidTestImplementation(platform("androidx.compose:compose-bom:2024.09.03"))
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
