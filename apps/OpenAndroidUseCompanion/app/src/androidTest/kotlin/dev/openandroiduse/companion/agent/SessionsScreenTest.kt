@@ -66,4 +66,21 @@ class SessionsScreenTest {
             composeTestRule.onNodeWithText("No saved conversations yet.").assertIsDisplayed()
         }
     }
+
+    /** Phase 4.7a-2: deleting a conversation offers Undo, and Undo restores it. */
+    @Test
+    fun deleteThenUndoRestoresSession() {
+        seed("Turn Bluetooth on")
+        ActivityScenario.launch(SessionsActivity::class.java).use {
+            composeTestRule.onNodeWithContentDescription("More options for Turn Bluetooth on").performClick()
+            composeTestRule.onNodeWithText("Delete").performClick()
+            // Confirm the destructive dialog (the dialog's error-styled Delete action).
+            composeTestRule.onNodeWithText("Delete").performClick()
+            // The Snackbar reports the deletion and offers Undo.
+            composeTestRule.onNodeWithText("Undo").assertIsDisplayed()
+            composeTestRule.onNodeWithText("Undo").performClick()
+            // The row is back.
+            composeTestRule.onNodeWithText("Turn Bluetooth on").assertIsDisplayed()
+        }
+    }
 }

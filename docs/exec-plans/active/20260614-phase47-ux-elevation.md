@@ -44,7 +44,15 @@ tests, dependency-free control surface). Founder selected all themes + opportuni
 ## Progress
 - [x] 4.7a — icons (mic/overflow/top-bar) + Android-12 splash. Builds + tests + APK +
   instrumentation green; `SessionsScreenTest` still valid with the IconButton overflow.
-- [ ] 4.7a-2 Snackbar/Undo/tokens · [ ] 4.7b chat · [ ] 4.7c History · [ ] 4.7d Home/onboarding
+- [x] 4.7a-2 — **Snackbar + Undo for destructive actions**: shared `ui/showUndo` helper;
+  Privacy clear-key / clear-conversation / delete-all and History single-delete (both the
+  full-screen `SessionsActivity` and the two-pane `HistoryPane`, via a shared
+  `rememberDeleteWithUndo`) now confirm → act → Snackbar-with-Undo, capturing pre-state (the
+  key / live conversation / removed `SessionPayload`s) and restoring on Undo. New
+  `SessionsScreenTest.deleteThenUndoRestoresSession`. _(Remaining Toasts are non-destructive
+  "busy" notices; spacing/type tokens + reduce-motion transition wrappers deferred to 4.7a-3
+  so this PR stays a focused, reviewable Undo change.)_
+- [ ] 4.7a-3 tokens/motion · [ ] 4.7b chat · [ ] 4.7c History · [ ] 4.7d Home/onboarding
   · [ ] 4.7e Settings/Privacy.
 
 ## Decisions

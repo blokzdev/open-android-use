@@ -9,11 +9,14 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -44,13 +47,8 @@ class SessionsActivity : ComponentActivity() {
                     onResume = ::resume,
                     onRename = { id, title -> store.rename(id, title); AgentController.noteRenamed(id, title); reload() },
                     onArchive = { id, archived -> store.setArchived(id, archived); reload() },
-                    onDelete = { id ->
-                        if (AgentController.isRunning && id == AgentController.currentSessionId) {
-                            toast(getString(R.string.sessions_busy_delete))
-                        } else {
-                            store.delete(id); reload()
-                        }
-                    },
+                    onDelete = ::deleteCapturing,
+                    onRestore = { payload -> store.save(payload); reload() },
                 )
             }
         }
@@ -63,6 +61,21 @@ class SessionsActivity : ComponentActivity() {
 
     private fun reload() {
         sessions = store.list()
+    }
+
+    /**
+     * Deletes [id] and returns the removed payload so the UI can offer Undo, or null when the
+     * delete is blocked (the running session) — in which case it explains why via a Toast.
+     */
+    private fun deleteCapturing(id: String): SessionPayload? {
+        if (AgentController.isRunning && id == AgentController.currentSessionId) {
+            toast(getString(R.string.sessions_busy_delete))
+            return null
+        }
+        val removed = store.load(id)
+        store.delete(id)
+        reload()
+        return removed
     }
 
     private fun resume(id: String) {
@@ -85,17 +98,21 @@ private fun SessionsScreen(
     onResume: (String) -> Unit,
     onRename: (String, String) -> Unit,
     onArchive: (String, Boolean) -> Unit,
-    onDelete: (String) -> Unit,
+    onDelete: (String) -> SessionPayload?,
+    onRestore: (SessionPayload) -> Unit,
 ) {
+    val snackbarHost = remember { SnackbarHostState() }
+    val deleteWithUndo = rememberDeleteWithUndo(snackbarHost, onDelete, onRestore)
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.sessions_title)) }) },
+        snackbarHost = { SnackbarHost(snackbarHost) },
     ) { padding ->
         SessionsList(
             sessions = sessions,
             onResume = onResume,
             onRename = onRename,
             onArchive = onArchive,
-            onDelete = onDelete,
+            onDelete = deleteWithUndo,
             modifier = Modifier.padding(padding),
         )
     }
