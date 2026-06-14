@@ -3,6 +3,7 @@ package dev.openandroiduse.companion.agent
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
@@ -24,12 +25,12 @@ class SettingsScreenTest {
     @Test
     fun rendersKeyControls() {
         // The top control is on-screen; the rest live further down a scrolling
-        // Column, so assert they exist in the composition rather than requiring
-        // them in the viewport (which depends on the device's screen height).
+        // Column, so scroll each into view before asserting it renders (stronger
+        // and screen-height-independent vs. a bare existence check).
         composeTestRule.onNodeWithText("Save key").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Clear key").assertExists()
-        composeTestRule.onNodeWithText("Model").assertExists()
-        composeTestRule.onNodeWithText("Privacy & data").assertExists()
-        composeTestRule.onNodeWithText("Re-run setup").assertExists()
+        composeTestRule.onNodeWithText("Clear key").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("Model").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("Privacy & data").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("Re-run setup").performScrollTo().assertIsDisplayed()
     }
 }

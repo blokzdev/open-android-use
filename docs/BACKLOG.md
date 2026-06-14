@@ -35,3 +35,20 @@ Each entry: **idea** — why deferred · _priority_ · origin.
   pre-formatted `KIND_TOOL` transcript string (e.g. "Tap [42]"); showing the
   tapped element's *label* ("Tap Settings") needs richer data threaded from the
   agent core, not just the string. _Medium._ Origin: Phase 4.3 chat.
+- **Full-fidelity session resume** — resume currently rebuilds the model history
+  from the saved text transcript (`SessionHistory`), so raw tool_use/tool_result/
+  thinking blocks and screenshots aren't replayed (the agent re-observes the device
+  live). True block-level fidelity would need persisting the Anthropic
+  `MessageParam` history, but the SDK exposes no public serialization
+  (`ObjectMappers.jsonMapper()` is `internal`; models have no toJson/fromJson —
+  confirmed by research, 2026-06). _Low / probably-unwanted_ — text-rebuild is also
+  better for privacy (no screenshots on disk); revisit only if the SDK ships public
+  serialization and a real need appears. Origin: Phase 4.5.
+
+## UI / theming
+
+- **Runtime theme switch without `recreate()`** — the Material You toggle currently
+  re-themes back-stack screens by `recreate()`-on-resume. The modern pattern is an
+  observable theme (StateFlow/DataStore) collected via `collectAsState` so screens
+  recompose in place with no flash. _Low–Medium._ Fold into Phase 4.6's design-system
+  work (which may introduce DataStore/ViewModel). Origin: Phase 4.5.1.
