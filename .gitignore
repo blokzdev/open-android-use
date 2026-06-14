@@ -13,3 +13,5 @@ __pycache__/
 .gradle/
 apps/OpenAndroidUseCompanion/**/build/
 apps/OpenAndroidUseCompanion/local.properties
+# Kotlin compiler caches/logs (created by gradle builds, not source)
+apps/OpenAndroidUseCompanion/**/.kotlin/
