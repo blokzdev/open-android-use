@@ -1,23 +1,15 @@
 name: android-runtime
 
+# Runs on every push to main and every PR. The fast, required checks (test,
+# companion) always run so branch protection is satisfiable on any PR — including
+# docs-only ones, which previously deadlocked because a path-filtered required
+# check never reported. The expensive emulator-smoke job gates its heavy work
+# behind a code-paths filter, so it still reports success on docs PRs without
+# burning ~20 minutes booting an emulator.
 on:
   push:
     branches: [main]
-    paths:
-      - "apps/OpenAndroidUse/**"
-      - "apps/OpenAndroidUseCompanion/**"
-      - "scripts/build-open-android-use.sh"
-      - "scripts/build-open-android-use-companion.sh"
-      - "scripts/run-android-smoke-tests.sh"
-      - ".github/workflows/android-runtime.yml"
   pull_request:
-    paths:
-      - "apps/OpenAndroidUse/**"
-      - "apps/OpenAndroidUseCompanion/**"
-      - "scripts/build-open-android-use.sh"
-      - "scripts/build-open-android-use-companion.sh"
-      - "scripts/run-android-smoke-tests.sh"
-      - ".github/workflows/android-runtime.yml"
 
 permissions:
   contents: read
@@ -76,30 +68,49 @@ jobs:
   emulator-smoke:
     # Boots a real Android emulator (GitHub-hosted runners provide KVM) and
     # runs the end-to-end smoke: bridge tools against Settings, plus the
-    # companion installed with its accessibility service enabled via adb.
+    # companion installed with its accessibility service enabled via adb. The
+    # heavy steps run only when the bridge/companion/smoke code changed; on
+    # docs-only PRs the job still completes green (so it is safe as a required
+    # check) without booting the emulator.
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            code:
+              - 'apps/OpenAndroidUse/**'
+              - 'apps/OpenAndroidUseCompanion/**'
+              - 'scripts/build-open-android-use.sh'
+              - 'scripts/build-open-android-use-companion.sh'
+              - 'scripts/run-android-smoke-tests.sh'
+              - '.github/workflows/android-runtime.yml'
       - name: enable KVM
+        if: steps.changes.outputs.code == 'true'
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
       - uses: actions/setup-go@v5
+        if: steps.changes.outputs.code == 'true'
         with:
           go-version: "1.22"
           cache: false
       - uses: actions/setup-java@v4
+        if: steps.changes.outputs.code == 'true'
         with:
           distribution: temurin
           java-version: "17"
       - name: build bridge, companion, and agent instrumentation APK
+        if: steps.changes.outputs.code == 'true'
         run: |
           ./scripts/build-open-android-use.sh --os linux --arch amd64
           ./scripts/build-open-android-use-companion.sh
           (cd apps/OpenAndroidUseCompanion && gradle assembleDebugAndroidTest --no-daemon)
       - name: run emulator smoke (bridge + companion + agent loop)
+        if: steps.changes.outputs.code == 'true'
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 30

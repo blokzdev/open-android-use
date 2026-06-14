@@ -24,6 +24,10 @@ Chat context is disposable; the repo is the memory. Per round:
 4. **Keep docs truthful in the same change**: if behavior changes, the matching
    doc changes in the same commit series. `docs/QUALITY_SCORE.md` tracks honest
    per-subsystem grades — update it when a subsystem moves.
+5. **Defer with discipline**: when you cut something out of scope, record it in
+   `docs/BACKLOG.md` (one line + rationale + rough priority) so it isn't lost.
+   Scheduled work belongs in an exec-plan; `docs/BACKLOG.md` is the someday/maybe
+   list — promote items into an exec-plan when they're scheduled.
 
 ## Language policy
 

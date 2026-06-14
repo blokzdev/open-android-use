@@ -20,6 +20,7 @@ tools。新文档默认用英文写，存量中文文档在迁移前仍然有效
 
 - `docs/HISTORY_GUIDE.md`：什么时候记 history、怎么命名、怎么脱敏。
 - `docs/QUALITY_SCORE.md`：当前质量分层和主要短板。
+- `docs/BACKLOG.md`：未排期的 someday/maybe 想法清单；把砍出范围的想法记在这里（已排期的进 execution plan）。
 
 ## 按任务需要选读
 
