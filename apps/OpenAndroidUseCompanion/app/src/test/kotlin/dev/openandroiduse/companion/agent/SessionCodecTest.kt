@@ -2,6 +2,7 @@ package dev.openandroiduse.companion.agent
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SessionCodecTest {
@@ -17,6 +18,8 @@ class SessionCodecTest {
             StoredMessage(AgentController.KIND_TOOL, "▸ click Settings"),
             StoredMessage(AgentController.KIND_ASSISTANT, "Done."),
         ),
+        pinned = true,
+        preview = "Done.",
     )
 
     @Test
@@ -30,6 +33,8 @@ class SessionCodecTest {
         assertEquals(3, back.transcript.size)
         assertEquals(AgentController.KIND_TOOL, back.transcript[1].kind)
         assertEquals("Done.", back.transcript[2].text)
+        assertTrue(back.pinned)
+        assertEquals("Done.", back.preview)
     }
 
     @Test
@@ -40,6 +45,8 @@ class SessionCodecTest {
         assertEquals("Turn Bluetooth on", meta.title)
         assertEquals(2000L, meta.updatedAt)
         assertEquals(false, meta.archived)
+        assertTrue(meta.pinned)
+        assertEquals("Done.", meta.preview)
     }
 
     @Test
@@ -49,5 +56,17 @@ class SessionCodecTest {
         assertEquals("x", back.id)
         assertEquals(SessionTitle.FALLBACK, back.title)
         assertEquals(0, back.transcript.size)
+    }
+
+    /** A v1 file (no pinned/preview) decodes with safe defaults — back-compat. */
+    @Test
+    fun decodesV1WithoutPinnedOrPreview() {
+        val v1 = """{"version":1,"id":"old","title":"Older","updatedAt":5,"archived":false,"transcript":[]}"""
+        val back = SessionCodec.decode(v1)
+        assertFalse(back.pinned)
+        assertEquals("", back.preview)
+        val meta = SessionCodec.decodeMeta(v1)
+        assertFalse(meta.pinned)
+        assertEquals("", meta.preview)
     }
 }

@@ -47,6 +47,7 @@ class SessionsActivity : ComponentActivity() {
                     onResume = ::resume,
                     onRename = { id, title -> store.rename(id, title); AgentController.noteRenamed(id, title); reload() },
                     onArchive = { id, archived -> store.setArchived(id, archived); reload() },
+                    onPin = { id, pinned -> store.setPinned(id, pinned); AgentController.notePinned(id, pinned); reload() },
                     onDelete = ::deleteCapturing,
                     onRestore = { payload -> store.save(payload); reload() },
                 )
@@ -98,6 +99,7 @@ private fun SessionsScreen(
     onResume: (String) -> Unit,
     onRename: (String, String) -> Unit,
     onArchive: (String, Boolean) -> Unit,
+    onPin: (String, Boolean) -> Unit,
     onDelete: (String) -> SessionPayload?,
     onRestore: (SessionPayload) -> Unit,
 ) {
@@ -113,6 +115,7 @@ private fun SessionsScreen(
             onRename = onRename,
             onArchive = onArchive,
             onDelete = deleteWithUndo,
+            onPin = onPin,
             modifier = Modifier.padding(padding),
         )
     }

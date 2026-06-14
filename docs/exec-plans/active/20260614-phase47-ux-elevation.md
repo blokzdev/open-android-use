@@ -63,8 +63,19 @@ tests, dependency-free control surface). Founder selected all themes + opportuni
   for TalkBack, no second live region); error notes show a **Retry** action when the agent is idle
   and the note is the last message — it re-runs the most recent user task (respecting readiness).
   Builds + tests + APK + instrumentation green.
-- [ ] 4.7a-3 tokens/motion · [ ] 4.7b-3 chat (timestamps + role grouping — transcript/persistence
-  schema change) · [ ] 4.7c History · [ ] 4.7d Home/onboarding · [ ] 4.7e Settings/Privacy.
+- [x] 4.7c-1 — **History: pin + preview + date grouping**: `SessionMeta`/`SessionPayload` +
+  `SessionCodec` (v2, back-compat) gain `pinned` + `preview`; `SessionStore.setPinned` (no
+  updatedAt bump); `AgentController` tracks `sessionPinned` (mirrors title; `notePinned`) and
+  derives `preview` in the snapshot. New pure, unit-tested `SessionGrouping` (Pinned / Today /
+  Yesterday / Earlier) + `SessionPreview`. Shared `SessionsList` now renders grouped sections,
+  a last-message preview, a pin badge, and a Pin/Unpin action (both phone + two-pane). JVM tests
+  (`SessionGroupingTest`, `SessionPreviewTest`, extended `SessionCodecTest`) + instrumented
+  `pinMovesSessionToPinnedSection`. Builds + tests + APK + instrumentation green.
+- [ ] 4.7c-2 History (search · archived filter · multi-select bulk archive/delete) ·
+  [ ] 4.7a-3 tokens/motion · [ ] 4.7d Home/onboarding · [ ] 4.7e Settings/Privacy.
+- _Deferred:_ 4.7b-3 (per-message timestamps + role grouping) → BACKLOG — the timestamp half is a
+  wide transcript/persistence schema change for marginal value and is hard to verify without a
+  device; revisit if requested.
 
 ## Decisions
 - 2026-06-14: "UX elevation" inserted as Phase **4.7**; the prior Play-readiness work is now

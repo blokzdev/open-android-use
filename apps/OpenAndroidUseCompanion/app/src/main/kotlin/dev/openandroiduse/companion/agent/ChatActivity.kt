@@ -192,6 +192,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
                             onResume = ::resumeSession,
                             onRename = ::renameSessionFromPane,
                             onArchive = { id, archived -> sessions.setArchived(id, archived); sessionList = sessions.list() },
+                            onPin = { id, pinned -> sessions.setPinned(id, pinned); AgentController.notePinned(id, pinned); sessionList = sessions.list() },
                             onDelete = ::deleteSessionFromPane,
                             onRestore = { payload -> sessions.save(payload); sessionList = sessions.list() },
                             modifier = Modifier.width(360.dp),
@@ -650,6 +651,7 @@ private fun HistoryPane(
     onResume: (String) -> Unit,
     onRename: (String, String) -> Unit,
     onArchive: (String, Boolean) -> Unit,
+    onPin: (String, Boolean) -> Unit,
     onDelete: (String) -> SessionPayload?,
     onRestore: (SessionPayload) -> Unit,
     modifier: Modifier = Modifier,
@@ -667,6 +669,7 @@ private fun HistoryPane(
             onRename = onRename,
             onArchive = onArchive,
             onDelete = deleteWithUndo,
+            onPin = onPin,
             modifier = Modifier.padding(padding),
         )
     }

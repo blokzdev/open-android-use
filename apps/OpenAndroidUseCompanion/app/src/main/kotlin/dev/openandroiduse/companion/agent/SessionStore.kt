@@ -51,6 +51,9 @@ class SessionStore(context: Context) {
 
     fun setArchived(id: String, archived: Boolean) = editMeta(id) { it.put("archived", archived) }
 
+    /** Pin/unpin. Doesn't bump updatedAt — pinning shouldn't reorder a conversation by recency. */
+    fun setPinned(id: String, pinned: Boolean) = editMeta(id, bumpUpdatedAt = false) { it.put("pinned", pinned) }
+
     fun delete(id: String) = synchronized(lock) { fileFor(id).delete(); Unit }
 
     fun deleteAll() = synchronized(lock) {
@@ -59,12 +62,12 @@ class SessionStore(context: Context) {
     }
 
     /** In-place metadata edit that avoids decoding/re-encoding the heavy history. */
-    private fun editMeta(id: String, edit: (JSONObject) -> Unit) = synchronized(lock) {
+    private fun editMeta(id: String, bumpUpdatedAt: Boolean = true, edit: (JSONObject) -> Unit) = synchronized(lock) {
         val f = fileFor(id)
         if (!f.exists()) return
         val root = runCatching { JSONObject(f.readText()) }.getOrNull() ?: return
         edit(root)
-        root.put("updatedAt", System.currentTimeMillis())
+        if (bumpUpdatedAt) root.put("updatedAt", System.currentTimeMillis())
         f.writeText(root.toString())
     }
 

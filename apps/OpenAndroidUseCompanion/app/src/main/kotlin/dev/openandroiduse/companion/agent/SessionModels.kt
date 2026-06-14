@@ -15,6 +15,8 @@ data class SessionPayload(
     val updatedAt: Long,
     val archived: Boolean,
     val transcript: List<StoredMessage>,
+    val pinned: Boolean = false,
+    val preview: String = "",
 )
 
 /** One transcript line: an [AgentController] KIND_* and its rendered text. */
@@ -27,4 +29,6 @@ data class SessionMeta(
     val createdAt: Long,
     val updatedAt: Long,
     val archived: Boolean,
+    val pinned: Boolean = false,
+    val preview: String = "",
 )

@@ -9,11 +9,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,14 +39,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.openandroiduse.companion.R
+import dev.openandroiduse.companion.ui.markHeading
 import dev.openandroiduse.companion.ui.showUndo
 import kotlinx.coroutines.launch
 
 /**
  * The saved-conversations list (Phase 4.5), extracted (4.6e) so it is shared by the
  * full-screen History (`SessionsActivity`) and the tablet/foldable two-pane in
- * `ChatActivity`. Shows the empty state or a scrollable list of rows with resume /
- * rename / archive / delete.
+ * `ChatActivity`. Shows the empty state, or rows grouped (Phase 4.7c) into Pinned / Today /
+ * Yesterday / Earlier with a last-message preview, pin/star, and resume / rename / archive /
+ * delete.
  */
 @Composable
 internal fun SessionsList(
@@ -53,6 +57,7 @@ internal fun SessionsList(
     onRename: (String, String) -> Unit,
     onArchive: (String, Boolean) -> Unit,
     onDelete: (String) -> Unit,
+    onPin: (String, Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (sessions.isEmpty()) {
@@ -64,15 +69,41 @@ internal fun SessionsList(
             )
         }
     } else {
+        val sections = remember(sessions) {
+            SessionGrouping.group(sessions, System.currentTimeMillis())
+        }
         LazyColumn(
             modifier = modifier.fillMaxSize().padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(sessions, key = { it.id }) { meta ->
-                SessionRow(meta, onResume, onRename, onArchive, onDelete)
+            for (section in sections) {
+                item(key = "header-${section.bucket}") {
+                    SectionHeader(section.bucket)
+                }
+                items(section.sessions, key = { it.id }) { meta ->
+                    SessionRow(meta, onResume, onRename, onArchive, onDelete, onPin)
+                }
             }
         }
     }
+}
+
+@Composable
+private fun SectionHeader(bucket: SessionGrouping.Bucket) {
+    val label = stringResource(
+        when (bucket) {
+            SessionGrouping.Bucket.PINNED -> R.string.sessions_section_pinned
+            SessionGrouping.Bucket.TODAY -> R.string.sessions_section_today
+            SessionGrouping.Bucket.YESTERDAY -> R.string.sessions_section_yesterday
+            SessionGrouping.Bucket.EARLIER -> R.string.sessions_section_earlier
+        },
+    )
+    Text(
+        label,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = 4.dp, top = 4.dp).markHeading(),
+    )
 }
 
 /**
@@ -108,6 +139,7 @@ private fun SessionRow(
     onRename: (String, String) -> Unit,
     onArchive: (String, Boolean) -> Unit,
     onDelete: (String) -> Unit,
+    onPin: (String, Boolean) -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf(false) }
@@ -126,7 +158,25 @@ private fun SessionRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text(meta.title, style = MaterialTheme.typography.titleSmall, maxLines = 2)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (meta.pinned) {
+                        Icon(
+                            Icons.Filled.PushPin,
+                            contentDescription = stringResource(R.string.sessions_pinned),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp).padding(end = 4.dp),
+                        )
+                    }
+                    Text(meta.title, style = MaterialTheme.typography.titleSmall, maxLines = 2, modifier = Modifier.weight(1f))
+                }
+                if (meta.preview.isNotBlank()) {
+                    Text(
+                        meta.preview,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(when_, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (meta.archived) {
@@ -151,6 +201,10 @@ private fun SessionRow(
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     DropdownMenuItem(text = { Text(stringResource(R.string.sessions_resume)) }, onClick = { menuOpen = false; onResume(meta.id) })
+                    DropdownMenuItem(
+                        text = { Text(stringResource(if (meta.pinned) R.string.sessions_unpin else R.string.sessions_pin)) },
+                        onClick = { menuOpen = false; onPin(meta.id, !meta.pinned) },
+                    )
                     DropdownMenuItem(text = { Text(stringResource(R.string.sessions_rename)) }, onClick = { menuOpen = false; renaming = true })
                     DropdownMenuItem(
                         text = { Text(stringResource(if (meta.archived) R.string.sessions_unarchive else R.string.sessions_archive)) },
