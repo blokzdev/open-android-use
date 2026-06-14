@@ -182,8 +182,9 @@ build script, and docs synced.
     (`docs/exec-plans/active/20260614-phase46-a11y-i18n-responsive.md`): sub-PRs
     4.6a i18n (externalize ~280 strings, translation-ready) → 4.6b accessibility →
     4.6c responsive polish → 4.6d markdown links+tables → 4.6e tablet/foldable
-    two-pane. 4.6a done: all screens + the agent-loop notes externalized to
-    `strings.xml` (ToolChipLabel verbs deferred to Localization). Actual
+    two-pane. 4.6a done (i18n: all screens + agent-loop notes externalized;
+    ToolChipLabel verbs deferred to Localization). 4.6b done (a11y: reduce-motion,
+    48dp targets, heading semantics, agent run-state announced). Actual
     translations are a future Localization phase.
 - [ ] **Phase 4.7 — Distribution & Play readiness**: (a) tagged GitHub release of
   the signed APK; (b) Play Store **signed AAB** (the Android 13+ "Restricted

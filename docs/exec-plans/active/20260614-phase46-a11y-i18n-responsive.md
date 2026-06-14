@@ -52,7 +52,12 @@ Guardrail: control surface stays dependency-free; 4.6 work is presentation-layer
 - [x] 4.6a-2: `ChatActivity` (~35 strings + suggested prompts) and the `AgentController`
   transcript notes (via `AgentSettings.appContext` + a `str()` resolver). `ToolChipLabel`
   verbs left as a documented exception (see Decisions). Builds + unit tests + APK green.
-- [ ] 4.6b accessibility · [ ] 4.6c responsive · [ ] 4.6d markdown · [ ] 4.6e two-pane.
+- [x] 4.6b accessibility: reduce-motion (`Motion` helper; gesture-trail gated, chat
+  auto-scroll instant), 48dp touch targets (mic/overflow + classic-View buttons), heading
+  semantics on section/step titles, polite live-region for agent running/idle, error tool-chip
+  descriptions, decorative tap-marker cleared. `MotionTest` + Compose a11y assertions
+  (heading + 48dp). Builds + unit tests + instrumentation green.
+- [ ] 4.6c responsive · [ ] 4.6d markdown · [ ] 4.6e two-pane.
 
 ## Decisions
 - 2026-06-14: i18n ships as **externalize-only** (English, translation-ready). Actual

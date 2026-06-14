@@ -153,6 +153,9 @@
     <string name="chat_export">Export</string>
     <string name="chat_new">New</string>
     <string name="chat_agent_view_title">What the agent sees</string>
+    <string name="chat_status_working">Agent is working</string>
+    <string name="chat_status_idle">Agent is idle</string>
+    <string name="chat_tool_error_prefix">Error: %1$s</string>
     <string name="chat_agent_view_placeholder">You\'re the agent\'s second pair of eyes — its view will appear here as it works.</string>
     <string name="chat_agent_view_enlarged">What the agent sees, enlarged</string>
     <string name="chat_screenshot_desc">Latest screenshot the agent captured</string>

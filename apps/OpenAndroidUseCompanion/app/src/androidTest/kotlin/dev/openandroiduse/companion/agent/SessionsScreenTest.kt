@@ -1,10 +1,12 @@
 package dev.openandroiduse.companion.agent
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTouchHeightIsEqualTo
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -48,6 +50,9 @@ class SessionsScreenTest {
         seed("Turn Bluetooth on")
         ActivityScenario.launch(SessionsActivity::class.java).use {
             composeTestRule.onNodeWithText("Turn Bluetooth on").assertIsDisplayed()
+            // 48dp touch target (minimumInteractiveComponentSize) for a11y.
+            composeTestRule.onNodeWithContentDescription("More options for Turn Bluetooth on")
+                .assertTouchHeightIsEqualTo(48.dp)
             composeTestRule.onNodeWithContentDescription("More options for Turn Bluetooth on").performClick()
             composeTestRule.onNodeWithText("Rename").assertIsDisplayed()
             composeTestRule.onNodeWithText("Delete").assertIsDisplayed()

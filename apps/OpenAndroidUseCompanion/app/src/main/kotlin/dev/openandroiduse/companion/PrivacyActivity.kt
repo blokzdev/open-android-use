@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import dev.openandroiduse.companion.agent.AgentController
 import dev.openandroiduse.companion.agent.AgentSettings
 import dev.openandroiduse.companion.agent.SessionStore
+import dev.openandroiduse.companion.ui.markHeading
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
 
 /**
@@ -81,7 +82,7 @@ private fun PrivacyScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(stringResource(R.string.privacy_heading), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.privacy_heading), style = MaterialTheme.typography.titleMedium, modifier = Modifier.markHeading())
             PrivacyPoint(stringResource(R.string.privacy_on_device_title), stringResource(R.string.privacy_on_device_body))
             PrivacyPoint(stringResource(R.string.privacy_leaves_title), stringResource(R.string.privacy_leaves_body))
             PrivacyPoint(stringResource(R.string.privacy_key_title), stringResource(R.string.privacy_key_body))
@@ -90,7 +91,7 @@ private fun PrivacyScreen(
 
             HorizontalDivider()
 
-            Text(stringResource(R.string.privacy_data_controls), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.privacy_data_controls), style = MaterialTheme.typography.titleMedium, modifier = Modifier.markHeading())
             val clearedKey = stringResource(R.string.privacy_clear_key_toast)
             val clearedConv = stringResource(R.string.privacy_clear_conv_toast)
             val deletedAll = stringResource(R.string.privacy_delete_all_toast)
