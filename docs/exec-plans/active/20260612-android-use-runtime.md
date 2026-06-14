@@ -54,8 +54,11 @@ build script, and docs synced.
   Mitigation: snapshot carries a single scale factor; all element frames are emitted
   in screenshot pixel space and every action divides by the same factor; unit tests
   pin the round trip.
-- Risk: `uiautomator dump` flakiness (returns stale or empty tree on some OEM ROMs).
-  Mitigation: retry once, fail with actionable error text; Phase 2 replaces it.
+- Risk: `uiautomator dump` flakiness (stale/empty tree, "could not get idle
+  state", null root node — esp. right after boot and on Android 11+).
+  Mitigation: escalating-backoff retries (4 attempts: 0/500ms/1s/2s) + a 10s
+  foreground wait, with an "after N attempts" error; the companion path (live
+  AccessibilityService) avoids it entirely when enabled.
 - Risk: protocol drift from the other three runtimes.
   Mitigation: tool names/schemas copied from the Linux runtime verbatim; tests assert
   the 9-tool surface and schema fields.

@@ -103,9 +103,12 @@ pass "list_apps"
 
 run_step "get_app_state launches Settings and returns tree + screenshot"
 state_output="$("${bridge}" call get_app_state --args '{"app":"com.android.settings"}')"
-grep -q "App=com.android.settings" <<<"${state_output}" || fail "snapshot missing App= line"
-grep -q '"type": "image"' <<<"${state_output}" || fail "snapshot missing screenshot block"
-grep -Eq '\[1\] ' <<<"${state_output}" || fail "snapshot has no indexed elements"
+# On any failure, echo the tool output so the error JSON (e.g. a uiautomator
+# dump message) is visible in the CI log rather than swallowed.
+state_fail() { printf 'get_app_state output:\n%s\n' "${state_output}" >&2; fail "$1"; }
+grep -q "App=com.android.settings" <<<"${state_output}" || state_fail "snapshot missing App= line"
+grep -q '"type": "image"' <<<"${state_output}" || state_fail "snapshot missing screenshot block"
+grep -Eq '\[1\] ' <<<"${state_output}" || state_fail "snapshot has no indexed elements"
 pass "get_app_state"
 
 run_step "call sequence: snapshot foreground + press Back"

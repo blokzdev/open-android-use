@@ -18,12 +18,19 @@ import (
 
 const (
 	adbTimeout        = 30 * time.Second
-	launchWaitTimeout = 6 * time.Second
+	launchWaitTimeout = 10 * time.Second
 	actionSettleDelay = 800 * time.Millisecond
 	maxElements       = 250
 	maxTreeLines      = 600
 	dumpDevicePath    = "/data/local/tmp/open-android-use-dump.xml"
 )
+
+// uiautomator dump is intermittently unreliable while the UI is still
+// initializing or animating (it times out waiting for idle, or the
+// accessibility bridge returns a null root node) — especially right after boot
+// and on Android 11+. Retry with escalating backoff before giving up; the delays
+// are the waits *between* attempts, so the total is len+1 attempts.
+var uiautomatorDumpBackoff = []time.Duration{500 * time.Millisecond, time.Second, 2 * time.Second}
 
 type commandRunner interface {
 	output(args ...string) ([]byte, error)
@@ -392,12 +399,19 @@ func (b *adbBridge) captureSnapshot(pkg string) (*appSnapshot, error) {
 
 func (b *adbBridge) uiautomatorDump() (string, error) {
 	dump, err := b.uiautomatorDumpOnce()
-	if err != nil {
-		// uiautomator dump is flaky on some ROMs; retry once before failing.
-		b.sleep(500 * time.Millisecond)
-		dump, err = b.uiautomatorDumpOnce()
+	if err == nil {
+		return dump, nil
 	}
-	return dump, err
+	// Retry with escalating backoff: a cold-boot / busy UI often settles within
+	// a second or two, after which the dump succeeds.
+	for _, delay := range uiautomatorDumpBackoff {
+		b.sleep(delay)
+		dump, err = b.uiautomatorDumpOnce()
+		if err == nil {
+			return dump, nil
+		}
+	}
+	return "", fmt.Errorf("uiautomator dump failed after %d attempts: %s", len(uiautomatorDumpBackoff)+1, err)
 }
 
 func (b *adbBridge) uiautomatorDumpOnce() (string, error) {
