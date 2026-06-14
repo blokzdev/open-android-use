@@ -134,6 +134,13 @@
     <string name="sessions_delete_q">Delete conversation?</string>
     <string name="sessions_delete_body">This permanently deletes \"%1$s\".</string>
     <string name="sessions_deleted">Conversation deleted</string>
+    <string name="sessions_pin">Pin</string>
+    <string name="sessions_unpin">Unpin</string>
+    <string name="sessions_pinned">Pinned</string>
+    <string name="sessions_section_pinned">Pinned</string>
+    <string name="sessions_section_today">Today</string>
+    <string name="sessions_section_yesterday">Yesterday</string>
+    <string name="sessions_section_earlier">Earlier</string>
     <string name="sessions_rename_title">Rename conversation</string>
     <string name="sessions_busy_open">Stop the current task before opening another conversation</string>
     <string name="sessions_busy_delete">Stop the current task before deleting it</string>

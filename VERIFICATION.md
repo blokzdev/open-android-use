@@ -417,6 +417,22 @@ need a real device.
   (only on the last message, only when idle); tapping it re-runs the most recent user task; if a
   prerequisite is now missing it routes to Settings / Accessibility instead.
 
+### Phase 4.7c-1 — History: pin + preview + date grouping
+
+- [ ] **V95. Date grouping**: with conversations from different days, open History. Pass: rows are
+  grouped under **Today / Yesterday / Earlier** headers, newest first within each group; a
+  conversation updated today sits under Today.
+- [ ] **V96. Pin floats to top**: pin a conversation (overflow → Pin). Pass: it moves into a
+  **Pinned** section at the top with a pin badge, regardless of its date; Unpin returns it to its
+  date group; pinning does **not** change its "updated" time / reshuffle the rest by recency.
+- [ ] **V97. Last-message preview**: each row shows a one-line preview (the agent's last reply,
+  else the last prompt) under the title; long previews are truncated to one line.
+- [ ] **V98. Pin survives the agent**: pin the *active* conversation, then run another task in it
+  so the agent re-saves the session. Pass: it stays pinned (the snapshot didn't clobber the pin);
+  the preview reflects the latest reply.
+- [ ] **V99. Two-pane parity**: on a tablet/foldable, the same grouping / preview / pin behavior
+  works in the side History pane.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |

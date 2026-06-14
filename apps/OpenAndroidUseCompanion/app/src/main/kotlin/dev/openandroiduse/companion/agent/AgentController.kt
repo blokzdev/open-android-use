@@ -130,6 +130,13 @@ object AgentController {
     private var sessionTitle: String? = null
 
     /**
+     * Whether the in-memory session is pinned (Phase 4.7c). Tracked here, mirroring
+     * [sessionTitle], so a snapshot save from the agent loop doesn't clobber a pin the user set;
+     * the UI keeps it in sync for the active session via [notePinned].
+     */
+    private var sessionPinned: Boolean = false
+
+    /**
      * Bumped whenever the transcript changes (a logged line or a restore), so the UI
      * can skip re-persisting an unchanged conversation on a routine pause.
      */
@@ -277,6 +284,7 @@ object AgentController {
         currentSessionId = newSessionId()
         sessionCreatedAt = System.currentTimeMillis()
         sessionTitle = null
+        sessionPinned = false
     }
 
     /** Clearer name for [resetConversation] now that conversations are sessions. */
@@ -301,6 +309,8 @@ object AgentController {
             updatedAt = System.currentTimeMillis(),
             archived = false,
             transcript = lines.map { StoredMessage(it.first, it.second) },
+            pinned = sessionPinned,
+            preview = SessionPreview.derive(lines),
         )
     }
 
@@ -327,6 +337,7 @@ object AgentController {
         currentSessionId = payload.id
         sessionCreatedAt = payload.createdAt
         sessionTitle = payload.title
+        sessionPinned = payload.pinned
         transcriptRevision++
         listener?.onTranscriptChanged()
         return true
@@ -336,6 +347,12 @@ object AgentController {
     @Synchronized
     fun noteRenamed(id: String, title: String) {
         if (id == currentSessionId) sessionTitle = title
+    }
+
+    /** Keeps the live pin state in sync when the user pins/unpins the active session. */
+    @Synchronized
+    fun notePinned(id: String, pinned: Boolean) {
+        if (id == currentSessionId) sessionPinned = pinned
     }
 
     private fun runLoop(

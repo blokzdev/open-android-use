@@ -12,7 +12,9 @@ import org.json.JSONObject
  */
 object SessionCodec {
 
-    const val VERSION = 1
+    // v2 (Phase 4.7c) adds `pinned` + `preview`; decode stays back-compatible with
+    // v1 files via opt* defaults (pinned=false, preview="").
+    const val VERSION = 2
 
     fun encode(payload: SessionPayload): String {
         val root = JSONObject()
@@ -22,6 +24,8 @@ object SessionCodec {
         root.put("createdAt", payload.createdAt)
         root.put("updatedAt", payload.updatedAt)
         root.put("archived", payload.archived)
+        root.put("pinned", payload.pinned)
+        root.put("preview", payload.preview)
         val transcript = JSONArray()
         for (line in payload.transcript) {
             transcript.put(JSONObject().put("kind", line.kind).put("text", line.text))
@@ -44,6 +48,8 @@ object SessionCodec {
             updatedAt = root.optLong("updatedAt"),
             archived = root.optBoolean("archived", false),
             transcript = messages,
+            pinned = root.optBoolean("pinned", false),
+            preview = root.optString("preview", ""),
         )
     }
 
@@ -56,6 +62,8 @@ object SessionCodec {
             createdAt = root.optLong("createdAt"),
             updatedAt = root.optLong("updatedAt"),
             archived = root.optBoolean("archived", false),
+            pinned = root.optBoolean("pinned", false),
+            preview = root.optString("preview", ""),
         )
     }
 }

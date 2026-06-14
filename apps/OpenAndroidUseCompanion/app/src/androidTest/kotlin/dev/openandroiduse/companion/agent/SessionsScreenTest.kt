@@ -67,6 +67,19 @@ class SessionsScreenTest {
         }
     }
 
+    /** Phase 4.7c: pinning a conversation moves it under a "Pinned" section. */
+    @Test
+    fun pinMovesSessionToPinnedSection() {
+        seed("Turn Bluetooth on")
+        ActivityScenario.launch(SessionsActivity::class.java).use {
+            // Default seed (updated now) sits under "Today".
+            composeTestRule.onNodeWithText("Today").assertIsDisplayed()
+            composeTestRule.onNodeWithContentDescription("More options for Turn Bluetooth on").performClick()
+            composeTestRule.onNodeWithText("Pin").performClick()
+            composeTestRule.onNodeWithText("Pinned").assertIsDisplayed()
+        }
+    }
+
     /** Phase 4.7a-2: deleting a conversation offers Undo, and Undo restores it. */
     @Test
     fun deleteThenUndoRestoresSession() {
