@@ -13,9 +13,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
@@ -37,6 +43,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -269,6 +276,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
             },
             onExport = ::exportConversation,
             onShareMessage = ::shareMessage,
+            onRetry = ::retryLastTask,
             onResumeSession = ::resumeSession,
             onOpenSettings = { startActivity(Intent(this, SettingsActivity::class.java)) },
             onOpenHistory = { startActivity(Intent(this, SessionsActivity::class.java)) },
@@ -359,6 +367,22 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
         }
         input = ""
         AgentController.startTask(text, settings)
+    }
+
+    /** Re-run the most recent user task after a failure (Phase 4.7b-2 error → Retry). */
+    private fun retryLastTask() {
+        if (AgentController.isRunning) return
+        val lastUser = messages.lastOrNull { it.first == AgentController.KIND_USER }?.second ?: return
+        when (readiness(CompanionService.isRunning, settings.hasApiKey())) {
+            Readiness.NEEDS_KEY, Readiness.NEEDS_BOTH -> {
+                startActivity(Intent(this, SettingsActivity::class.java)); return
+            }
+            Readiness.NEEDS_ACCESSIBILITY -> {
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)); return
+            }
+            Readiness.READY -> Unit
+        }
+        AgentController.startTask(lastUser, settings)
     }
 
     /**
@@ -499,6 +523,7 @@ private fun ChatScreen(
     onNewConversation: () -> Unit,
     onExport: () -> Unit,
     onShareMessage: (String) -> Unit,
+    onRetry: () -> Unit,
     onResumeSession: (String) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenHistory: () -> Unit,
@@ -579,7 +604,10 @@ private fun ChatScreen(
                         modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        itemsIndexed(messages) { _, entry ->
+                        itemsIndexed(messages) { index, entry ->
+                            // Offer Retry only on the last message and only when it's an
+                            // error note and the agent is idle (re-runs the last user task).
+                            val onRetryHere = if (!running && index == messages.lastIndex) onRetry else null
                             MessageItem(
                                 entry.first,
                                 entry.second,
@@ -587,7 +615,13 @@ private fun ChatScreen(
                                 onOpenAccessibility,
                                 onCopy = onCopyMessage,
                                 onShare = onShareMessage,
+                                onRetry = onRetryHere,
                             )
+                        }
+                        // A typing cue where the next answer will land — only while the
+                        // agent is composing (not once its reply is already streaming in).
+                        if (running && messages.lastOrNull()?.first != AgentController.KIND_ASSISTANT) {
+                            item("typing") { TypingIndicator() }
                         }
                     }
                     // Jump-to-latest: appears only when the newest message is off-screen,
@@ -843,13 +877,64 @@ private fun MessageItem(
     onOpenAccessibility: () -> Unit,
     onCopy: (String) -> Unit,
     onShare: (String) -> Unit,
+    onRetry: (() -> Unit)? = null,
 ) {
     when (kind) {
         AgentController.KIND_USER -> Bubble(text, user = true, onCopy = onCopy, onShare = onShare)
         AgentController.KIND_ASSISTANT -> AssistantBubble(text, onCopy = onCopy, onShare = onShare)
         AgentController.KIND_THINKING -> ThinkingBlock(text)
         AgentController.KIND_TOOL -> ToolChip(text)
-        else -> NoteCard(text, onOpenSettings, onOpenAccessibility)
+        else -> NoteCard(text, onOpenSettings, onOpenAccessibility, onRetry)
+    }
+}
+
+/**
+ * A chat "typing" cue (Phase 4.7b-2): an assistant-aligned bubble of pulsing dots while the
+ * agent composes its reply. Reduce-motion shows static dots (the pulse is gated on
+ * [Motion.animationsDisabled]); a contentDescription announces the working state without adding
+ * a second live region (the Agent's-view card already announces start/stop).
+ */
+@Composable
+private fun TypingIndicator() {
+    val context = LocalContext.current
+    val reduced = Motion.animationsDisabled(context)
+    val transition = rememberInfiniteTransition(label = "typing")
+    val desc = stringResource(R.string.chat_typing)
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = RoundedCornerShape(14.dp),
+            modifier = Modifier.semantics { contentDescription = desc },
+        ) {
+            Row(
+                Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                repeat(3) { i ->
+                    val alpha = if (reduced) 0.5f else {
+                        val a by transition.animateFloat(
+                            initialValue = 0.25f,
+                            targetValue = 1f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(durationMillis = 600, delayMillis = i * 160),
+                                repeatMode = RepeatMode.Reverse,
+                            ),
+                            label = "dot$i",
+                        )
+                        a
+                    }
+                    Box(
+                        Modifier
+                            .size(7.dp)
+                            .background(
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
+                                CircleShape,
+                            ),
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -1032,7 +1117,12 @@ private fun ToolChip(raw: String) {
 }
 
 @Composable
-private fun NoteCard(text: String, onOpenSettings: () -> Unit, onOpenAccessibility: () -> Unit) {
+private fun NoteCard(
+    text: String,
+    onOpenSettings: () -> Unit,
+    onOpenAccessibility: () -> Unit,
+    onRetry: (() -> Unit)? = null,
+) {
     val style = NoteClassifier.classify(text)
     val color = when (style) {
         NoteStyle.ERROR, NoteStyle.NEEDS_KEY -> MaterialTheme.colorScheme.errorContainer
@@ -1045,6 +1135,10 @@ private fun NoteCard(text: String, onOpenSettings: () -> Unit, onOpenAccessibili
             when (style) {
                 NoteStyle.NEEDS_KEY -> TextButton(onClick = onOpenSettings) { Text(stringResource(R.string.chat_note_add_key)) }
                 NoteStyle.NEEDS_ACCESSIBILITY -> TextButton(onClick = onOpenAccessibility) { Text(stringResource(R.string.chat_note_enable_service)) }
+                // An error with the agent idle: offer to re-run the last task.
+                NoteStyle.ERROR -> if (onRetry != null) {
+                    TextButton(onClick = onRetry) { Text(stringResource(R.string.chat_retry)) }
+                }
                 else -> Unit
             }
         }

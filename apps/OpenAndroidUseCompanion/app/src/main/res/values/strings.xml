@@ -189,6 +189,8 @@
     <string name="chat_msg_actions">Message actions</string>
     <string name="chat_msg_share_chooser">Share message</string>
     <string name="chat_scroll_to_latest">Scroll to latest</string>
+    <string name="chat_retry">Retry</string>
+    <string name="chat_typing">Agent is working</string>
     <string name="suggested_prompt_1">Open Settings and tell me the Android version</string>
     <string name="suggested_prompt_2">Turn Bluetooth on</string>
     <string name="suggested_prompt_3">Summarize my latest notification</string>
