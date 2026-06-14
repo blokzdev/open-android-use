@@ -14,8 +14,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
@@ -36,13 +38,17 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.IosShare
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.CircularProgressIndicator
@@ -53,6 +59,7 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -64,9 +71,11 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,6 +86,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -106,6 +116,7 @@ import dev.openandroiduse.companion.Readiness
 import dev.openandroiduse.companion.readiness
 import dev.openandroiduse.companion.ui.markHeading
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
+import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -257,6 +268,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
                 sessionList = recentSessions
             },
             onExport = ::exportConversation,
+            onShareMessage = ::shareMessage,
             onResumeSession = ::resumeSession,
             onOpenSettings = { startActivity(Intent(this, SettingsActivity::class.java)) },
             onOpenHistory = { startActivity(Intent(this, SessionsActivity::class.java)) },
@@ -403,6 +415,15 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
         startActivity(Intent.createChooser(intent, getString(R.string.chat_export_chooser)))
     }
 
+    /** Share a single message's text via the system chooser (Phase 4.7b). */
+    private fun shareMessage(text: String) {
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, text)
+        }
+        startActivity(Intent.createChooser(intent, getString(R.string.chat_msg_share_chooser)))
+    }
+
     // --- push-to-talk ---
 
     private fun startListening() {
@@ -477,6 +498,7 @@ private fun ChatScreen(
     onMic: () -> Unit,
     onNewConversation: () -> Unit,
     onExport: () -> Unit,
+    onShareMessage: (String) -> Unit,
     onResumeSession: (String) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenHistory: () -> Unit,
@@ -485,14 +507,33 @@ private fun ChatScreen(
 ) {
     val context = LocalContext.current
     val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    val snackbarHost = remember { SnackbarHostState() }
+    val clipboard = LocalClipboardManager.current
+    val copiedMessage = stringResource(R.string.chat_msg_copied)
+    // True when the last message is (almost) in view — used to decide whether a new
+    // message should auto-scroll (don't yank the user back down while they read history)
+    // and whether to offer the scroll-to-latest affordance.
+    val atBottom by remember {
+        derivedStateOf {
+            val info = listState.layoutInfo
+            val last = info.visibleItemsInfo.lastOrNull()
+            last == null || last.index >= info.totalItemsCount - 1
+        }
+    }
     LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) {
+        if (messages.isNotEmpty() && atBottom) {
             val last = messages.size - 1
             if (Motion.animationsDisabled(context)) listState.scrollToItem(last) else listState.animateScrollToItem(last)
         }
     }
+    val onCopyMessage: (String) -> Unit = { text ->
+        clipboard.setText(AnnotatedString(text))
+        scope.launch { snackbarHost.showSnackbar(copiedMessage) }
+    }
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHost) },
         topBar = {
             TopAppBar(
                 title = {
@@ -532,13 +573,35 @@ private fun ChatScreen(
             if (messages.isEmpty()) {
                 EmptyState(recentSessions, onResumeSession, onPrompt = onInputChange)
             } else {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    itemsIndexed(messages) { _, entry ->
-                        MessageItem(entry.first, entry.second, onOpenSettings, onOpenAccessibility)
+                Box(Modifier.fillMaxSize()) {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        itemsIndexed(messages) { _, entry ->
+                            MessageItem(
+                                entry.first,
+                                entry.second,
+                                onOpenSettings,
+                                onOpenAccessibility,
+                                onCopy = onCopyMessage,
+                                onShare = onShareMessage,
+                            )
+                        }
+                    }
+                    // Jump-to-latest: appears only when the newest message is off-screen,
+                    // so new turns no longer drag the user down mid-read.
+                    if (!atBottom) {
+                        SmallFloatingActionButton(
+                            onClick = { scope.launch { listState.animateScrollToItem(messages.size - 1) } },
+                            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+                        ) {
+                            Icon(
+                                Icons.Filled.KeyboardArrowDown,
+                                contentDescription = stringResource(R.string.chat_scroll_to_latest),
+                            )
+                        }
                     }
                 }
             }
@@ -773,38 +836,90 @@ private fun Composer(
 }
 
 @Composable
-private fun MessageItem(kind: String, text: String, onOpenSettings: () -> Unit, onOpenAccessibility: () -> Unit) {
+private fun MessageItem(
+    kind: String,
+    text: String,
+    onOpenSettings: () -> Unit,
+    onOpenAccessibility: () -> Unit,
+    onCopy: (String) -> Unit,
+    onShare: (String) -> Unit,
+) {
     when (kind) {
-        AgentController.KIND_USER -> Bubble(text, user = true)
-        AgentController.KIND_ASSISTANT -> AssistantBubble(text)
+        AgentController.KIND_USER -> Bubble(text, user = true, onCopy = onCopy, onShare = onShare)
+        AgentController.KIND_ASSISTANT -> AssistantBubble(text, onCopy = onCopy, onShare = onShare)
         AgentController.KIND_THINKING -> ThinkingBlock(text)
         AgentController.KIND_TOOL -> ToolChip(text)
         else -> NoteCard(text, onOpenSettings, onOpenAccessibility)
     }
 }
 
+/**
+ * Long-press menu (Phase 4.7b) wrapping a message bubble: Copy / Share the message text.
+ * Replaces in-bubble text selection with whole-message actions (partial selection is a
+ * backlog trade-off); a haptic tick confirms the long-press opened the menu.
+ */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun Bubble(text: String, user: Boolean) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = if (user) Arrangement.End else Arrangement.Start) {
-        Surface(
-            color = if (user) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-            shape = RoundedCornerShape(14.dp),
-            modifier = Modifier.fillMaxWidth(0.88f).widthIn(max = 560.dp),
-        ) {
-            Text(text, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodyMedium)
+private fun MessageActions(
+    text: String,
+    onCopy: (String) -> Unit,
+    onShare: (String) -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val haptics = LocalHapticFeedback.current
+    var open by remember { mutableStateOf(false) }
+    val actionsDesc = stringResource(R.string.chat_msg_actions)
+    Box {
+        Box(
+            Modifier
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        open = true
+                    },
+                    onLongClickLabel = actionsDesc,
+                ),
+        ) { content() }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.chat_msg_copy)) },
+                leadingIcon = { Icon(Icons.Filled.ContentCopy, contentDescription = null) },
+                onClick = { open = false; onCopy(text) },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.chat_msg_share)) },
+                leadingIcon = { Icon(Icons.Filled.Share, contentDescription = null) },
+                onClick = { open = false; onShare(text) },
+            )
         }
     }
 }
 
 @Composable
-private fun AssistantBubble(text: String) {
+private fun Bubble(text: String, user: Boolean, onCopy: (String) -> Unit, onShare: (String) -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = if (user) Arrangement.End else Arrangement.Start) {
+        MessageActions(text, onCopy, onShare) {
+            Surface(
+                color = if (user) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth(0.88f).widthIn(max = 560.dp),
+            ) {
+                Text(text, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AssistantBubble(text: String, onCopy: (String) -> Unit, onShare: (String) -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
-        Surface(
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            shape = RoundedCornerShape(14.dp),
-            modifier = Modifier.fillMaxWidth(0.92f).widthIn(max = 640.dp),
-        ) {
-            SelectionContainer {
+        MessageActions(text, onCopy, onShare) {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth(0.92f).widthIn(max = 640.dp),
+            ) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     ChatMarkdown.parse(text).forEach { block -> MarkdownBlock(block) }
                 }

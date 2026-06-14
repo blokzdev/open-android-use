@@ -394,6 +394,18 @@ need a real device.
   place; deleting the *running* session is still blocked with the "stop the task" notice (no
   Snackbar/Undo for that blocked case).
 
+### Phase 4.7b-1 — Chat: per-message Copy/Share + jump-to-latest
+
+- [ ] **V90. Per-message Copy**: in a conversation, long-press a user bubble and an assistant
+  bubble. Pass: a haptic tick fires and a menu shows **Copy** / **Share**; Copy puts the message
+  text on the clipboard and a Snackbar says "Copied to clipboard" (paste elsewhere to confirm).
+- [ ] **V91. Per-message Share**: long-press a bubble → **Share**. Pass: the system share sheet
+  opens with the message text; sharing to e.g. Notes/Messages carries the exact text.
+- [ ] **V92. Jump-to-latest + no scroll-yank**: scroll up in a long conversation. Pass: a small
+  down-arrow FAB appears bottom-right; while scrolled up, a new agent turn does **not** drag the
+  view to the bottom (you keep reading); tapping the FAB scrolls to the newest message and the
+  FAB disappears. When already at the bottom, new turns still auto-follow.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |
