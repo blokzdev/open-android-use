@@ -233,10 +233,15 @@
   model path for on-device. `OnDeviceModelManager` + a WorkManager worker download the
   `.litertlm` model to `filesDir` with a **pinned SHA-256** integrity check (the git-LFS
   oid — content-addressed) + atomic `.part`→final promotion; Settings shows a tier-gated
-  download card. **5.5a** (shipped) is the provider/download/gating scaffolding with a
-  placeholder backend; **5.5b** wires `OnDeviceBackend` over LiteRT-LM (streaming +
-  function calling via Gemma's tool format), validated on hardware. `litertlm` stays in
-  `agent/llm`. Plan: `docs/exec-plans/active/20260615-phase5-pluggable-models.md`.
+  download card. **5.5b** wires `OnDeviceBackend` over LiteRT-LM
+  (`com.google.ai.edge.litertlm`, arm64 native libs; `Engine`/`Conversation`/streaming
+  `Flow<Message>`); function calling is `GemmaToolPrompt` — a pure, unit-tested
+  structured-prompt render+parse (the 9 tools → prompt; fenced `tool_call` JSON →
+  `AgentContent.ToolUse`). Consuming LiteRT-LM required bumping the project to **Kotlin
+  2.3.20 / AGP 8.13.2**. The live inference loop is hardware-validated (CI can't run a
+  2.6 GB on-device model); the build, native integration, R8, and FC format are
+  CI-green. `litertlm` stays in `agent/llm`. Plan:
+  `docs/exec-plans/active/20260615-phase5-pluggable-models.md`.
 - **Agent safety surfaces and voice** (Phase 3.1b/3.1c): *touch-to-pause* —
   direct-manipulation accessibility events outside the agent's own gesture
   window (temporal heuristic, `TouchPauseMonitor`) suspend the task; the
