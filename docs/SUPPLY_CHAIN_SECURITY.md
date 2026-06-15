@@ -45,6 +45,8 @@ are registered here, one entry per dependency, with the reasoning:
 | `com.anthropic:anthropic-java` 2.40.1 (Maven Central) | Apache-2.0 | `apps/OpenAndroidUseCompanion` `agent` package only | First-party Anthropic SDK for the on-device agent's Claude API access; hand-rolled HTTP against a streaming LLM API is a larger risk than a pinned official SDK. Decision record: `docs/exec-plans/completed/20260612-phase3-on-device-agent.md`. | 2026-06-12 |
 | `com.google.genai:google-genai` 1.58.0 (Maven Central) | Apache-2.0 | `apps/OpenAndroidUseCompanion` `agent` package only (`agent/llm`) | First-party Google Gen AI SDK for the on-device agent's Gemini API access (Phase 5.2 BYOK), same rationale as the Anthropic SDK. Pulls `com.google.http-client`, `com.google.code.gson`, `com.google.protobuf:protobuf-java` transitively (Apache-2.0/BSD-3-Clause). Decision record: `docs/exec-plans/active/20260615-phase5-pluggable-models.md`. | 2026-06-15 |
 | Jetpack Compose (BOM `2024.09.03`) + Material 3 + `androidx.activity:activity-compose` 1.9.2 | Apache-2.0 | `apps/OpenAndroidUseCompanion` presentation layer (Activities, `ui/theme`, screens) | Phase 4 world-class UI; Compose/Material 3 is the modern Android UI standard (dynamic color, dark mode, accessibility). Presentation layer only. Design: `docs/design-docs/phase4-product-ui.md`. | 2026-06-14 |
+| `androidx.work:work-runtime-ktx` 2.9.1 | Apache-2.0 | `apps/OpenAndroidUseCompanion` `agent` package (on-device model download) | Phase 5.5 on-device tier: runs the (multi-GB) Gemma model download as a constraint-aware background job that survives backgrounding. First-party Jetpack library; no model SDK. Decision record: `docs/exec-plans/active/20260615-phase5-pluggable-models.md`. | 2026-06-15 |
+| `com.google.ai.edge.litertlm:litertlm-android` (Phase 5.5b) | Apache-2.0 | `apps/OpenAndroidUseCompanion` `agent/llm` only | First-party LiteRT-LM runtime for on-device Gemma 4 E2B inference. Ships native `.so` libraries (arm64-v8a); the model itself is downloaded at runtime, never bundled. To be added with 5.5b. | (pending 5.5b) |
 
 Rules for the register: pin exact versions (Compose libs are pinned via the BOM),
 never ranges; bumping a version is a reviewed change that updates this table in
@@ -52,8 +54,17 @@ the same commit. **Layer boundary:** the *control surface* — `CompanionService
 `HttpServer`, snapshot/action code, the accessibility/loopback core — must not
 import any of these (no `com.anthropic`, no `androidx`/`compose`). The `agent`
 package may use the Anthropic SDK; the presentation layer (Activities, `ui/`) may
-use Compose. Phase 5 will add one more `agent`-package SDK (`com.google.genai`
-for Gemini) under the same rules.
+use Compose. Phase 5 also adds the Gemini SDK (`com.google.genai`) and, for the
+on-device tier, `androidx.work` (download job, agent infra) and the LiteRT-LM
+runtime (`com.google.ai.edge.litertlm`, `agent/llm` only) under the same rules.
+
+On-device model integrity (Phase 5.5): the Gemma 4 E2B `.litertlm` file is
+downloaded at runtime from a pinned Hugging Face repo (`litert-community/
+gemma-4-E2B-it-litert-lm`, Apache-2.0, ungated) and verified against a **pinned
+SHA-256** before use (`OnDeviceModelManager.EXPECTED_SHA256`) — the hash is the
+git-LFS content id, so it pins exact bytes regardless of branch movement. A
+mismatch deletes the download and refuses to run. The model is never bundled in
+the APK.
 
 Redistribution note: the app's Gradle build excludes the duplicate
 `META-INF/LICENSE*` / `NOTICE*` files the SDK's transitive jars ship (they

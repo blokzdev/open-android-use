@@ -79,6 +79,18 @@
     <string name="settings_key_valid">API key works</string>
     <string name="settings_key_invalid">Key didn\'t work: %1$s</string>
     <string name="settings_get_key">Get an API key</string>
+    <!-- On-device model (Phase 5.5) -->
+    <string name="ondevice_title">On-device model</string>
+    <string name="ondevice_desc">Gemma 4 E2B runs fully on your device — no API key, no network. One-time ~2.6 GB download.</string>
+    <string name="ondevice_download">Download model (2.6 GB)</string>
+    <string name="ondevice_downloading">Downloading… %1$d%%</string>
+    <string name="ondevice_cancel">Cancel download</string>
+    <string name="ondevice_ready">Model ready ✓</string>
+    <string name="ondevice_delete">Delete model</string>
+    <string name="ondevice_tier_low">This device may not have enough memory to run the on-device model. Cloud providers are recommended.</string>
+    <string name="ondevice_tier_medium">This device meets the minimum; on-device responses may be slow.</string>
+    <string name="ondevice_experimental">On-device is experimental — cloud providers are more capable for multi-step tasks.</string>
+    <string name="onboarding_ondevice_note">Gemma runs fully on-device with no API key. You can download the model (~2.6 GB) later from Settings → Provider.</string>
     <string name="settings_section_behavior">Behavior</string>
     <string name="settings_theme_title">Theme</string>
     <string name="settings_theme_system">System</string>
@@ -243,6 +255,7 @@
     <!-- Agent loop transcript notes (AgentController) -->
     <string name="agent_note_no_service">⚠ The companion accessibility service is not running. Enable it first.</string>
     <string name="agent_note_no_key">⚠ No API key configured. Add your Anthropic API key in settings.</string>
+    <string name="agent_note_no_model">⚠ The on-device model isn\'t downloaded yet. Download it in Settings, or switch to a cloud provider.</string>
     <string name="agent_note_refusal">The request was declined by the model\'s safety system%1$s. Rephrase the task rather than retrying it as-is.</string>
     <string name="agent_note_paused">Paused — you touched the screen. Send a message to continue.</string>
     <string name="agent_note_stopped">Stopped.</string>

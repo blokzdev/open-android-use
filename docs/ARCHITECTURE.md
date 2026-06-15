@@ -225,9 +225,18 @@
   ~8.5M; resource shrink + on-device verify are Phase 6). `DeviceCapability` (Phase
   5.4, root package beside `Readiness`) classifies the device into a coarse
   HIGH/MEDIUM/LOW `DeviceTier` from honest facts (RAM, cores, SDK, 64-bit, low-RAM
-  flag), surfaced as an About diagnostic — the signal the on-device tier (5.5) and
-  adaptive perception (5.6) will gate on. On-device tier + adaptive perception are
-  Phase 5.5+ (`docs/exec-plans/active/20260615-phase5-pluggable-models.md`).
+  flag), surfaced as an About diagnostic — the signal the on-device tier and
+  adaptive perception (5.6) gate on.
+- **On-device tier** (Phase 5.5, Gemma 4 E2B via LiteRT-LM): a third `LlmProvider`
+  arm (`ON_DEVICE`, `requiresApiKey=false`) that runs a locally-downloaded model with
+  no key and no egress. `createBackend(credential,…)` takes an API key for cloud or a
+  model path for on-device. `OnDeviceModelManager` + a WorkManager worker download the
+  `.litertlm` model to `filesDir` with a **pinned SHA-256** integrity check (the git-LFS
+  oid — content-addressed) + atomic `.part`→final promotion; Settings shows a tier-gated
+  download card. **5.5a** (shipped) is the provider/download/gating scaffolding with a
+  placeholder backend; **5.5b** wires `OnDeviceBackend` over LiteRT-LM (streaming +
+  function calling via Gemma's tool format), validated on hardware. `litertlm` stays in
+  `agent/llm`. Plan: `docs/exec-plans/active/20260615-phase5-pluggable-models.md`.
 - **Agent safety surfaces and voice** (Phase 3.1b/3.1c): *touch-to-pause* —
   direct-manipulation accessibility events outside the agent's own gesture
   window (temporal heuristic, `TouchPauseMonitor`) suspend the task; the

@@ -29,6 +29,7 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -44,6 +45,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,10 +62,13 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.work.WorkInfo
 import dev.openandroiduse.companion.AboutActivity
+import dev.openandroiduse.companion.DeviceTier
 import dev.openandroiduse.companion.OnboardingActivity
 import dev.openandroiduse.companion.PrivacyActivity
 import dev.openandroiduse.companion.R
+import dev.openandroiduse.companion.detectDeviceCapability
 import dev.openandroiduse.companion.agent.llm.LlmProvider
 import dev.openandroiduse.companion.ui.ResponsiveContent
 import dev.openandroiduse.companion.ui.markHeading
@@ -121,6 +127,7 @@ private fun SettingsScreen(
     val scope = rememberCoroutineScope()
     val snackbarHost = remember { SnackbarHostState() }
     var provider by remember { mutableStateOf(settings.selectedProvider) }
+    val deviceTier = remember { detectDeviceCapability(context).tier }
     var apiKey by remember { mutableStateOf("") }
     var hasKey by remember { mutableStateOf(settings.hasApiKey(provider)) }
     var keyVisible by remember { mutableStateOf(false) }
@@ -159,6 +166,11 @@ private fun SettingsScreen(
 
             HorizontalDivider()
 
+            if (!provider.requiresApiKey) {
+                // --- On-device model (no API key; downloaded locally) ---
+                SectionTitle(stringResource(R.string.ondevice_title))
+                OnDeviceModelCard(deviceTier)
+            } else {
             // --- API key ---
             SectionTitle(stringResource(R.string.settings_section_api_key))
             Text(
@@ -253,6 +265,7 @@ private fun SettingsScreen(
                     settings.setModel(it, provider)
                 },
             )
+            }
 
             HorizontalDivider()
 
@@ -301,6 +314,48 @@ private fun SettingsScreen(
             }
         }
         }
+    }
+}
+
+@Composable
+private fun OnDeviceModelCard(tier: DeviceTier) {
+    val context = LocalContext.current
+    val workInfos by OnDeviceModelManager.downloadFlow(context).collectAsState(initial = emptyList())
+    val info = workInfos.firstOrNull()
+    val downloading = info?.state == WorkInfo.State.RUNNING || info?.state == WorkInfo.State.ENQUEUED
+    val percent = info?.progress?.getInt(OnDeviceModelManager.PROGRESS_PERCENT, 0) ?: 0
+    // Re-check readiness whenever the work state changes (e.g. SUCCEEDED).
+    var ready by remember { mutableStateOf(OnDeviceModelManager.isReady(context)) }
+    LaunchedEffect(info?.state) { ready = OnDeviceModelManager.isReady(context) }
+
+    Text(stringResource(R.string.ondevice_desc), style = MaterialTheme.typography.bodyMedium)
+    Text(stringResource(R.string.ondevice_experimental), style = MaterialTheme.typography.bodySmall)
+    when (tier) {
+        DeviceTier.LOW -> Text(stringResource(R.string.ondevice_tier_low), style = MaterialTheme.typography.bodySmall)
+        DeviceTier.MEDIUM -> Text(stringResource(R.string.ondevice_tier_medium), style = MaterialTheme.typography.bodySmall)
+        DeviceTier.HIGH -> Unit
+    }
+    when {
+        ready -> Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.ondevice_ready), style = MaterialTheme.typography.titleSmall)
+            OutlinedButton(onClick = {
+                OnDeviceModelManager.delete(context)
+                ready = false
+            }) { Text(stringResource(R.string.ondevice_delete)) }
+        }
+        downloading -> Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            LinearProgressIndicator(progress = { percent / 100f }, modifier = Modifier.fillMaxWidth())
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.ondevice_downloading, percent))
+                OutlinedButton(onClick = { OnDeviceModelManager.cancelDownload(context) }) {
+                    Text(stringResource(R.string.ondevice_cancel))
+                }
+            }
+        }
+        else -> Button(
+            onClick = { OnDeviceModelManager.enqueueDownload(context) },
+            enabled = tier != DeviceTier.LOW,
+        ) { Text(stringResource(R.string.ondevice_download)) }
     }
 }
 

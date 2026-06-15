@@ -72,13 +72,20 @@ android {
 // Java SDK. Phase 4 adds Jetpack Compose / Material 3 for the *presentation
 // layer only* (Activities, theme, screens); the control surface must not import
 // androidx/compose, and nothing under it may import com.anthropic or
-// com.google.genai (those stay inside the `agent` package).
+// com.google.genai (those stay inside the `agent` package). Phase 5.5 adds the
+// on-device tier: androidx.work (the agent-package model-download job) and, in
+// 5.5b, the LiteRT-LM runtime (agent/llm only) for local Gemma inference.
 dependencies {
     implementation("com.anthropic:anthropic-java:2.40.1")
     // Phase 5.2: the second model provider (Gemini, BYOK) talks to the Gemini
     // API through the official Google Gen AI Java SDK. Same agent-package-only
     // rule as the Anthropic SDK (see the dependency policy note below).
     implementation("com.google.genai:google-genai:1.58.0")
+
+    // Phase 5.5: the on-device model tier downloads its (multi-GB) model at
+    // runtime; WorkManager runs the download as a constraint-aware background job
+    // that survives backgrounding. Agent-package infra only (no model SDK here).
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
 
     // Presentation layer only (Phase 4): Jetpack Compose + Material 3. The BOM
     // pins mutually-compatible Compose library versions; the Compose compiler

@@ -183,9 +183,19 @@ object AgentController {
             log(KIND_NOTE, str(R.string.agent_note_no_service))
             return false
         }
-        val apiKey = settings.loadApiKey() ?: run {
-            log(KIND_NOTE, str(R.string.agent_note_no_key))
-            return false
+        val provider = settings.selectedProvider
+        // Cloud providers need a BYOK key; the on-device provider needs its model
+        // downloaded. Resolve the right credential (key, or local model path).
+        val credential: String = if (provider.requiresApiKey) {
+            settings.loadApiKey(provider) ?: run {
+                log(KIND_NOTE, str(R.string.agent_note_no_key))
+                return false
+            }
+        } else {
+            OnDeviceModelManager.modelPath(settings.appContext) ?: run {
+                log(KIND_NOTE, str(R.string.agent_note_no_model))
+                return false
+            }
         }
         cancelRequested = false
         pausedByTouch = false
@@ -216,7 +226,6 @@ object AgentController {
             VoiceNarrator.ensureInitialized(service)
         }
         val confirmActions = settings.confirmActions
-        val provider = settings.selectedProvider
         // The loopback base-URL override is a debug-only test hook: honoring a
         // persisted pref in release would let anything that can write prefs
         // redirect the API-key-bearing client. Release ignores it entirely.
@@ -224,7 +233,7 @@ object AgentController {
         worker = Thread(
             {
                 try {
-                    runLoop(service, provider, apiKey, settings.model, confirmActions, baseUrl)
+                    runLoop(service, provider, credential, settings.model, confirmActions, baseUrl)
                 } finally {
                     service.interactionListener = null
                     GestureTrail.detach(service)
@@ -353,14 +362,14 @@ object AgentController {
     private fun runLoop(
         service: CompanionService,
         provider: LlmProvider,
-        apiKey: String,
+        credential: String,
         model: String,
         confirmActions: Boolean,
         baseUrl: String?,
     ) {
         // The only provider-specific line in the loop: the provider builds its
         // backend. Every other step works in neutral types.
-        val backend: AgentBackend = provider.createBackend(apiKey, baseUrl)
+        val backend: AgentBackend = provider.createBackend(credential, baseUrl)
         this.backend = backend
         val executor = ToolExecutor(service)
         // Live deltas render exactly as before: text to the assistant line (and

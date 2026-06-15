@@ -564,6 +564,19 @@ need a real device.
   Android version / 64-bit values that match the device (sanity-checks the collector + the
   tier rule on real hardware; nothing else gates on the tier yet).
 
+### Phase 5.5a — on-device provider scaffolding + model download
+
+- [ ] **V128. Model download + integrity (on real hardware/network)**: Settings → Provider →
+  Gemma (on-device) → Download. Pass: progress advances, completes, shows "Model ready ✓";
+  the file lands in app storage; a deliberately corrupted/interrupted download is rejected
+  (not marked ready) and cleaned up; Delete frees the space. Cancel mid-download stops it and
+  leaves no partial file treated as ready.
+- [ ] **V129. Tier gating**: on a LOW-tier device the Download button is disabled with the
+  low-memory caution; MEDIUM shows the "may be slow" note; HIGH enables normally.
+- [ ] **V130. On-device placeholder (until 5.5b)**: with the model downloaded, select Gemma
+  (on-device) and start a task. Pass: the loop ends with the clear "inference lands in 5.5b"
+  note (no crash); switching back to Claude/Gemini still runs normally.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |
