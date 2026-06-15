@@ -84,7 +84,9 @@ while keeping the on-device, no-server, key-stays-local posture intact.
       (`proguard-rules.pro`, ~32M→~8.5M) with a CI assembleRelease gate.
 - [x] 5.4 — device-capability diagnostics + tiering (`DeviceCapability`/`DeviceTier`
       classifier + collector; About "Device" diagnostic; the signal 5.5/5.6 gate on).
-- [ ] 5.5 — on-device Gemma 4 E2B backend + runtime download.
+- [~] 5.5 — on-device Gemma 4 E2B (LiteRT-LM). **5.5a done**: provider arm + model
+      download/integrity/gating + download UI + placeholder backend (CI-verifiable).
+      **5.5b pending**: LiteRT-LM inference + function calling (hardware-validated).
 - [ ] 5.6 — adaptive perception.
 - [ ] 5.7 — Phase-5 hardening.
 
@@ -120,6 +122,14 @@ while keeping the on-device, no-server, key-stays-local posture intact.
   JSON/transport stacks whole (so runtime reflection can't be stripped); resource
   shrink, rule-tightening, and on-device validation of the minified build are the
   Phase 6 final-shrink gate. Release APK ~32M → ~8.5M.
+- 2026-06-15 (5.5): **runtime = LiteRT-LM + Gemma 4 E2B** (the old MediaPipe LLM
+  Inference *and* its Function-Calling SDK are both deprecated). FC will be via Gemma's
+  native tool format / structured prompting (the LiteRT-LM Kotlin tool API isn't
+  documented), implemented + hardware-validated in **5.5b**. **5.5a** ships the
+  CI-verifiable scaffolding (provider arm, WorkManager model download with a **pinned
+  SHA-256** integrity check, tier gating, download UI) with a placeholder backend, since
+  no device / 2.6 GB model / on-device inference can run in CI. `createBackend` now takes
+  a neutral `credential` (API key for cloud, model path for on-device).
 - 2026-06-15 (5.4): **device tier is a sibling of `Readiness`, not merged** —
   `Readiness` = can-the-agent-run (accessibility + key); `DeviceTier` = how-well.
   5.4 only **produces + surfaces** the tier (About diagnostic); the gates ship with

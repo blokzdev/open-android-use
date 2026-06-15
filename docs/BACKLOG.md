@@ -44,6 +44,11 @@ Each entry: **idea** — why deferred · _priority_ · origin.
   confirmed by research, 2026-06). _Low / probably-unwanted_ — text-rebuild is also
   better for privacy (no screenshots on disk); revisit only if the SDK ships public
   serialization and a real need appears. Origin: Phase 4.5.
+- **On-device download hardening (Phase 6 / 5.5b polish)** — the model download is a
+  one-time user-initiated WorkManager job without a foreground-service type or its own
+  progress notification; for a ~2.6 GB download on flaky networks, add a foreground
+  `dataSync` service (Android 14 type) + resumable/range requests + a persistent
+  notification. _Medium._ Origin: Phase 5.5a.
 - **Tune the `DeviceTier` thresholds against the real on-device model** — 5.4's
   HIGH/MEDIUM/LOW cutoffs (RAM ≥8/≥4 GiB, ≥6 cores, SDK ≥31, 64-bit, low-RAM flag) are a
   coarse first cut; the precise "can run Gemma 4 E2B" cutoff (and any GPU/NPU/accelerator
