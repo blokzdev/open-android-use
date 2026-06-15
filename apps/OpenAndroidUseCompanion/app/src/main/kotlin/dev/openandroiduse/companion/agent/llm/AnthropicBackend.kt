@@ -50,7 +50,11 @@ class AnthropicBackend(apiKey: String, baseUrl: String?) : AgentBackend {
         } finally {
             activeStream = null
         }
-        val message = accumulator.message()
+        val message = try {
+            accumulator.message()
+        } catch (error: Exception) {
+            throw BackendStreamException(error.message ?: "", error)
+        }
         return CompletedTurn(
             assistant = AnthropicMessageMapping.toAssistantMessage(message),
             stopReason = mapStopReason(message.stopReason().orElse(null)),

@@ -65,3 +65,10 @@ data class CompletedTurn(
  * normal terminal turn.
  */
 enum class AgentStopReason { END_TURN, TOOL_USE, REFUSAL, MAX_TOKENS, PAUSE_TURN }
+
+/**
+ * Thrown when a stream arrives but cannot be assembled into a complete turn
+ * (malformed or partial accumulation). The loop surfaces this as a stream-error
+ * note, distinct from transport/auth failures which carry their own cause chain.
+ */
+class BackendStreamException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)

@@ -2,26 +2,19 @@ package dev.openandroiduse.companion.agent
 
 import android.content.Context
 import android.util.Log
-import com.anthropic.client.okhttp.AnthropicOkHttpClient
-import com.anthropic.core.http.StreamResponse
-import com.anthropic.helpers.MessageAccumulator
-import com.anthropic.models.messages.Base64ImageSource
-import com.anthropic.models.messages.CacheControlEphemeral
-import com.anthropic.models.messages.ContentBlockParam
-import com.anthropic.models.messages.ImageBlockParam
-import com.anthropic.models.messages.Message
-import com.anthropic.models.messages.MessageCreateParams
-import com.anthropic.models.messages.MessageParam
-import com.anthropic.models.messages.OutputConfig
-import com.anthropic.models.messages.RawMessageStreamEvent
-import com.anthropic.models.messages.StopReason
-import com.anthropic.models.messages.TextBlockParam
-import com.anthropic.models.messages.ThinkingConfigAdaptive
-import com.anthropic.models.messages.ToolResultBlockParam
-import com.anthropic.models.messages.ToolUseBlock
 import dev.openandroiduse.companion.BuildConfig
 import dev.openandroiduse.companion.CompanionService
 import dev.openandroiduse.companion.R
+import dev.openandroiduse.companion.agent.llm.AgentBackend
+import dev.openandroiduse.companion.agent.llm.AgentContent
+import dev.openandroiduse.companion.agent.llm.AgentMessage
+import dev.openandroiduse.companion.agent.llm.AgentRole
+import dev.openandroiduse.companion.agent.llm.AgentStopReason
+import dev.openandroiduse.companion.agent.llm.AnthropicBackend
+import dev.openandroiduse.companion.agent.llm.BackendRequest
+import dev.openandroiduse.companion.agent.llm.BackendStreamException
+import dev.openandroiduse.companion.agent.llm.BackendSink
+import dev.openandroiduse.companion.agent.llm.ToolImage
 import org.json.JSONObject
 
 /**
@@ -63,7 +56,7 @@ object AgentController {
      * heap growth on an always-on service. [hadImage] records that the entry
      * originally carried a screenshot, so pruning counts only those.
      */
-    private class HistoryEntry(var param: MessageParam, val hadImage: Boolean = false) {
+    private class HistoryEntry(var message: AgentMessage, val hadImage: Boolean = false) {
         var pruned = false
     }
 
@@ -88,7 +81,7 @@ object AgentController {
     private var pausedByTouch = false
 
     @Volatile
-    private var activeStream: StreamResponse<RawMessageStreamEvent>? = null
+    private var backend: AgentBackend? = null
 
     @Volatile
     var isRunning = false
@@ -258,10 +251,7 @@ object AgentController {
         // Release a loop thread parked in the consent sheet so Stop is
         // responsive even mid-confirmation.
         ConfirmationSheet.cancel()
-        try {
-            activeStream?.close()
-        } catch (_: Exception) {
-        }
+        backend?.cancel()
     }
 
     /**
@@ -327,8 +317,8 @@ object AgentController {
     fun restore(payload: SessionPayload): Boolean {
         if (isRunning) return false
         history.clear()
-        for (param in SessionHistory.rebuild(payload.transcript.map { it.kind to it.text })) {
-            history.add(HistoryEntry(param))
+        for (message in SessionHistory.rebuild(payload.transcript.map { it.kind to it.text })) {
+            history.add(HistoryEntry(message))
         }
         synchronized(transcript) {
             transcript.clear()
@@ -366,58 +356,56 @@ object AgentController {
         confirmActions: Boolean,
         baseUrl: String?,
     ) {
-        val clientBuilder = AnthropicOkHttpClient.builder().apiKey(apiKey)
-        if (baseUrl != null) {
-            clientBuilder.baseUrl(baseUrl)
-        }
-        val client = clientBuilder.build()
+        val backend = AnthropicBackend(apiKey, baseUrl)
+        this.backend = backend
         val executor = ToolExecutor(service)
+        // Live deltas render exactly as before: text to the assistant line (and
+        // narration), thinking to the thinking line. Runs on the loop thread.
+        val sink = object : BackendSink {
+            override fun onTextDelta(text: String) {
+                log(KIND_ASSISTANT, text, append = true)
+                if (speakNarration) {
+                    VoiceNarrator.onAssistantDelta(text)
+                }
+            }
+
+            override fun onThinkingDelta(text: String) {
+                log(KIND_THINKING, text, append = true)
+            }
+        }
         try {
             var turns = 0
             while (turns < MAX_TOOL_TURNS) {
                 turns++
                 if (cancelRequested) return finish(stopReasonLabel())
 
-                val accumulator = MessageAccumulator.create()
-                try {
-                    client.messages().createStreaming(buildParams(model)).use { stream ->
-                        activeStream = stream
-                        for (event in stream.stream()) {
-                            if (cancelRequested) break
-                            accumulator.accumulate(event)
-                            emitDelta(event)
-                        }
-                    }
-                } finally {
-                    activeStream = null
+                val turn = try {
+                    backend.streamTurn(
+                        BackendRequest(model, AgentTools.SYSTEM_PROMPT, AgentTools.specs(), snapshotHistory()),
+                        sink,
+                    )
+                } catch (error: BackendStreamException) {
+                    if (cancelRequested) return finish(stopReasonLabel())
+                    return fail(str(R.string.agent_note_stream_error, error.message ?: ""))
                 }
                 if (cancelRequested) return finish(stopReasonLabel())
 
-                val message = try {
-                    accumulator.message()
-                } catch (error: Exception) {
-                    return fail(str(R.string.agent_note_stream_error, error.message ?: ""))
-                }
                 if (speakNarration) {
                     VoiceNarrator.onMessageEnd()
                 }
-                appendAssistant(message.toParam())
+                appendAssistant(turn.assistant)
 
-                val stopReason = message.stopReason().orElse(null)
-                when (stopReason) {
-                    StopReason.REFUSAL -> {
-                        val category = message.stopDetails()
-                            .map { it._additionalProperties().toString() }
-                            .orElse("")
-                        log(KIND_NOTE, "⚠ " + str(R.string.agent_note_refusal, category))
+                when (turn.stopReason) {
+                    AgentStopReason.REFUSAL -> {
+                        log(KIND_NOTE, "⚠ " + str(R.string.agent_note_refusal, turn.refusalDetail))
                         return finish("refusal")
                     }
-                    StopReason.TOOL_USE -> {
-                        val toolUses = message.content().mapNotNull { it.toolUse().orElse(null) }
+                    AgentStopReason.TOOL_USE -> {
+                        val toolUses = turn.assistant.content.filterIsInstance<AgentContent.ToolUse>()
                         if (toolUses.isEmpty()) return finish("end_turn")
                         val denied = confirmActions && needsConfirmation(toolUses) &&
                             !ConfirmationSheet.ask(service, batchSummary(toolUses))
-                        val results = mutableListOf<ContentBlockParam>()
+                        val results = mutableListOf<AgentContent.ToolResult>()
                         var interrupted = false
                         for (toolUse in toolUses) {
                             if (cancelRequested) {
@@ -441,16 +429,16 @@ object AgentController {
                         }
                         if (interrupted) return finish(stopReasonLabel())
                     }
-                    StopReason.PAUSE_TURN -> {
+                    AgentStopReason.PAUSE_TURN -> {
                         // Server-side pause: re-send and the API resumes the turn.
                     }
-                    StopReason.MAX_TOKENS -> {
+                    AgentStopReason.MAX_TOKENS -> {
                         // A truncated turn may end in a tool_use; close it out
                         // so "continue" doesn't 400.
-                        fillDanglingToolUses(message)
+                        fillDanglingToolUses(turn.assistant)
                         return finish("max_tokens")
                     }
-                    else -> return finish("end_turn")
+                    AgentStopReason.END_TURN -> return finish("end_turn")
                 }
             }
             fail(str(R.string.agent_note_max_turns, MAX_TOOL_TURNS))
@@ -466,59 +454,16 @@ object AgentController {
                 finish(stopReasonLabel())
             }
         } finally {
-            client.close()
+            backend.close()
+            this.backend = null
             isRunning = false
             listener?.onTaskStateChanged(false)
         }
     }
 
-    private fun buildParams(model: String): MessageCreateParams {
-        val builder = MessageCreateParams.builder()
-            .model(model)
-            .maxTokens(MAX_TOKENS)
-            // Cache the whole conversation prefix, not just tools+system: the
-            // tree-text and (windowed) screenshots dominate input tokens, and
-            // auto-caching the last block lets every turn read the prior prefix.
-            .cacheControl(CacheControlEphemeral.builder().build())
-            .thinking(
-                ThinkingConfigAdaptive.builder()
-                    .display(ThinkingConfigAdaptive.Display.SUMMARIZED)
-                    .build(),
-            )
-            .outputConfig(OutputConfig.builder().effort(OutputConfig.Effort.HIGH).build())
-            // Cache breakpoint on the last (only) system block caches the
-            // frozen tools + system prefix across turns.
-            .systemOfTextBlockParams(
-                listOf(
-                    TextBlockParam.builder()
-                        .text(AgentTools.SYSTEM_PROMPT)
-                        .cacheControl(CacheControlEphemeral.builder().build())
-                        .build(),
-                ),
-            )
-        for (tool in AgentTools.definitions()) {
-            builder.addTool(tool)
-        }
-        synchronized(this) {
-            for (entry in history) {
-                builder.addMessage(entry.param)
-            }
-        }
-        return builder.build()
-    }
-
-    private fun emitDelta(event: RawMessageStreamEvent) {
-        val delta = event.contentBlockDelta().orElse(null)?.delta() ?: return
-        delta.text().orElse(null)?.let {
-            log(KIND_ASSISTANT, it.text(), append = true)
-            if (speakNarration) {
-                VoiceNarrator.onAssistantDelta(it.text())
-            }
-        }
-        delta.thinking().orElse(null)?.let {
-            log(KIND_THINKING, it.thinking(), append = true)
-        }
-    }
+    /** Snapshot the neutral history for one request, under the same lock buildParams held. */
+    @Synchronized
+    private fun snapshotHistory(): List<AgentMessage> = history.map { it.message }
 
     private fun stopReasonLabel(): String = if (pausedByTouch) "touched" else "stopped"
 
@@ -526,84 +471,56 @@ object AgentController {
         "click", "drag", "scroll", "type_text", "press_key", "set_value", "perform_secondary_action",
     )
 
-    private fun needsConfirmation(toolUses: List<ToolUseBlock>): Boolean =
-        toolUses.any { it.name() in mutatingTools }
+    private fun needsConfirmation(toolUses: List<AgentContent.ToolUse>): Boolean =
+        toolUses.any { it.name in mutatingTools }
 
     /** Single decode of a tool_use's input, shared by the summary and execution paths. */
-    private fun argsOf(toolUse: ToolUseBlock): JSONObject = try {
-        @Suppress("UNCHECKED_CAST")
-        JSONObject(toolUse._input().convert(Map::class.java) as Map<String, Any?>)
+    private fun argsOf(toolUse: AgentContent.ToolUse): JSONObject = try {
+        JSONObject(toolUse.argsJson)
     } catch (_: Exception) {
         JSONObject()
     }
 
-    private fun batchSummary(toolUses: List<ToolUseBlock>): String =
+    private fun batchSummary(toolUses: List<AgentContent.ToolUse>): String =
         toolUses.joinToString("\n") { toolUse ->
-            "• ${toolUse.name()} ${summarizeArgs(toolUse.name(), argsOf(toolUse))}".trimEnd()
+            "• ${toolUse.name} ${summarizeArgs(toolUse.name, argsOf(toolUse))}".trimEnd()
         }
 
-    private fun deniedResult(toolUse: ToolUseBlock): ContentBlockParam =
+    private fun deniedResult(toolUse: AgentContent.ToolUse): AgentContent.ToolResult =
         errorResult(toolUse, "The user declined this action. Ask how they would like to proceed instead of retrying.")
 
-    private fun interruptedResult(toolUse: ToolUseBlock): ContentBlockParam =
+    private fun interruptedResult(toolUse: AgentContent.ToolUse): AgentContent.ToolResult =
         errorResult(toolUse, "This action was not performed because the task was interrupted.")
 
-    private fun errorResult(toolUse: ToolUseBlock, text: String): ContentBlockParam =
-        ContentBlockParam.ofToolResult(
-            ToolResultBlockParam.builder()
-                .toolUseId(toolUse.id())
-                .content(text)
-                .isError(true)
-                .build(),
-        )
+    private fun errorResult(toolUse: AgentContent.ToolUse, text: String): AgentContent.ToolResult =
+        AgentContent.ToolResult(toolUseId = toolUse.id, text = text, isError = true)
 
     /** Closes out any tool_use blocks in [message] with interrupted results. */
-    private fun fillDanglingToolUses(message: Message) {
-        val toolUses = message.content().mapNotNull { it.toolUse().orElse(null) }
+    private fun fillDanglingToolUses(message: AgentMessage) {
+        val toolUses = message.content.filterIsInstance<AgentContent.ToolUse>()
         if (toolUses.isNotEmpty()) {
             appendToolResults(toolUses.map { interruptedResult(it) })
         }
     }
 
-    private fun executeTool(executor: ToolExecutor, toolUse: ToolUseBlock): ContentBlockParam {
+    private fun executeTool(executor: ToolExecutor, toolUse: AgentContent.ToolUse): AgentContent.ToolResult {
         val args = argsOf(toolUse)
-        val summary = summarizeArgs(toolUse.name(), args)
-        log(KIND_TOOL, "▸ ${toolUse.name()} $summary".trimEnd())
-        val outcome = executor.callTool(toolUse.name(), args)
+        val summary = summarizeArgs(toolUse.name, args)
+        log(KIND_TOOL, "▸ ${toolUse.name} $summary".trimEnd())
+        val outcome = executor.callTool(toolUse.name, args)
         if (outcome.isError) {
-            log(KIND_TOOL, "✗ ${toolUse.name()} failed — the agent will see the error and adapt")
+            log(KIND_TOOL, "✗ ${toolUse.name} failed — the agent will see the error and adapt")
         }
         outcome.screenshotPngBase64?.let { png ->
             latestScreenshotBase64 = png
             latestTapNormalized = executor.lastTapNormalized
             listener?.onScreenshotCaptured(png)
         }
-
-        val blocks = mutableListOf(
-            ToolResultBlockParam.Content.Block.ofText(
-                TextBlockParam.builder().text(outcome.text.ifEmpty { "(empty)" }).build(),
-            ),
-        )
-        outcome.screenshotPngBase64?.let { png ->
-            blocks.add(
-                ToolResultBlockParam.Content.Block.ofImage(
-                    ImageBlockParam.builder()
-                        .source(
-                            Base64ImageSource.builder()
-                                .data(png)
-                                .mediaType(Base64ImageSource.MediaType.IMAGE_PNG)
-                                .build(),
-                        )
-                        .build(),
-                ),
-            )
-        }
-        return ContentBlockParam.ofToolResult(
-            ToolResultBlockParam.builder()
-                .toolUseId(toolUse.id())
-                .contentOfBlocks(blocks)
-                .isError(outcome.isError)
-                .build(),
+        return AgentContent.ToolResult(
+            toolUseId = toolUse.id,
+            text = outcome.text.ifEmpty { "(empty)" },
+            isError = outcome.isError,
+            image = outcome.screenshotPngBase64?.let { ToolImage(it) },
         )
     }
 
@@ -620,69 +537,44 @@ object AgentController {
     }
 
     @Synchronized
-    private fun appendAssistant(param: MessageParam) {
-        history.add(HistoryEntry(param))
+    private fun appendAssistant(message: AgentMessage) {
+        history.add(HistoryEntry(message))
     }
 
     /**
      * Appends a tool-result user message. Only entries that actually carry a
      * screenshot count toward [RECENT_IMAGE_WINDOW]; older image-bearing
      * entries are rewritten in place to drop the screenshot (and the heavy
-     * full param with it), bounding context and heap growth.
+     * image bytes with it), bounding context and heap growth.
      */
     @Synchronized
-    private fun appendToolResults(blocks: List<ContentBlockParam>) {
-        val hadImage = blocks.any { block ->
-            block.toolResult().orElse(null)
-                ?.content()?.orElse(null)?.blocks()?.orElse(null)
-                ?.any { it.image().isPresent } == true
-        }
-        val message = MessageParam.builder()
-            .role(MessageParam.Role.USER)
-            .contentOfBlockParams(blocks)
-            .build()
-        history.add(HistoryEntry(message, hadImage))
+    private fun appendToolResults(results: List<AgentContent.ToolResult>) {
+        val hadImage = results.any { it.image != null }
+        history.add(HistoryEntry(AgentMessage(AgentRole.USER, results), hadImage))
 
         val live = history.filter { it.hadImage && !it.pruned }
         if (live.size > RECENT_IMAGE_WINDOW) {
             for (entry in live.dropLast(RECENT_IMAGE_WINDOW)) {
-                entry.param = stripScreenshots(entry.param)
+                entry.message = stripScreenshots(entry.message)
                 entry.pruned = true
             }
         }
     }
 
-    /** Rewrites a tool-result message without image blocks, noting the removal only where one occurred. */
-    private fun stripScreenshots(param: MessageParam): MessageParam {
-        val content = param.content().blockParams().orElse(null) ?: return param
-        val rewritten = content.map { block ->
-            val toolResult = block.toolResult().orElse(null) ?: return@map block
-            val source = toolResult.content().orElse(null)?.blocks()?.orElse(null) ?: return@map block
-            if (source.none { it.image().isPresent }) return@map block
-            val textOnly = source.filter { it.text().isPresent }.toMutableList()
-            textOnly.add(
-                ToolResultBlockParam.Content.Block.ofText(
-                    TextBlockParam.builder().text("(screenshot omitted to save context)").build(),
-                ),
-            )
-            ContentBlockParam.ofToolResult(
-                ToolResultBlockParam.builder()
-                    .toolUseId(toolResult.toolUseId())
-                    .contentOfBlocks(textOnly)
-                    .isError(toolResult.isError().orElse(false))
-                    .build(),
-            )
+    /** Rewrites a tool-result message without image bytes, marking each result that lost one. */
+    private fun stripScreenshots(message: AgentMessage): AgentMessage {
+        val rewritten = message.content.map { block ->
+            if (block is AgentContent.ToolResult && block.image != null) {
+                block.copy(image = null, omittedImage = true)
+            } else {
+                block
+            }
         }
-        return MessageParam.builder().role(MessageParam.Role.USER).contentOfBlockParams(rewritten).build()
+        return AgentMessage(AgentRole.USER, rewritten)
     }
 
-    private fun userMessage(text: String): MessageParam =
-        MessageParam.builder()
-            .role(MessageParam.Role.USER)
-            .contentOfBlockParams(
-                listOf(ContentBlockParam.ofText(TextBlockParam.builder().text(text).build())),
-            )
-            .build()
+    private fun userMessage(text: String): AgentMessage =
+        AgentMessage(AgentRole.USER, listOf(AgentContent.Text(text)))
 
     private fun finish(reason: String) {
         when (reason) {
