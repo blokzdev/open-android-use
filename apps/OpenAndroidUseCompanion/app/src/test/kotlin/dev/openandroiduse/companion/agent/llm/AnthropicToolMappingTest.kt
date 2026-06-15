@@ -7,21 +7,14 @@ import org.junit.Test
 
 /**
  * Prompt-cache parity guard (Phase 5.1): the neutral [AgentTools.specs] mapped
- * through [AnthropicMessageMapping.toAnthropicTool] must reproduce the Anthropic
- * tool list byte-for-byte. The tools prefix is part of the cached prompt prefix,
- * so any drift would silently break caching.
+ * through [AnthropicMessageMapping.toAnthropicTool] must produce a stable,
+ * correctly-shaped tool list. The tools prefix is part of the cached prompt
+ * prefix, so any drift would silently break caching. (The emulator smoke pins
+ * the exact on-the-wire schema end-to-end.)
  */
 class AnthropicToolMappingTest {
 
     private fun mapped() = AgentTools.specs().map { AnthropicMessageMapping.toAnthropicTool(it) }
-
-    @Test
-    fun mappedSpecsMatchAnthropicDefinitions() {
-        assertEquals(
-            AgentTools.definitions().map { it.toString() },
-            mapped().map { it.toString() },
-        )
-    }
 
     @Test
     fun exposesTheNineToolSurfaceInOrder() {

@@ -7,8 +7,8 @@ import org.junit.Test
 class AgentToolsTest {
 
     @Test
-    fun definitionsExposeTheNineToolSurface() {
-        val names = AgentTools.definitions().map { it.name() }
+    fun specsExposeTheNineToolSurface() {
+        val names = AgentTools.specs().map { it.name }
         assertEquals(9, names.size)
         assertEquals(
             listOf(
@@ -20,34 +20,31 @@ class AgentToolsTest {
     }
 
     @Test
-    fun definitionsAreDeterministicAcrossCalls() {
+    fun specsAreDeterministicAcrossCalls() {
         // Prompt caching depends on a byte-identical tools prefix every turn.
-        val first = AgentTools.definitions().map { it.toString() }
-        val second = AgentTools.definitions().map { it.toString() }
+        val first = AgentTools.specs().map { it.toString() }
+        val second = AgentTools.specs().map { it.toString() }
         assertEquals(first, second)
     }
 
     @Test
     fun clickRequiresOnlyApp() {
-        val click = AgentTools.definitions().first { it.name() == "click" }
-        assertEquals(listOf("app"), click.inputSchema().required().orElse(emptyList()))
+        val click = AgentTools.specs().first { it.name == "click" }
+        assertEquals(listOf("app"), click.required)
     }
 
     @Test
     fun dragRequiresAllCoordinates() {
-        val drag = AgentTools.definitions().first { it.name() == "drag" }
-        assertEquals(
-            listOf("app", "from_x", "from_y", "to_x", "to_y"),
-            drag.inputSchema().required().orElse(emptyList()),
-        )
+        val drag = AgentTools.specs().first { it.name == "drag" }
+        assertEquals(listOf("app", "from_x", "from_y", "to_x", "to_y"), drag.required)
     }
 
     @Test
     fun systemPromptIsFrozenAndMentionsEveryTool() {
-        for (tool in AgentTools.definitions()) {
+        for (spec in AgentTools.specs()) {
             assertTrue(
-                "system prompt must mention ${tool.name()}",
-                AgentTools.SYSTEM_PROMPT.contains(tool.name()),
+                "system prompt must mention ${spec.name}",
+                AgentTools.SYSTEM_PROMPT.contains(spec.name),
             )
         }
     }

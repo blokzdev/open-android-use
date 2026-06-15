@@ -1,7 +1,5 @@
 package dev.openandroiduse.companion.agent
 
-import com.anthropic.core.JsonValue
-import com.anthropic.models.messages.Tool
 import dev.openandroiduse.companion.agent.llm.ToolSpec
 
 /**
@@ -11,11 +9,9 @@ import dev.openandroiduse.companion.agent.llm.ToolSpec
  * form the byte-identical prompt-cache prefix across turns — do not interleave
  * anything volatile (timestamps, ids) before them.
  *
- * [specs] is the provider-neutral source of truth (Phase 5.1); the
- * Anthropic-specific [definitions] derives from it. The control surface stays
- * SDK-free, so the mapping to `com.anthropic` `Tool` lives in the backend
- * (AnthropicMessageMapping.toAnthropicTool) — [definitions] is retained only
- * until the Anthropic path is the sole caller.
+ * [specs] is the provider-neutral source of truth (Phase 5.1); each backend maps
+ * it to its own wire format (the Anthropic mapping lives in
+ * AnthropicMessageMapping.toAnthropicTool), so this file stays SDK-free.
  */
 object AgentTools {
 
@@ -51,10 +47,6 @@ object AgentTools {
             "off and wait.\n" +
             "- If the screen state contradicts your expectation, re-snapshot and adapt " +
             "rather than repeating the same action."
-
-    /** Deterministic Anthropic tool list, derived from [specs] — same order as the Go bridge. */
-    fun definitions(): List<Tool> =
-        specs().map { tool(it.name, it.description, it.properties, it.required) }
 
     /**
      * Provider-neutral source of truth for the frozen 9-tool schema (Phase 5.1).
@@ -176,29 +168,6 @@ object AgentTools {
         properties: LinkedHashMap<String, Map<String, Any>>,
         required: List<String>,
     ): ToolSpec = ToolSpec(name, description, properties, required)
-
-    private fun tool(
-        name: String,
-        description: String,
-        properties: Map<String, Map<String, Any>>,
-        required: List<String>,
-    ): Tool {
-        val propertiesBuilder = Tool.InputSchema.Properties.builder()
-        for ((key, schema) in properties) {
-            propertiesBuilder.putAdditionalProperty(key, JsonValue.from(schema))
-        }
-        val schemaBuilder = Tool.InputSchema.builder()
-            .properties(propertiesBuilder.build())
-            .putAdditionalProperty("additionalProperties", JsonValue.from(false))
-        if (required.isNotEmpty()) {
-            schemaBuilder.required(required)
-        }
-        return Tool.builder()
-            .name(name)
-            .description(description)
-            .inputSchema(schemaBuilder.build())
-            .build()
-    }
 
     private fun stringProperty(description: String): Map<String, Any> =
         linkedMapOf("type" to "string", "description" to description)
