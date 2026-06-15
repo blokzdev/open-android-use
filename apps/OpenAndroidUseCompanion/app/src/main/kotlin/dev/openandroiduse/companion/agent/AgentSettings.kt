@@ -64,6 +64,17 @@ class AgentSettings(context: Context) {
         prefs.edit().putBoolean(sendScreenshotsPref(provider), value).apply()
     }
 
+    /**
+     * Phase 5.7 Privacy / Local-Only Mode: a global umbrella that forces the
+     * on-device provider so nothing leaves the device. Default off. Enforced at a
+     * single chokepoint in [AgentController] via [effectiveProvider].
+     */
+    var localOnlyMode: Boolean
+        get() = prefs.getBoolean(PREF_LOCAL_ONLY_MODE, false)
+        set(value) {
+            prefs.edit().putBoolean(PREF_LOCAL_ONLY_MODE, value).apply()
+        }
+
     /** Phase 3.1b consent ladder: show a confirmation sheet before action batches. */
     var confirmActions: Boolean
         get() = prefs.getBoolean(PREF_CONFIRM_ACTIONS, false)
@@ -197,6 +208,7 @@ class AgentSettings(context: Context) {
         private const val PREF_SELECTED_PROVIDER = "selected_provider"
         private const val PREF_MODEL = "model"
         private const val PREF_SEND_SCREENSHOTS = "send_screenshots"
+        private const val PREF_LOCAL_ONLY_MODE = "local_only_mode"
         private const val PREF_CONFIRM_ACTIONS = "confirm_actions"
         private const val PREF_SPEAK_NARRATION = "speak_narration"
         private const val PREF_ONBOARDING_COMPLETED = "onboarding_completed"

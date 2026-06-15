@@ -183,7 +183,10 @@ object AgentController {
             log(KIND_NOTE, str(R.string.agent_note_no_service))
             return false
         }
-        val provider = settings.selectedProvider
+        // Phase 5.7: Local-Only Mode forces the on-device provider here — the single
+        // chokepoint that makes "no cloud egress" structural, independent of any
+        // stale UI selection (no cloud backend is ever constructed below).
+        val provider = effectiveProvider(settings.localOnlyMode, settings.selectedProvider)
         // Cloud providers need a BYOK key; the on-device provider needs its model
         // downloaded. Resolve the right credential (key, or local model path).
         val credential: String = if (provider.requiresApiKey) {

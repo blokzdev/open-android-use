@@ -85,4 +85,31 @@ class AgentSettingsInstrumentedTest {
 
         settings.setSendScreenshots(true, LlmProvider.ON_DEVICE)
     }
+
+    @Test
+    fun localOnlyModeDefaultsOffAndPersists() {
+        val settings = AgentSettings(context)
+        assertFalse(settings.localOnlyMode)
+
+        settings.localOnlyMode = true
+        assertTrue(settings.localOnlyMode)
+        // Persists across a fresh instance (its own prefs-backed flag).
+        assertTrue(AgentSettings(context).localOnlyMode)
+
+        settings.localOnlyMode = false
+        assertFalse(AgentSettings(context).localOnlyMode)
+    }
+
+    @Test
+    fun localOnlyModeKeepsStoredCloudKeys() {
+        val settings = AgentSettings(context)
+        settings.storeApiKey("sk-keep-me", LlmProvider.ANTHROPIC)
+        settings.localOnlyMode = true
+
+        // Keys are kept, just ignored while local-only is on (least-friction toggle).
+        assertTrue(settings.hasApiKey(LlmProvider.ANTHROPIC))
+
+        settings.localOnlyMode = false
+        settings.clearApiKey(LlmProvider.ANTHROPIC)
+    }
 }
