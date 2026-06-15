@@ -42,6 +42,7 @@ import dev.openandroiduse.companion.ui.ResponsiveContent
 import dev.openandroiduse.companion.ui.markHeading
 import dev.openandroiduse.companion.ui.showUndo
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
+import dev.openandroiduse.companion.ui.theme.Spacing
 import kotlinx.coroutines.launch
 
 /**
@@ -145,8 +146,8 @@ private fun PrivacyScreen(
         Column(
             modifier = inner
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(Spacing.xl),
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
             Text(stringResource(R.string.privacy_heading), style = MaterialTheme.typography.titleMedium, modifier = Modifier.markHeading())
             PrivacyPoint(stringResource(R.string.privacy_on_device_title), stringResource(R.string.privacy_on_device_body))
@@ -198,7 +199,7 @@ private fun PrivacyScreen(
 
 @Composable
 private fun PrivacyPoint(title: String, body: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(title, style = MaterialTheme.typography.titleSmall)
         Text(body, style = MaterialTheme.typography.bodyMedium)
     }

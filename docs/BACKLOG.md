@@ -77,6 +77,12 @@ Each entry: **idea** — why deferred · _priority_ · origin.
 - **Draggable in-control badge showing the live action** — let the user reposition the badge and
   show the current tool/step on it. _Low._ Origin: Phase 4.7.
 - **Conversation folders / tags** — organize History beyond pin/archive. _Low._ Origin: Phase 4.7.
+- **Type-scale tokens + motion-wrapper composables** — Phase 4.7a-3 shipped spacing tokens
+  (`ui/theme/Spacing.kt`) + an `isReducedMotion()` helper, but left typography on
+  `MaterialTheme.typography` defaults and didn't add reusable animated-container composables (e.g.
+  a `CrossfadeScaffold`). Also: a handful of non-grid one-off `.dp` values (6/10/11/14/18) remain
+  inline by design. Low value now; revisit if a custom type scale or repeated transitions warrant.
+  _Low._ Origin: Phase 4.7a-3 (deferred).
 - **Multi-select bulk archive/delete in History** — deferred from Phase 4.7c-2. A selection mode
   (long-press to enter, per-row checkboxes, a contextual action bar with bulk archive/delete +
   batch undo, back-to-exit) on the shared `SessionsList`, interoperating with search/grouping.

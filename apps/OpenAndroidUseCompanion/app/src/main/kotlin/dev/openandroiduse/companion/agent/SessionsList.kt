@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import dev.openandroiduse.companion.R
 import dev.openandroiduse.companion.ui.markHeading
 import dev.openandroiduse.companion.ui.showUndo
+import dev.openandroiduse.companion.ui.theme.Spacing
 import kotlinx.coroutines.launch
 
 /**
@@ -84,7 +85,7 @@ internal fun SessionsList(
     }
     val sections = remember(filtered) { SessionGrouping.group(filtered, System.currentTimeMillis()) }
 
-    Column(modifier.fillMaxSize().padding(12.dp)) {
+    Column(modifier.fillMaxSize().padding(Spacing.lg)) {
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
@@ -119,7 +120,7 @@ internal fun SessionsList(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(top = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
                 for (section in sections) {
                     item(key = "header-${section.bucket}") {
@@ -200,7 +201,7 @@ private fun SessionRow(
 
     ElevatedCard(Modifier.fillMaxWidth().clickable { onResume(meta.id) }) {
         Row(
-            Modifier.padding(12.dp),
+            Modifier.padding(Spacing.lg),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {

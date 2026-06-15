@@ -516,6 +516,16 @@ need a real device.
   Markdown file containing every saved conversation (separated by rules); with none saved, a
   "No saved conversations to export" notice instead.
 
+### Phase 4.7a-3 — Spacing tokens + reduce-motion completeness
+
+- [ ] **V120. Reduce-motion: jump-to-latest**: enable system "Remove animations". In chat, scroll
+  up so the jump-to-latest FAB appears, then tap it. Pass: the list jumps **instantly** (no smooth
+  scroll). With animations on, it scrolls smoothly. (Auto-scroll on new messages and the typing
+  dots already honored reduce-motion; this closes the last gap.)
+- [ ] **V121. Spacing unchanged**: visually spot-check Home / Chat / Settings / Onboarding /
+  Privacy / History / About — padding and gaps look the same as before the token refactor (the
+  tokens encode the previous 8/12/16dp values; this is a no-visual-change cleanup).
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |

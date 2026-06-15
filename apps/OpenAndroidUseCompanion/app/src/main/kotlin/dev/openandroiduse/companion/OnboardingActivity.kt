@@ -65,6 +65,7 @@ import dev.openandroiduse.companion.agent.ModelCatalog
 import dev.openandroiduse.companion.agent.Motion
 import dev.openandroiduse.companion.ui.markHeading
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
+import dev.openandroiduse.companion.ui.theme.Spacing
 
 /**
  * First-run onboarding wizard (Phase 4.1): welcome → enable accessibility →
@@ -152,8 +153,8 @@ private fun OnboardingScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                        .padding(Spacing.xxl),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.lg),
                 ) {
                     when (current) {
                         0 -> WelcomeStep()
@@ -187,8 +188,8 @@ private fun OnboardingScreen(
 
             // Bottom action bar — buttons vary per step.
             Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(Spacing.xl),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (step > 0 && step < 5) {
@@ -285,7 +286,7 @@ private fun AccessibilityStep(serviceRunning: Boolean, onOpen: () -> Unit) {
         StatusLine(
             ok = serviceRunning,
             text = stringResource(if (serviceRunning) R.string.onboarding_service_running else R.string.onboarding_service_not_enabled),
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(Spacing.xl),
         )
     }
     Button(onClick = onOpen, modifier = Modifier.fillMaxWidth()) {
@@ -321,7 +322,7 @@ private fun PrivacyStep() {
 
 @Composable
 private fun PrivacyPoint(title: String, body: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(title, style = MaterialTheme.typography.titleSmall)
         Text(body, style = MaterialTheme.typography.bodyMedium)
     }
@@ -396,7 +397,7 @@ private fun PreferencesStep(
 @Composable
 private fun ToggleRow(title: String, body: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             Text(body, style = MaterialTheme.typography.bodySmall)
         }
@@ -410,7 +411,7 @@ private fun ReadyStep(serviceRunning: Boolean, hasKey: Boolean, onTry: (String) 
     StepIcon(Icons.Filled.RocketLaunch)
     Text(stringResource(R.string.onboarding_ready_title), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.markHeading())
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(modifier = Modifier.padding(Spacing.xl), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
             StatusLine(
                 ok = serviceRunning,
                 text = stringResource(if (serviceRunning) R.string.onboarding_ready_accessibility_on else R.string.onboarding_ready_accessibility_off),

@@ -122,8 +122,10 @@ import dev.openandroiduse.companion.CompanionService
 import dev.openandroiduse.companion.R
 import dev.openandroiduse.companion.Readiness
 import dev.openandroiduse.companion.readiness
+import dev.openandroiduse.companion.ui.isReducedMotion
 import dev.openandroiduse.companion.ui.markHeading
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
+import dev.openandroiduse.companion.ui.theme.Spacing
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -545,6 +547,7 @@ private fun ChatScreen(
     onExpandView: () -> Unit,
 ) {
     val context = LocalContext.current
+    val reducedMotion = isReducedMotion()
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val snackbarHost = remember { SnackbarHostState() }
@@ -563,7 +566,7 @@ private fun ChatScreen(
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty() && atBottom) {
             val last = messages.size - 1
-            if (Motion.animationsDisabled(context)) listState.scrollToItem(last) else listState.animateScrollToItem(last)
+            if (reducedMotion) listState.scrollToItem(last) else listState.animateScrollToItem(last)
         }
     }
     val onCopyMessage: (String) -> Unit = { text ->
@@ -615,8 +618,8 @@ private fun ChatScreen(
                 Box(Modifier.fillMaxSize()) {
                     LazyColumn(
                         state = listState,
-                        modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        modifier = Modifier.fillMaxSize().padding(horizontal = Spacing.lg),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                     ) {
                         itemsIndexed(messages) { index, entry ->
                             val prev = messages.getOrNull(index - 1)
@@ -657,8 +660,13 @@ private fun ChatScreen(
                     // so new turns no longer drag the user down mid-read.
                     if (!atBottom) {
                         SmallFloatingActionButton(
-                            onClick = { scope.launch { listState.animateScrollToItem(messages.size - 1) } },
-                            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+                            onClick = {
+                                scope.launch {
+                                    val last = messages.size - 1
+                                    if (reducedMotion) listState.scrollToItem(last) else listState.animateScrollToItem(last)
+                                }
+                            },
+                            modifier = Modifier.align(Alignment.BottomEnd).padding(Spacing.xl),
                         ) {
                             Icon(
                                 Icons.Filled.KeyboardArrowDown,
@@ -726,8 +734,8 @@ private fun AgentViewCard(
     onStop: () -> Unit,
     onExpand: () -> Unit,
 ) {
-    ElevatedCard(Modifier.fillMaxWidth().padding(12.dp)) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    ElevatedCard(Modifier.fillMaxWidth().padding(Spacing.lg)) {
+        Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
             val statusDesc = stringResource(if (running) R.string.chat_status_working else R.string.chat_status_idle)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -968,8 +976,7 @@ private fun BubbleTime(timestamp: Long, alignEnd: Boolean) {
  */
 @Composable
 private fun TypingIndicator() {
-    val context = LocalContext.current
-    val reduced = Motion.animationsDisabled(context)
+    val reduced = isReducedMotion()
     val transition = rememberInfiniteTransition(label = "typing")
     val desc = stringResource(R.string.chat_typing)
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
@@ -1063,7 +1070,7 @@ private fun Bubble(text: String, user: Boolean, onCopy: (String) -> Unit, onShar
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth(0.88f).widthIn(max = 560.dp),
                 ) {
-                    Text(text, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodyMedium)
+                    Text(text, modifier = Modifier.padding(Spacing.lg), style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }
@@ -1081,7 +1088,7 @@ private fun AssistantBubble(text: String, onCopy: (String) -> Unit, onShare: (St
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth(0.92f).widthIn(max = 640.dp),
                 ) {
-                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         ChatMarkdown.parse(text).forEach { block -> MarkdownBlock(block) }
                     }
                 }
@@ -1096,12 +1103,12 @@ private fun MarkdownBlock(block: MdBlock) {
     val linkColor = MaterialTheme.colorScheme.primary
     when (block) {
         is MdBlock.Paragraph -> Text(block.spans.toAnnotated(linkColor), style = MaterialTheme.typography.bodyMedium)
-        is MdBlock.BulletList -> Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        is MdBlock.BulletList -> Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             block.items.forEach { spans ->
                 Row { Text("•  "); Text(spans.toAnnotated(linkColor), style = MaterialTheme.typography.bodyMedium) }
             }
         }
-        is MdBlock.NumberedList -> Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        is MdBlock.NumberedList -> Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             block.items.forEachIndexed { i, spans ->
                 Row { Text("${i + 1}.  "); Text(spans.toAnnotated(linkColor), style = MaterialTheme.typography.bodyMedium) }
             }
@@ -1167,7 +1174,7 @@ private fun ThinkingBlock(text: String) {
                 text,
                 style = MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 12.dp),
+                modifier = Modifier.padding(horizontal = Spacing.lg),
             )
         }
     }
@@ -1208,7 +1215,7 @@ private fun NoteCard(
         NoteStyle.INFO -> MaterialTheme.colorScheme.surfaceVariant
     }
     Surface(color = color, shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Text(text, style = MaterialTheme.typography.bodySmall)
             when (style) {
                 NoteStyle.NEEDS_KEY -> TextButton(onClick = onOpenSettings) { Text(stringResource(R.string.chat_note_add_key)) }
