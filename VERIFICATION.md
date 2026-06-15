@@ -557,6 +557,13 @@ need a real device.
   an on-device run of the shrunk build proves no reflected SDK member was removed — this is the Phase 6
   final-shrink gate, staged now.)
 
+### Phase 5.4 — device-capability tier
+
+- [ ] **V127. About shows the device tier + facts**: open Settings → About on a real device.
+  Pass: the "Device" section shows a tier (High/Standard/Limited) and RAM / CPU-core count /
+  Android version / 64-bit values that match the device (sanity-checks the collector + the
+  tier rule on real hardware; nothing else gates on the tier yet).
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |

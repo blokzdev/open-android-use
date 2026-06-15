@@ -82,7 +82,8 @@ while keeping the on-device, no-server, key-stays-local posture intact.
 - [x] 5.3 — model lists behind the provider (`ProviderModels` + `LlmProvider.models`/
       `createBackend`; `ModelCatalog` SDK-free) + R8 code-shrink enabled for release
       (`proguard-rules.pro`, ~32M→~8.5M) with a CI assembleRelease gate.
-- [ ] 5.4 — device-capability diagnostics + tiering.
+- [x] 5.4 — device-capability diagnostics + tiering (`DeviceCapability`/`DeviceTier`
+      classifier + collector; About "Device" diagnostic; the signal 5.5/5.6 gate on).
 - [ ] 5.5 — on-device Gemma 4 E2B backend + runtime download.
 - [ ] 5.6 — adaptive perception.
 - [ ] 5.7 — Phase-5 hardening.
@@ -119,3 +120,8 @@ while keeping the on-device, no-server, key-stays-local posture intact.
   JSON/transport stacks whole (so runtime reflection can't be stripped); resource
   shrink, rule-tightening, and on-device validation of the minified build are the
   Phase 6 final-shrink gate. Release APK ~32M → ~8.5M.
+- 2026-06-15 (5.4): **device tier is a sibling of `Readiness`, not merged** —
+  `Readiness` = can-the-agent-run (accessibility + key); `DeviceTier` = how-well.
+  5.4 only **produces + surfaces** the tier (About diagnostic); the gates ship with
+  5.5 (offer on-device model) and 5.6 (text-first vs vision). Tier thresholds are
+  **provisional**, tuned against the real model in 5.5 (BACKLOG).
