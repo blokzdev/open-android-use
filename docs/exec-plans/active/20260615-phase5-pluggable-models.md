@@ -89,7 +89,9 @@ while keeping the on-device, no-server, key-stays-local posture intact.
       AGP 8.13.2) + LiteRT-LM runtime + `OnDeviceBackend` (streaming) + `GemmaToolPrompt`
       function calling. Build + FC-format are CI-verified; the live inference loop is
       hardware-validated (V131+).
-- [ ] 5.6 — adaptive perception.
+- [x] 5.6 — adaptive perception: per-provider `sendScreenshots` toggle (`PerceptionMode`),
+      text-only `ToolExecutor` path (tree at scale 1.0, no image), on-device vision via
+      LiteRT-LM `Content.ImageBytes`. Default vision-on for all providers.
 - [ ] 5.7 — Phase-5 hardening.
 
 ## Decisions
@@ -137,6 +139,11 @@ while keeping the on-device, no-server, key-stays-local posture intact.
   (`GemmaToolPrompt`, pure/unit-tested) rather than the under-documented native LiteRT-LM
   `ToolProvider` — portable + verifiable. The native `ToolProvider`/`ToolCall` API is a
   possible future optimization (BACKLOG). Live inference is hardware-validated only.
+- 2026-06-15 (5.6): **perception is a per-provider toggle, not a capability gate** — all three
+  providers are vision-capable (Gemma 4 E2B is multimodal; LiteRT-LM lazy-loads the vision
+  encoder). **Vision defaults ON for every provider** (founder call); text-only is a per-provider
+  opt-out (faster/cheaper/more private), fully functional via the a11y tree's element
+  indices+bounds. Cloud stays vision-default, so the emulator smoke is unchanged.
 - 2026-06-15 (5.4): **device tier is a sibling of `Readiness`, not merged** —
   `Readiness` = can-the-agent-run (accessibility + key); `DeviceTier` = how-well.
   5.4 only **produces + surfaces** the tier (About diagnostic); the gates ship with
