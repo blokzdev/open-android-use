@@ -12,7 +12,10 @@
 - 普通 app 的 screenshot 默认只在内存中编码成 PNG，并通过 MCP `image` content block 直接回传；默认不长期持久化。
 - Linux runtime 的 screenshot 是 best-effort；如果 GNOME Wayland 返回黑图，bridge 会省略 image block，避免把无效截图误当成真实画面。
 - fixture app 的合成状态只写到本地临时 JSON 文件，目的是支撑 deterministic smoke test；当前写入走原子替换，减少测试期间的读写竞争。
-- 当前仓库不引入第三方服务，也不上传截图、AX tree 或输入内容。
+- 桌面 runtime（macOS/Windows/Linux）默认不引入第三方推理服务，也不上传截图、AX tree 或输入内容。
+- **Android companion（Phase 5 起）有两种模式**：默认的云端 BYOK 模型（Claude/Gemini）会把任务文本、
+  系统提示、AX tree 和（开启 vision 时）截图发送到用户自选的服务商；**Local-only mode** 则完全在设备上
+  用 Gemma 运行，不上传任何关于用户/设备/屏幕的内容。详见下方英文 "Egress & data flow (Phase 5)"。
 - Android companion (Phase 4.5): conversations are saved **on the device, text-only**
   (one JSON file per session under the app's private `filesDir`, written atomically) so
   the user can revisit and resume them from History. Screenshots are **never** written to
@@ -21,6 +24,40 @@
   clear the API key, from the in-app Privacy & data screen. Conversation export writes a
   Markdown file to the app cache and shares it via a `FileProvider` with a per-share,
   read-only URI grant.
+
+## Egress & data flow (Phase 5, English)
+
+Phase 5 added pluggable model providers to the Android companion, so what leaves the device now
+depends on the chosen provider. There are two honest modes:
+
+**Default — cloud (BYOK).** The user selects Claude or Gemini and supplies their **own** API key
+(stored AES/GCM in the Android Keystore, never logged, never in a URL). Each turn sends, over TLS,
+to the user's chosen provider under that provider's terms:
+
+| Provider | Host (:443, TLS) | What is sent |
+|---|---|---|
+| Claude (Anthropic) | `api.anthropic.com` | task text + frozen system prompt + accessibility tree + (vision on) screenshots |
+| Gemini (Google) | `generativelanguage.googleapis.com` | same payload class |
+
+The 5.6 **text-only perception** toggle is the in-cloud privacy lever: turning vision off keeps
+screenshots on the device while still using the cloud model.
+
+**Local-only mode (Phase 5.7).** A single umbrella toggle forces the on-device Gemma provider, so
+**nothing about the user, device, or screen leaves the device** — inference runs in-process via
+LiteRT-LM with zero network egress. It is tier-gated (offered only on devices that can run the
+model) and readiness-aware (enabling on a capable device prompts the one-time model download). The
+**only** outbound network in this mode is that optional, user-initiated model fetch from
+`huggingface.co` (open weights, **SHA-256 pinned**), which uploads nothing about the user.
+Enforcement is structural: `AgentController.startTask` resolves the provider through
+`effectiveProvider(localOnly, selected)`, so no cloud backend is ever constructed while the mode
+is on; the Settings provider picker and key controls are locked accordingly. Saved cloud keys are
+kept (just ignored) so the user can flip back without re-entry.
+
+**Transport.** Release builds ship no `networkSecurityConfig` (platform default: cleartext
+blocked); debug builds permit cleartext only for `127.0.0.1`/`localhost`, and the agent
+additionally refuses any non-loopback `http` base-URL override (`AgentController.loopbackOrNull`).
+The control surface (accessibility/loopback core) remains dependency-free and makes no provider
+calls. Dependency provenance is in `docs/SUPPLY_CHAIN_SECURITY.md`.
 
 ## 授权与最小权限
 
