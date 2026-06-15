@@ -1,6 +1,9 @@
 package dev.openandroiduse.companion
 
+import android.content.Intent
 import android.os.Bundle
+import android.text.format.Formatter
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -32,7 +35,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.openandroiduse.companion.agent.AgentController
 import dev.openandroiduse.companion.agent.AgentSettings
+import dev.openandroiduse.companion.agent.ConversationExport
 import dev.openandroiduse.companion.agent.SessionStore
+import dev.openandroiduse.companion.agent.SessionTitle
 import dev.openandroiduse.companion.ui.ResponsiveContent
 import dev.openandroiduse.companion.ui.markHeading
 import dev.openandroiduse.companion.ui.showUndo
@@ -63,7 +68,14 @@ class PrivacyActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             OpenAndroidUseTheme(themeMode = settings.themeMode, dynamicColor = settings.dynamicColor) {
+                val usage = sessions.usage()
                 PrivacyScreen(
+                    storageSummary = getString(
+                        R.string.privacy_storage_summary,
+                        usage.count,
+                        Formatter.formatShortFileSize(this, usage.bytes),
+                    ),
+                    onExportAll = ::exportAllConversations,
                     onClearKey = {
                         val previous = settings.loadApiKey()
                         settings.clearApiKey();
@@ -83,11 +95,43 @@ class PrivacyActivity : ComponentActivity() {
             }
         }
     }
+
+    /** Export every saved conversation as one Markdown file shared via FileProvider (Phase 4.7e). */
+    private fun exportAllConversations() {
+        val payloads = sessions.list().mapNotNull { sessions.load(it.id) }
+        if (payloads.isEmpty()) {
+            Toast.makeText(this, getString(R.string.privacy_export_all_empty), Toast.LENGTH_SHORT).show()
+            return
+        }
+        val markdown = payloads.joinToString("\n\n---\n\n") { payload ->
+            ConversationExport.toMarkdown(
+                payload.title.ifBlank { SessionTitle.FALLBACK },
+                payload.transcript.map { it.kind to it.text },
+            )
+        }
+        val uri = runCatching {
+            val dir = java.io.File(cacheDir, "exports").apply { mkdirs() }
+            val file = java.io.File(dir, "conversations-${System.currentTimeMillis()}.md")
+            file.writeText(markdown)
+            androidx.core.content.FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+        }.getOrElse {
+            Toast.makeText(this, getString(R.string.privacy_export_all_failed), Toast.LENGTH_SHORT).show()
+            return
+        }
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/markdown"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        startActivity(Intent.createChooser(intent, getString(R.string.privacy_export_all_chooser)))
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PrivacyScreen(
+    storageSummary: String,
+    onExportAll: () -> Unit,
     onClearKey: () -> (() -> Unit),
     onClearConversation: () -> (() -> Unit),
     onDeleteAllSessions: () -> (() -> Unit),
@@ -110,6 +154,15 @@ private fun PrivacyScreen(
             PrivacyPoint(stringResource(R.string.privacy_key_title), stringResource(R.string.privacy_key_body))
             PrivacyPoint(stringResource(R.string.privacy_saved_title), stringResource(R.string.privacy_saved_body))
             PrivacyPoint(stringResource(R.string.privacy_kill_title), stringResource(R.string.privacy_kill_body))
+
+            HorizontalDivider()
+
+            // --- Storage ---
+            Text(stringResource(R.string.privacy_storage_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.markHeading())
+            Text(storageSummary, style = MaterialTheme.typography.bodyMedium)
+            OutlinedButton(onClick = onExportAll, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.privacy_export_all))
+            }
 
             HorizontalDivider()
 

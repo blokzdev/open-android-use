@@ -97,6 +97,12 @@
     <string name="privacy_saved_body">Conversations are saved on this device as text so you can revisit and resume them. Screenshots are never written to disk. Delete any conversation, or all of them, below or from History.</string>
     <string name="privacy_kill_title">Kill switch</string>
     <string name="privacy_kill_body">Press Stop any time. Disabling the accessibility service fully cuts the agent off.</string>
+    <string name="privacy_storage_title">Storage</string>
+    <string name="privacy_storage_summary">%1$d saved conversation(s) · %2$s on this device</string>
+    <string name="privacy_export_all">Export all conversations</string>
+    <string name="privacy_export_all_empty">No saved conversations to export</string>
+    <string name="privacy_export_all_failed">Couldn\'t prepare the export</string>
+    <string name="privacy_export_all_chooser">Export all conversations</string>
     <string name="privacy_data_controls">Data controls</string>
     <string name="privacy_clear_key">Clear API key</string>
     <string name="privacy_clear_key_q">Clear API key?</string>
