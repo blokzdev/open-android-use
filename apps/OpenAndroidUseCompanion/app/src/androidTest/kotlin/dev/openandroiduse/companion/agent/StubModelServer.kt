@@ -7,12 +7,19 @@ import java.nio.charset.StandardCharsets
 import java.util.Collections
 
 /**
- * A loopback stub for the Messages API streaming endpoint: serves scripted
- * SSE responses and records every request body, so the emulator smoke can run
- * the real agent loop (SDK, accumulator, tool executor, screenshots) without
- * an API key or network egress.
+ * A loopback stub for a provider's streaming endpoint: serves scripted SSE
+ * responses and records every request body, so the emulator smoke can run the
+ * real agent loop (SDK, accumulator, tool executor, screenshots) without an API
+ * key or network egress. Defaults to the Anthropic wire; set [provider] to
+ * GEMINI to serve Gemini `streamGenerateContent` SSE instead.
  */
 class StubModelServer {
+
+    enum class Provider { ANTHROPIC, GEMINI }
+
+    /** Which provider's wire to emulate. Set before the loop runs. */
+    @Volatile
+    var provider: Provider = Provider.ANTHROPIC
 
     val requestBodies: MutableList<String> = Collections.synchronizedList(mutableListOf())
 
@@ -72,18 +79,38 @@ class StubModelServer {
         }
         requestBodies.add(String(body, 0, read, StandardCharsets.UTF_8))
 
-        val events = synchronized(this) {
+        val firstTurn = synchronized(this) {
             val turn = requestIndex
             requestIndex++
-            if (turn == 0) toolUseTurn() else endTurn()
+            turn == 0
         }
         val head = "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nConnection: close\r\n\r\n"
         output.write(head.toByteArray(StandardCharsets.US_ASCII))
-        for ((event, data) in events) {
-            output.write("event: $event\ndata: $data\n\n".toByteArray(StandardCharsets.UTF_8))
-            output.flush()
+        when (provider) {
+            Provider.ANTHROPIC -> {
+                for ((event, data) in if (firstTurn) toolUseTurn() else endTurn()) {
+                    output.write("event: $event\ndata: $data\n\n".toByteArray(StandardCharsets.UTF_8))
+                    output.flush()
+                }
+            }
+            Provider.GEMINI -> {
+                for (data in if (firstTurn) geminiToolUseTurn() else geminiEndTurn()) {
+                    output.write("data: $data\r\n\r\n".toByteArray(StandardCharsets.UTF_8))
+                    output.flush()
+                }
+            }
         }
     }
+
+    /** Gemini turn 1: a function call to get_app_state on the foreground app. */
+    private fun geminiToolUseTurn(): List<String> = listOf(
+        """{"candidates":[{"content":{"role":"model","parts":[{"functionCall":{"name":"get_app_state","args":{"app":"foreground"}}}]},"finishReason":"STOP","index":0}]}""",
+    )
+
+    /** Gemini turn 2: read the function response and finish. */
+    private fun geminiEndTurn(): List<String> = listOf(
+        """{"candidates":[{"content":{"role":"model","parts":[{"text":"Done — I can see the screen."}]},"finishReason":"STOP","index":0}]}""",
+    )
 
     private fun readLine(input: InputStream): String? {
         val buffer = StringBuilder()
