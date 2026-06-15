@@ -79,7 +79,9 @@ while keeping the on-device, no-server, key-stays-local posture intact.
 - [x] 5.2 — Gemini BYOK + provider settings/UI (`GeminiBackend`/`GeminiMessageMapping`/
       `GeminiModels`, `LlmProvider`, per-provider `AgentSettings`, provider-aware
       `ModelCatalog`, provider selector in Settings + Onboarding).
-- [ ] 5.3 — model lists behind the backend; R8 keep-rules begin.
+- [x] 5.3 — model lists behind the provider (`ProviderModels` + `LlmProvider.models`/
+      `createBackend`; `ModelCatalog` SDK-free) + R8 code-shrink enabled for release
+      (`proguard-rules.pro`, ~32M→~8.5M) with a CI assembleRelease gate.
 - [ ] 5.4 — device-capability diagnostics + tiering.
 - [ ] 5.5 — on-device Gemma 4 E2B backend + runtime download.
 - [ ] 5.6 — adaptive perception.
@@ -111,3 +113,9 @@ while keeping the on-device, no-server, key-stays-local posture intact.
   picker still surfaces the full lineup. Confirmed live ids (2026-06): `gemini-2.5-pro`,
   `gemini-2.5-flash`, `gemini-2.5-flash-lite`, `gemini-3.5-flash`, `gemini-3.1-flash-lite`,
   `gemini-3.1-pro-preview`, `gemini-3-flash-preview`.
+- 2026-06-15 (5.3): **`LlmProvider` is the single provider registry** — `.models`
+  (key-validate/list) + `.createBackend(...)`; provider SDKs confined to `agent/llm`.
+- 2026-06-15 (5.3): **R8 begun conservatively** — keep the LLM SDKs + reflective
+  JSON/transport stacks whole (so runtime reflection can't be stripped); resource
+  shrink, rule-tightening, and on-device validation of the minified build are the
+  Phase 6 final-shrink gate. Release APK ~32M → ~8.5M.
