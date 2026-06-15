@@ -1,16 +1,16 @@
 package dev.openandroiduse.companion.agent
 
-import com.anthropic.models.messages.MessageParam
+import dev.openandroiduse.companion.agent.llm.AgentContent
+import dev.openandroiduse.companion.agent.llm.AgentMessage
+import dev.openandroiduse.companion.agent.llm.AgentRole
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SessionHistoryTest {
 
-    private fun textOf(param: MessageParam): String =
-        param.content().blockParams().get()
-            .mapNotNull { it.text().orElse(null)?.text() }
-            .joinToString("\n\n")
+    private fun textOf(message: AgentMessage): String =
+        message.content.filterIsInstance<AgentContent.Text>().joinToString("\n\n") { it.text }
 
     @Test
     fun keepsOnlyUserAndAssistantTextAlternating() {
@@ -23,9 +23,9 @@ class SessionHistoryTest {
             ),
         )
         assertEquals(2, history.size)
-        assertEquals(MessageParam.Role.USER, history[0].role())
+        assertEquals(AgentRole.USER, history[0].role)
         assertEquals("Turn Bluetooth on", textOf(history[0]))
-        assertEquals(MessageParam.Role.ASSISTANT, history[1].role())
+        assertEquals(AgentRole.ASSISTANT, history[1].role)
         assertEquals("Done — Bluetooth is on.", textOf(history[1]))
     }
 
@@ -40,7 +40,7 @@ class SessionHistoryTest {
             ),
         )
         assertEquals(2, history.size)
-        assertEquals(MessageParam.Role.ASSISTANT, history[1].role())
+        assertEquals(AgentRole.ASSISTANT, history[1].role)
         assertTrue(textOf(history[1]).contains("Opening Settings."))
         assertTrue(textOf(history[1]).contains("It's open."))
     }
@@ -55,7 +55,7 @@ class SessionHistoryTest {
             ),
         )
         assertEquals(2, history.size)
-        assertEquals(MessageParam.Role.ASSISTANT, history.last().role())
+        assertEquals(AgentRole.ASSISTANT, history.last().role)
     }
 
     @Test

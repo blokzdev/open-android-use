@@ -526,6 +526,15 @@ need a real device.
   Privacy / History / About — padding and gaps look the same as before the token refactor (the
   tokens encode the previous 8/12/16dp values; this is a no-visual-change cleanup).
 
+### Phase 5.1 — AgentBackend provider seam (pure refactor)
+
+- [ ] **V122. Thinking + tool_use resume round-trip**: with a real key, run a task that uses
+  extended thinking and at least one tool call; let it finish, then resume that session (History →
+  open → send a follow-up) so its history is rebuilt and re-sent. Pass: the follow-up turn proceeds
+  with **no API 400** about thinking/tool_use blocks or missing thinking signatures, and the agent
+  continues the task normally. (Guards the `replayPayload` round-trip the keyless smoke can only
+  approximate without a live key; everyday tasks running unchanged is the broader behavior-preservation check.)
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |

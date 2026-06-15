@@ -1,7 +1,6 @@
 package dev.openandroiduse.companion.agent
 
-import com.anthropic.core.JsonValue
-import com.anthropic.models.messages.Tool
+import dev.openandroiduse.companion.agent.llm.ToolSpec
 
 /**
  * The 9-tool Computer Use surface, ported verbatim from the Go bridge's
@@ -9,6 +8,10 @@ import com.anthropic.models.messages.Tool
  * and schemas are frozen and deterministic: together with [SYSTEM_PROMPT] they
  * form the byte-identical prompt-cache prefix across turns — do not interleave
  * anything volatile (timestamps, ids) before them.
+ *
+ * [specs] is the provider-neutral source of truth (Phase 5.1); each backend maps
+ * it to its own wire format (the Anthropic mapping lives in
+ * AnthropicMessageMapping.toAnthropicTool), so this file stays SDK-free.
  */
 object AgentTools {
 
@@ -45,9 +48,13 @@ object AgentTools {
             "- If the screen state contradicts your expectation, re-snapshot and adapt " +
             "rather than repeating the same action."
 
-    /** Deterministic tool list — same order as the Go bridge. */
-    fun definitions(): List<Tool> = listOf(
-        tool(
+    /**
+     * Provider-neutral source of truth for the frozen 9-tool schema (Phase 5.1).
+     * Same order, names, descriptions, and schemas as the Go bridge; each
+     * backend maps these to its own wire format.
+     */
+    fun specs(): List<ToolSpec> = listOf(
+        spec(
             name = "click",
             description = "Click an element by index or pixel coordinates from screenshot. " +
                 "This tool is part of plugin `Computer Use`.",
@@ -64,7 +71,7 @@ object AgentTools {
             ),
             required = listOf("app"),
         ),
-        tool(
+        spec(
             name = "drag",
             description = "Drag from one point to another using pixel coordinates. " +
                 "This tool is part of plugin `Computer Use`.",
@@ -77,7 +84,7 @@ object AgentTools {
             ),
             required = listOf("app", "from_x", "from_y", "to_x", "to_y"),
         ),
-        tool(
+        spec(
             name = "get_app_state",
             description = "Get the state of an already running app's key window and return a " +
                 "screenshot and accessibility tree. This must be called once per assistant " +
@@ -87,7 +94,7 @@ object AgentTools {
             ),
             required = listOf("app"),
         ),
-        tool(
+        spec(
             name = "list_apps",
             description = "List the apps on this computer. Returns the set of apps that are " +
                 "currently running, as well as any that have been used in the last 14 days, " +
@@ -95,7 +102,7 @@ object AgentTools {
             properties = linkedMapOf(),
             required = emptyList(),
         ),
-        tool(
+        spec(
             name = "perform_secondary_action",
             description = "Invoke a secondary accessibility action exposed by an element. " +
                 "This tool is part of plugin `Computer Use`.",
@@ -106,7 +113,7 @@ object AgentTools {
             ),
             required = listOf("app", "element_index", "action"),
         ),
-        tool(
+        spec(
             name = "press_key",
             description = "Press a key or key-combination on the keyboard, including modifier " +
                 "and navigation keys.\n  - This supports xdotool's `key` syntax.\n  - Examples: " +
@@ -118,7 +125,7 @@ object AgentTools {
             ),
             required = listOf("app", "key"),
         ),
-        tool(
+        spec(
             name = "scroll",
             description = "Scroll an element in a direction by a number of pages. " +
                 "This tool is part of plugin `Computer Use`.",
@@ -132,7 +139,7 @@ object AgentTools {
             ),
             required = listOf("app", "element_index", "direction"),
         ),
-        tool(
+        spec(
             name = "set_value",
             description = "Set the value of a settable accessibility element. " +
                 "This tool is part of plugin `Computer Use`.",
@@ -143,7 +150,7 @@ object AgentTools {
             ),
             required = listOf("app", "element_index", "value"),
         ),
-        tool(
+        spec(
             name = "type_text",
             description = "Type literal text using keyboard input. " +
                 "This tool is part of plugin `Computer Use`.",
@@ -155,28 +162,12 @@ object AgentTools {
         ),
     )
 
-    private fun tool(
+    private fun spec(
         name: String,
         description: String,
-        properties: Map<String, Map<String, Any>>,
+        properties: LinkedHashMap<String, Map<String, Any>>,
         required: List<String>,
-    ): Tool {
-        val propertiesBuilder = Tool.InputSchema.Properties.builder()
-        for ((key, schema) in properties) {
-            propertiesBuilder.putAdditionalProperty(key, JsonValue.from(schema))
-        }
-        val schemaBuilder = Tool.InputSchema.builder()
-            .properties(propertiesBuilder.build())
-            .putAdditionalProperty("additionalProperties", JsonValue.from(false))
-        if (required.isNotEmpty()) {
-            schemaBuilder.required(required)
-        }
-        return Tool.builder()
-            .name(name)
-            .description(description)
-            .inputSchema(schemaBuilder.build())
-            .build()
-    }
+    ): ToolSpec = ToolSpec(name, description, properties, required)
 
     private fun stringProperty(description: String): Map<String, Any> =
         linkedMapOf("type" to "string", "description" to description)

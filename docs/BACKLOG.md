@@ -44,6 +44,14 @@ Each entry: **idea** — why deferred · _priority_ · origin.
   confirmed by research, 2026-06). _Low / probably-unwanted_ — text-rebuild is also
   better for privacy (no screenshots on disk); revisit only if the SDK ships public
   serialization and a real need appears. Origin: Phase 4.5.
+- **`AgentBackend` as `Flow<BackendEvent>` instead of the blocking sink** — 5.1 chose
+  a blocking `streamTurn(request, sink)` because the loop is a single sequential
+  consumer on a dedicated worker thread that cancels by force-closing the in-flight
+  stream; Flow's backpressure/operator-composition/multi-collector features would be
+  unused and a `runBlocking` bridge would add subtler cancellation semantics for zero
+  behavioral gain. Reconsider only if a *UI* surface wants to consume agent events
+  reactively (a `callbackFlow` wrapper at the UI edge is likely enough, leaving the
+  backend port as-is) or if a future provider's SDK is Flow-native. _Low._ Origin: Phase 5.1.
 
 ## UI / theming
 
