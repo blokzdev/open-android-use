@@ -28,6 +28,14 @@ class SessionStore(context: Context) {
         }.sortedByDescending { it.updatedAt }
     }
 
+    /** Saved-session count + total bytes on disk (Phase 4.7e Privacy storage summary). */
+    fun usage(): Usage = synchronized(lock) {
+        val files = dir.listFiles { f -> f.isFile && f.name.endsWith(".json") } ?: return Usage(0, 0L)
+        Usage(files.size, files.sumOf { it.length() })
+    }
+
+    data class Usage(val count: Int, val bytes: Long)
+
     fun load(id: String): SessionPayload? = synchronized(lock) {
         val f = fileFor(id)
         if (!f.exists()) return null

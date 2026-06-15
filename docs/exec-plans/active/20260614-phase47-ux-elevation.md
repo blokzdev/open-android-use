@@ -105,7 +105,11 @@ tests, dependency-free control surface). Founder selected all themes + opportuni
   `OpenAndroidUseTheme` honors it (derives dark from the mode) alongside Material You; a segmented
   selector in Settings; all surfaces pass it; Home/Chat recreate-on-resume when it changes. Builds +
   tests + APK + instrumentation green.
-- [ ] 4.7e-3 Privacy (storage usage + export all) · [ ] 4.7a-3 tokens/motion.
+- [x] 4.7e-3 — **Privacy: storage usage + Export all**: a Storage section shows saved-conversation
+  count + bytes (`SessionStore.usage()` + `Formatter.formatShortFileSize`); "Export all
+  conversations" writes every saved session as one Markdown file shared via FileProvider (reusing
+  `ConversationExport`). Closes **4.7e**. Builds + tests + APK + instrumentation green.
+- [ ] 4.7a-3 tokens/motion (closes Phase 4.7).
 - _Deferred:_ 4.7c-2b multi-select bulk archive/delete → BACKLOG (stateful selection mode is the
   lowest-value / hardest-to-tune-blind item in 4.7c; revisit if requested).
 - _Founder call (2026-06-14):_ do the full per-message timestamps + role grouping (un-deferred

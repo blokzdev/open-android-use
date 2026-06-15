@@ -507,6 +507,15 @@ need a real device.
   shows the chosen mode; "System" follows the device dark-theme setting. Choice persists across
   app restart and composes correctly with the Material You toggle.
 
+### Phase 4.7e-3 — Privacy: storage usage + Export all
+
+- [ ] **V118. Storage summary**: open Privacy & data. Pass: a Storage section shows the saved
+  conversation count and total size (e.g. "3 saved conversation(s) · 12 kB on this device");
+  matches reality after creating/deleting conversations (re-enter the screen to refresh).
+- [ ] **V119. Export all**: tap "Export all conversations". Pass: the share sheet offers a single
+  Markdown file containing every saved conversation (separated by rules); with none saved, a
+  "No saved conversations to export" notice instead.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |
