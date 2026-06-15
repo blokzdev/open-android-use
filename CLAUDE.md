@@ -34,6 +34,13 @@ Chat context is disposable; the repo is the memory. Per round:
    phase, saying exactly what to run and what "pass" looks like. `emulator-smoke`
    CI covers the scriptable subset; the ledger stays the real-hardware source of
    truth until it's cleared into a history record.
+7. **Working loop (merge-then-plan)**: keep momentum without stalling on merges. When a PR's CI is
+   green **and** review is clean, merge it — **green = CI-clean, hardware-pending**: the
+   `VERIFICATION.md` ledger stays the on-device source of truth until those `Vn` items are cleared,
+   so merging green is *not* a claim the on-device path is verified. Then immediately switch to
+   plan mode and plan the next subphase/PR, presenting it for approval. The human's blocker is
+   **plan approval, not merge**. Carve-outs (escalate, don't auto-merge): unresolved review
+   comments, flaky or newly-red CI, or low confidence in the change.
 
 ## Language policy
 
