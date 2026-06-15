@@ -6,6 +6,7 @@ import dev.openandroiduse.companion.CompanionService
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.concurrent.CountDownLatch
@@ -22,6 +23,18 @@ import java.util.concurrent.TimeUnit
  */
 @RunWith(AndroidJUnit4::class)
 class AgentLoopEmulatorTest {
+
+    /**
+     * Each full-loop test takes a real accessibility screenshot, and
+     * `AccessibilityService.takeScreenshot` is rate-limited to roughly one per
+     * second. With two loop tests in this class (Anthropic + Gemini) running
+     * back-to-back, the second loop's screenshot would come back empty. Space
+     * the tests past the interval so each gets a real screenshot.
+     */
+    @Before
+    fun spaceScreenshotRateLimit() {
+        Thread.sleep(2_500)
+    }
 
     /**
      * `am instrument` force-restarts the app process, which unbinds the
