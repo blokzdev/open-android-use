@@ -51,6 +51,19 @@ class AgentSettings(context: Context) {
         prefs.edit().putString(modelPref(provider), value).apply()
     }
 
+    /**
+     * Phase 5.6 adaptive perception: whether to send the screenshot (vision) to
+     * the model for [provider], vs. acting from the accessibility-tree text only.
+     * Per-provider; defaults to **on** (all providers are vision-capable, incl.
+     * on-device Gemma). Off = text-only — faster/cheaper/more private.
+     */
+    fun sendScreenshots(provider: LlmProvider = selectedProvider): Boolean =
+        prefs.getBoolean(sendScreenshotsPref(provider), true)
+
+    fun setSendScreenshots(value: Boolean, provider: LlmProvider = selectedProvider) {
+        prefs.edit().putBoolean(sendScreenshotsPref(provider), value).apply()
+    }
+
     /** Phase 3.1b consent ladder: show a confirmation sheet before action batches. */
     var confirmActions: Boolean
         get() = prefs.getBoolean(PREF_CONFIRM_ACTIONS, false)
@@ -175,6 +188,7 @@ class AgentSettings(context: Context) {
     private fun ivPref(provider: LlmProvider): String = PREF_KEY_IV + slotSuffix(provider)
     private fun modelPref(provider: LlmProvider): String = PREF_MODEL + slotSuffix(provider)
     private fun modelsPref(provider: LlmProvider): String = PREF_AVAILABLE_MODELS + slotSuffix(provider)
+    private fun sendScreenshotsPref(provider: LlmProvider): String = PREF_SEND_SCREENSHOTS + slotSuffix(provider)
 
     companion object {
         private const val KEYSTORE = "AndroidKeyStore"
@@ -182,6 +196,7 @@ class AgentSettings(context: Context) {
         private const val TRANSFORMATION = "AES/GCM/NoPadding"
         private const val PREF_SELECTED_PROVIDER = "selected_provider"
         private const val PREF_MODEL = "model"
+        private const val PREF_SEND_SCREENSHOTS = "send_screenshots"
         private const val PREF_CONFIRM_ACTIONS = "confirm_actions"
         private const val PREF_SPEAK_NARRATION = "speak_narration"
         private const val PREF_ONBOARDING_COMPLETED = "onboarding_completed"

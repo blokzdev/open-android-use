@@ -39,6 +39,8 @@
     <string name="pref_confirm_body">Show a confirmation sheet before the agent taps or types.</string>
     <string name="pref_speak_title">Speak narration aloud</string>
     <string name="pref_speak_body">The agent reads its narration out loud while it works.</string>
+    <string name="pref_vision_title">Send screenshots (vision)</string>
+    <string name="pref_vision_body">On: the model sees the screen (more capable). Off: text-only — faster, cheaper, more private; the agent acts from the screen\'s accessibility structure. Set per provider.</string>
 
     <!-- MainActivity -->
     <string name="main_status_ready">Agent ready</string>

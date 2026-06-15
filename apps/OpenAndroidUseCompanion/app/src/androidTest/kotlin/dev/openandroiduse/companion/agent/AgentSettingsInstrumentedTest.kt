@@ -68,4 +68,21 @@ class AgentSettingsInstrumentedTest {
 
         settings.clearApiKey(LlmProvider.ANTHROPIC)
     }
+
+    @Test
+    fun sendScreenshotsDefaultsOnAndTogglesPerProvider() {
+        val settings = AgentSettings(context)
+        // Phase 5.6: vision defaults ON for every provider.
+        assertTrue(settings.sendScreenshots(LlmProvider.ANTHROPIC))
+        assertTrue(settings.sendScreenshots(LlmProvider.GEMINI))
+        assertTrue(settings.sendScreenshots(LlmProvider.ON_DEVICE))
+
+        // Toggling one provider to text-only doesn't affect the others, and persists.
+        settings.setSendScreenshots(false, LlmProvider.ON_DEVICE)
+        assertFalse(settings.sendScreenshots(LlmProvider.ON_DEVICE))
+        assertTrue(settings.sendScreenshots(LlmProvider.ANTHROPIC))
+        assertFalse(AgentSettings(context).sendScreenshots(LlmProvider.ON_DEVICE))
+
+        settings.setSendScreenshots(true, LlmProvider.ON_DEVICE)
+    }
 }

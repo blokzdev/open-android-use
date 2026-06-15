@@ -2,11 +2,13 @@ package dev.openandroiduse.companion.agent.llm
 
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Content
+import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.runBlocking
+import java.util.Base64
 
 /**
  * On-device (Gemma 4 E2B via LiteRT-LM) [AgentBackend] (Phase 5.5b). Runs the
@@ -32,7 +34,18 @@ class OnDeviceBackend(private val modelPath: String) : AgentBackend {
 
     private fun engine(): Engine {
         engine?.let { return it }
-        val created = Engine(EngineConfig(modelPath = modelPath, backend = Backend.CPU()))
+        // Vision-capable engine: LiteRT-LM loads the image encoder only when an
+        // image is actually sent, so text-only turns stay lightweight. The
+        // perception toggle (AgentSettings.sendScreenshots) decides whether the
+        // request carries a screenshot; we just send what's there.
+        val created = Engine(
+            EngineConfig(
+                modelPath = modelPath,
+                backend = Backend.CPU(),
+                visionBackend = Backend.CPU(),
+                maxNumImages = 1,
+            ),
+        )
         created.initialize() // several seconds on first call
         engine = created
         return created
@@ -48,10 +61,28 @@ class OnDeviceBackend(private val modelPath: String) : AgentBackend {
         } catch (error: Exception) {
             throw BackendStreamException(error.message ?: "on-device engine failed to start", error)
         }
+        // Vision (Phase 5.6): when the perception toggle is on, the latest tool
+        // result carries a screenshot — send it to Gemma as an image alongside
+        // the text prompt. Text-only mode strips images upstream, so absence ⇒
+        // text-only path (no encoder load).
+        val latestImage = request.messages.asReversed()
+            .firstNotNullOfOrNull { message ->
+                message.content.filterIsInstance<AgentContent.ToolResult>()
+                    .lastOrNull { it.image != null }?.image
+            }
+        val visionContents = latestImage?.let {
+            Contents.of(Content.Text(prompt), Content.ImageBytes(Base64.getDecoder().decode(it.pngBase64)))
+        }
+
         val conversation = engine.createConversation()
         try {
             runBlocking {
-                conversation.sendMessageAsync(prompt).collect { message ->
+                val flow = if (visionContents != null) {
+                    conversation.sendMessageAsync(visionContents)
+                } else {
+                    conversation.sendMessageAsync(prompt)
+                }
+                flow.collect { message ->
                     if (cancelled) throw CancellationException()
                     // Each emission's text; tolerate either cumulative or delta chunks.
                     val soFar = message.contents.contents

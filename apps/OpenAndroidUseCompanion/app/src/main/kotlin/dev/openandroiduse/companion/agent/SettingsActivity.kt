@@ -128,6 +128,7 @@ private fun SettingsScreen(
     val snackbarHost = remember { SnackbarHostState() }
     var provider by remember { mutableStateOf(settings.selectedProvider) }
     val deviceTier = remember { detectDeviceCapability(context).tier }
+    var sendScreenshots by remember { mutableStateOf(settings.sendScreenshots(settings.selectedProvider)) }
     var apiKey by remember { mutableStateOf("") }
     var hasKey by remember { mutableStateOf(settings.hasApiKey(provider)) }
     var keyVisible by remember { mutableStateOf(false) }
@@ -162,6 +163,7 @@ private fun SettingsScreen(
                 apiKey = ""
                 hasKey = settings.hasApiKey(picked)
                 model = settings.modelFor(picked)
+                sendScreenshots = settings.sendScreenshots(picked)
             }
 
             HorizontalDivider()
@@ -287,6 +289,11 @@ private fun SettingsScreen(
                 stringResource(R.string.pref_speak_body),
                 speak,
             ) { speak = it; settings.speakNarration = it }
+            SettingToggle(
+                stringResource(R.string.pref_vision_title),
+                stringResource(R.string.pref_vision_body),
+                sendScreenshots,
+            ) { sendScreenshots = it; settings.setSendScreenshots(it, provider) }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 SettingToggle(
                     stringResource(R.string.settings_material_you_title),
