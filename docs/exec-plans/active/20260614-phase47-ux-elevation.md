@@ -92,7 +92,12 @@ tests, dependency-free control surface). Founder selected all themes + opportuni
   recent-conversations section (tap to resume, See all → History), suggestion chips that open chat
   prefilled (new `ChatActivity.EXTRA_PROMPT`), and a cleaner Settings / History / About nav plus
   the accessibility/kill-switch footer. Builds + tests + APK + instrumentation green.
-- [ ] 4.7d-2 onboarding glow-up · [ ] 4.7a-3 tokens/motion · [ ] 4.7e Settings/Privacy.
+- [x] 4.7d-2 — **onboarding glow-up**: a persistent progress-dots stepper (current/total announced),
+  a large per-step icon (waving hand / accessibility / lock / key / tune / rocket), success-state
+  rows with check/neutral icons (accessibility + ready), a reduce-motion-aware step transition
+  (Crossfade only when animations are on), and a one-tap first-task chip on the Ready step that
+  opens chat prefilled (`EXTRA_PROMPT`). Builds + tests + APK + instrumentation green.
+- [ ] 4.7a-3 tokens/motion · [ ] 4.7e Settings/Privacy.
 - _Deferred:_ 4.7c-2b multi-select bulk archive/delete → BACKLOG (stateful selection mode is the
   lowest-value / hardest-to-tune-blind item in 4.7c; revisit if requested).
 - _Founder call (2026-06-14):_ do the full per-message timestamps + role grouping (un-deferred

@@ -477,6 +477,19 @@ need a real device.
 - [ ] **V109. Nav + kill switch**: Settings / History / About each open their screen; the
   accessibility button still opens accessibility settings (the kill switch), and the hint remains.
 
+### Phase 4.7d-2 — Onboarding glow-up
+
+- [ ] **V110. Stepper + icons**: run first-launch onboarding (or clear data). Pass: a row of
+  progress dots tracks position (the current one larger/filled), each step shows a distinct large
+  icon, and TalkBack announces "Step n of 6".
+- [ ] **V111. Success states**: on the accessibility step, the status card shows a green check once
+  the service is enabled (neutral icon before); the Ready step shows check/neutral rows for
+  accessibility and API key reflecting actual state.
+- [ ] **V112. Reduce-motion**: with system animations off, stepping through onboarding shows no
+  cross-fade (instant step change); with animations on, steps cross-fade.
+- [ ] **V113. First-task chip**: on the Ready step, tap the example chip. Pass: onboarding
+  completes and chat opens with that example prefilled in the composer (not auto-sent).
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |
