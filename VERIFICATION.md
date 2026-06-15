@@ -575,7 +575,19 @@ need a real device.
   low-memory caution; MEDIUM shows the "may be slow" note; HIGH enables normally.
 - [ ] **V130. On-device placeholder (until 5.5b)**: with the model downloaded, select Gemma
   (on-device) and start a task. Pass: the loop ends with the clear "inference lands in 5.5b"
-  note (no crash); switching back to Claude/Gemini still runs normally.
+  note (no crash); switching back to Claude/Gemini still runs normally. *(Superseded by V131
+  once 5.5b is on the device.)*
+
+### Phase 5.5b — on-device inference (LiteRT-LM)
+
+- [ ] **V131. On-device task runs fully offline**: on a HIGH-tier arm64 device with the model
+  downloaded, enable airplane mode (and clear cloud keys), select Gemma (on-device), run a
+  simple task ("open Settings"). Pass: the engine initializes (a few seconds), tokens stream
+  into the chat, the model emits a parseable `tool_call`, the tool executes, and the task
+  completes — all with no network and no API key, no native-lib/R8 crash.
+- [ ] **V132. On-device function-call format**: confirm Gemma 4 E2B actually emits tool calls
+  in the fenced `tool_call` JSON form `GemmaToolPrompt` parses; if not, tune the render/parse
+  format (and the unit tests) to the model's real output. Confirm Stop cancels mid-generation.
 
 ## Results log
 

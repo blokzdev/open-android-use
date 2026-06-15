@@ -84,9 +84,11 @@ while keeping the on-device, no-server, key-stays-local posture intact.
       (`proguard-rules.pro`, ~32M→~8.5M) with a CI assembleRelease gate.
 - [x] 5.4 — device-capability diagnostics + tiering (`DeviceCapability`/`DeviceTier`
       classifier + collector; About "Device" diagnostic; the signal 5.5/5.6 gate on).
-- [~] 5.5 — on-device Gemma 4 E2B (LiteRT-LM). **5.5a done**: provider arm + model
-      download/integrity/gating + download UI + placeholder backend (CI-verifiable).
-      **5.5b pending**: LiteRT-LM inference + function calling (hardware-validated).
+- [x] 5.5 — on-device Gemma 4 E2B (LiteRT-LM). **5.5a**: provider arm + model
+      download/integrity/gating + download UI. **5.5b**: toolchain bump (Kotlin 2.3.20 /
+      AGP 8.13.2) + LiteRT-LM runtime + `OnDeviceBackend` (streaming) + `GemmaToolPrompt`
+      function calling. Build + FC-format are CI-verified; the live inference loop is
+      hardware-validated (V131+).
 - [ ] 5.6 — adaptive perception.
 - [ ] 5.7 — Phase-5 hardening.
 
@@ -130,6 +132,11 @@ while keeping the on-device, no-server, key-stays-local posture intact.
   SHA-256** integrity check, tier gating, download UI) with a placeholder backend, since
   no device / 2.6 GB model / on-device inference can run in CI. `createBackend` now takes
   a neutral `credential` (API key for cloud, model path for on-device).
+- 2026-06-15 (5.5b): **bumped Kotlin 2.0.21 → 2.3.20 + AGP 8.5.2 → 8.13.2** (founder-approved)
+  because LiteRT-LM 0.13.1 ships Kotlin 2.3 metadata; FC is **structured prompting**
+  (`GemmaToolPrompt`, pure/unit-tested) rather than the under-documented native LiteRT-LM
+  `ToolProvider` — portable + verifiable. The native `ToolProvider`/`ToolCall` API is a
+  possible future optimization (BACKLOG). Live inference is hardware-validated only.
 - 2026-06-15 (5.4): **device tier is a sibling of `Readiness`, not merged** —
   `Readiness` = can-the-agent-run (accessibility + key); `DeviceTier` = how-well.
   5.4 only **produces + surfaces** the tier (About diagnostic); the gates ship with

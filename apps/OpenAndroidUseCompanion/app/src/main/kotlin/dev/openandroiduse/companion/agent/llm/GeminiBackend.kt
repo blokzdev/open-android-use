@@ -50,7 +50,7 @@ class GeminiBackend(apiKey: String, baseUrl: String?) : AgentBackend {
             stream.use { responses ->
                 for (chunk in responses) {
                     if (cancelled) break
-                    for (part in chunk.parts()) {
+                    for (part in chunk.parts() ?: emptyList()) {
                         part.text().ifPresent { delta ->
                             if (part.thought().orElse(false)) {
                                 sink.onThinkingDelta(delta)

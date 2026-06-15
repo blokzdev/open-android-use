@@ -12,6 +12,12 @@
 -dontwarn com.anthropic.**
 -dontwarn com.google.genai.**
 
+# LiteRT-LM on-device runtime (Phase 5.5b): JNI-bound native runtime — keep the
+# Kotlin/Java surface whole so reflection/JNI entry points aren't stripped.
+-keep class com.google.ai.edge.litertlm.** { *; }
+-keep class com.google.ai.edge.litert.** { *; }
+-dontwarn com.google.ai.edge.**
+
 # --- Reflective JSON / transport stacks the SDKs pull in ---
 -keep class com.fasterxml.jackson.** { *; }
 -keep class com.google.protobuf.** { *; }

@@ -15,6 +15,14 @@ android {
         versionCode = 1
         versionName = "0.2.3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Phase 5.5b: the LiteRT-LM runtime ships native libraries. Keep arm64-v8a
+        // (real devices) and x86_64 (emulators / Chromebooks) — the AAR provides
+        // both. A 32-bit ABI is intentionally excluded (the runtime is 64-bit, and
+        // the on-device tier already gates on a 64-bit device). Per-device size is
+        // handled by the Play AAB ABI split in Phase 6.
+        ndk {
+            abiFilters += listOf("arm64-v8a", "x86_64")
+        }
     }
 
     buildFeatures {
@@ -40,10 +48,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     packaging {
         resources {
             // The Anthropic SDK's transitive jars ship duplicate license/notice
@@ -60,6 +64,14 @@ android {
             // the merge path. Keep one — it's a runtime data file, not metadata.
             pickFirsts += listOf("mozilla/public-suffix-list.txt")
         }
+    }
+}
+
+// Kotlin 2.3 removed the old `kotlinOptions` DSL; set the JVM target via the
+// compilerOptions DSL instead.
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 
@@ -86,6 +98,11 @@ dependencies {
     // runtime; WorkManager runs the download as a constraint-aware background job
     // that survives backgrounding. Agent-package infra only (no model SDK here).
     implementation("androidx.work:work-runtime-ktx:2.9.1")
+
+    // Phase 5.5b: on-device inference runtime. LiteRT-LM runs Gemma 4 E2B locally
+    // (native arm64 libraries; the model is downloaded at runtime, not bundled).
+    // agent/llm only, same rule as the cloud SDKs.
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.13.1")
 
     // Presentation layer only (Phase 4): Jetpack Compose + Material 3. The BOM
     // pins mutually-compatible Compose library versions; the Compose compiler

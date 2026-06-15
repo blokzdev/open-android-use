@@ -44,6 +44,15 @@ Each entry: **idea** — why deferred · _priority_ · origin.
   confirmed by research, 2026-06). _Low / probably-unwanted_ — text-rebuild is also
   better for privacy (no screenshots on disk); revisit only if the SDK ships public
   serialization and a real need appears. Origin: Phase 4.5.
+- **Native LiteRT-LM tool calling instead of prompt-based FC** — 5.5b does on-device
+  function calling via `GemmaToolPrompt` (structured prompt render+parse) for portability +
+  unit-testability. LiteRT-LM also has a native tool API (`ToolProvider`/`ToolCall`/
+  `automaticToolCalling=false`); evaluate switching once the on-device loop is validated on
+  hardware and the native path proves more reliable than prompt parsing. _Low/Medium._ Origin: Phase 5.5b.
+- **APK size: LiteRT-LM native runtime (~22 MB) + resource shrink (Phase 6)** — the release
+  APK grew from ~8.6 MB to ~31 MB with the arm64 LiteRT-LM `.so` libs. Phase 6 size pass:
+  consider an ABI split / Play feature-delivery (on-demand on-device module) so devices that
+  never use on-device don't carry the runtime; turn on `isShrinkResources`. _Medium._ Origin: Phase 5.5b.
 - **On-device download hardening (Phase 6 / 5.5b polish)** — the model download is a
   one-time user-initiated WorkManager job without a foreground-service type or its own
   progress notification; for a ~2.6 GB download on flaky networks, add a foreground
