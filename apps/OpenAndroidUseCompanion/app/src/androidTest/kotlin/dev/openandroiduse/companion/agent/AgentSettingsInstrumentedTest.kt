@@ -2,6 +2,7 @@ package dev.openandroiduse.companion.agent
 
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import dev.openandroiduse.companion.agent.llm.LlmProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -36,5 +37,35 @@ class AgentSettingsInstrumentedTest {
         settings.clearApiKey()
         assertFalse(settings.hasApiKey())
         assertNull(settings.loadApiKey())
+    }
+
+    @Test
+    fun perProviderKeysAndModelsAreIndependent() {
+        val settings = AgentSettings(context)
+        settings.clearApiKey(LlmProvider.ANTHROPIC)
+        settings.clearApiKey(LlmProvider.GEMINI)
+
+        // Each provider's key lives in its own Keystore-encrypted slot.
+        settings.storeApiKey("sk-ant-test-0123456789", LlmProvider.ANTHROPIC)
+        settings.storeApiKey("AIza-gemini-test-0123456789", LlmProvider.GEMINI)
+        assertTrue(settings.hasApiKey(LlmProvider.ANTHROPIC))
+        assertTrue(settings.hasApiKey(LlmProvider.GEMINI))
+        assertEquals("sk-ant-test-0123456789", settings.loadApiKey(LlmProvider.ANTHROPIC))
+        assertEquals("AIza-gemini-test-0123456789", settings.loadApiKey(LlmProvider.GEMINI))
+
+        // selectedProvider drives the no-arg accessors and the model default.
+        settings.selectedProvider = LlmProvider.GEMINI
+        assertEquals("AIza-gemini-test-0123456789", settings.loadApiKey())
+        assertEquals(LlmProvider.GEMINI.defaultModel, settings.model)
+        settings.selectedProvider = LlmProvider.ANTHROPIC
+        assertEquals("sk-ant-test-0123456789", settings.loadApiKey())
+        assertEquals(LlmProvider.ANTHROPIC.defaultModel, settings.model)
+
+        // Clearing one provider leaves the other intact.
+        settings.clearApiKey(LlmProvider.GEMINI)
+        assertFalse(settings.hasApiKey(LlmProvider.GEMINI))
+        assertTrue(settings.hasApiKey(LlmProvider.ANTHROPIC))
+
+        settings.clearApiKey(LlmProvider.ANTHROPIC)
     }
 }

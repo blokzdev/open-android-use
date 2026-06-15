@@ -9,12 +9,19 @@ import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
+import dev.openandroiduse.companion.agent.llm.LlmProvider
 import dev.openandroiduse.companion.ui.theme.ThemeMode
 
 /**
- * Agent configuration: the Anthropic API key (AES/GCM-encrypted with a
- * non-exportable Android Keystore key; the plaintext never touches disk and
- * leaves the device only toward api.anthropic.com) and the model selection.
+ * Agent configuration: the selected model provider, and **per-provider** API key
+ * (AES/GCM-encrypted with a non-exportable Android Keystore key; the plaintext
+ * never touches disk and leaves the device only toward that provider) + model.
+ *
+ * Storage is per-provider but **zero-migration**: the original Anthropic slots
+ * keep their legacy pref/alias names, and additional providers (Gemini) use an
+ * `_<id>`-suffixed slot — so an existing install keeps its Claude key untouched.
+ * The no-argument accessors operate on [selectedProvider], so existing call
+ * sites (which always mean "the current provider") need no changes.
  */
 class AgentSettings(context: Context) {
 
@@ -23,11 +30,26 @@ class AgentSettings(context: Context) {
 
     private val prefs = context.getSharedPreferences("agent_settings", Context.MODE_PRIVATE)
 
-    var model: String
-        get() = prefs.getString(PREF_MODEL, DEFAULT_MODEL) ?: DEFAULT_MODEL
+    /** The provider the agent runs on, and that the key/model accessors target by default. */
+    var selectedProvider: LlmProvider
+        get() = LlmProvider.fromId(prefs.getString(PREF_SELECTED_PROVIDER, null))
         set(value) {
-            prefs.edit().putString(PREF_MODEL, value).apply()
+            prefs.edit().putString(PREF_SELECTED_PROVIDER, value.id).apply()
         }
+
+    /** Selected model for the current provider. */
+    var model: String
+        get() = modelFor(selectedProvider)
+        set(value) {
+            setModel(value, selectedProvider)
+        }
+
+    fun modelFor(provider: LlmProvider = selectedProvider): String =
+        prefs.getString(modelPref(provider), provider.defaultModel) ?: provider.defaultModel
+
+    fun setModel(value: String, provider: LlmProvider = selectedProvider) {
+        prefs.edit().putString(modelPref(provider), value).apply()
+    }
 
     /** Phase 3.1b consent ladder: show a confirmation sheet before action batches. */
     var confirmActions: Boolean
@@ -71,8 +93,9 @@ class AgentSettings(context: Context) {
 
     /**
      * Test/diagnostic hook with no UI: overrides the API base URL so the
-     * emulator smoke can run the real agent loop against a loopback stub
-     * model server. Null means api.anthropic.com (the SDK default).
+     * emulator/JVM smoke can run the real agent loop against a loopback stub
+     * model server. Null means the provider SDK's default endpoint. A single
+     * hook is enough: only one provider is exercised per test run.
      */
     var baseUrlOverride: String?
         get() = prefs.getString(PREF_BASE_URL, null)?.ifBlank { null }
@@ -80,37 +103,37 @@ class AgentSettings(context: Context) {
             prefs.edit().putString(PREF_BASE_URL, value).apply()
         }
 
-    /** Models offered in settings: the last Models-API fetch, else the built-in list. */
-    fun availableModels(): List<String> {
-        val cached = prefs.getString(PREF_AVAILABLE_MODELS, null)
+    /** Models offered in settings for [provider]: the last `models` fetch, else the built-in list. */
+    fun availableModels(provider: LlmProvider = selectedProvider): List<String> {
+        val cached = prefs.getString(modelsPref(provider), null)
             ?.split('\n')?.filter { it.isNotBlank() }
-        return if (cached.isNullOrEmpty()) AVAILABLE_MODELS else cached
+        return if (cached.isNullOrEmpty()) provider.fallbackModels else cached
     }
 
-    fun cacheAvailableModels(ids: List<String>) {
-        prefs.edit().putString(PREF_AVAILABLE_MODELS, ids.joinToString("\n")).apply()
+    fun cacheAvailableModels(ids: List<String>, provider: LlmProvider = selectedProvider) {
+        prefs.edit().putString(modelsPref(provider), ids.joinToString("\n")).apply()
     }
 
-    fun hasApiKey(): Boolean = prefs.contains(PREF_KEY_CIPHERTEXT)
+    fun hasApiKey(provider: LlmProvider = selectedProvider): Boolean = prefs.contains(ciphertextPref(provider))
 
-    fun storeApiKey(apiKey: String) {
+    fun storeApiKey(apiKey: String, provider: LlmProvider = selectedProvider) {
         val cipher = Cipher.getInstance(TRANSFORMATION)
-        cipher.init(Cipher.ENCRYPT_MODE, obtainSecretKey())
+        cipher.init(Cipher.ENCRYPT_MODE, obtainSecretKey(aliasFor(provider)))
         val ciphertext = cipher.doFinal(apiKey.toByteArray(Charsets.UTF_8))
         prefs.edit()
-            .putString(PREF_KEY_CIPHERTEXT, Base64.encodeToString(ciphertext, Base64.NO_WRAP))
-            .putString(PREF_KEY_IV, Base64.encodeToString(cipher.iv, Base64.NO_WRAP))
+            .putString(ciphertextPref(provider), Base64.encodeToString(ciphertext, Base64.NO_WRAP))
+            .putString(ivPref(provider), Base64.encodeToString(cipher.iv, Base64.NO_WRAP))
             .apply()
     }
 
-    fun loadApiKey(): String? {
-        val ciphertext = prefs.getString(PREF_KEY_CIPHERTEXT, null) ?: return null
-        val iv = prefs.getString(PREF_KEY_IV, null) ?: return null
+    fun loadApiKey(provider: LlmProvider = selectedProvider): String? {
+        val ciphertext = prefs.getString(ciphertextPref(provider), null) ?: return null
+        val iv = prefs.getString(ivPref(provider), null) ?: return null
         return try {
             val cipher = Cipher.getInstance(TRANSFORMATION)
             cipher.init(
                 Cipher.DECRYPT_MODE,
-                obtainSecretKey(),
+                obtainSecretKey(aliasFor(provider)),
                 GCMParameterSpec(128, Base64.decode(iv, Base64.NO_WRAP)),
             )
             String(cipher.doFinal(Base64.decode(ciphertext, Base64.NO_WRAP)), Charsets.UTF_8)
@@ -120,21 +143,21 @@ class AgentSettings(context: Context) {
             // it so hasApiKey() and the UI stop claiming it is configured and
             // the user is prompted to re-enter, instead of looping on
             // "no API key" while settings say otherwise.
-            clearApiKey()
+            clearApiKey(provider)
             null
         }
     }
 
-    fun clearApiKey() {
-        prefs.edit().remove(PREF_KEY_CIPHERTEXT).remove(PREF_KEY_IV).apply()
+    fun clearApiKey(provider: LlmProvider = selectedProvider) {
+        prefs.edit().remove(ciphertextPref(provider)).remove(ivPref(provider)).apply()
     }
 
-    private fun obtainSecretKey(): SecretKey {
+    private fun obtainSecretKey(alias: String): SecretKey {
         val keyStore = KeyStore.getInstance(KEYSTORE).apply { load(null) }
-        (keyStore.getKey(KEY_ALIAS, null) as? SecretKey)?.let { return it }
+        (keyStore.getKey(alias, null) as? SecretKey)?.let { return it }
         val generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, KEYSTORE)
         generator.init(
-            KeyGenParameterSpec.Builder(KEY_ALIAS, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
+            KeyGenParameterSpec.Builder(alias, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
                 .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
                 .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
                 .build(),
@@ -142,15 +165,22 @@ class AgentSettings(context: Context) {
         return generator.generateKey()
     }
 
+    // Per-provider storage slots. Anthropic keeps the original (legacy) names so
+    // an existing install needs no migration; other providers get an `_<id>` slot.
+    private fun slotSuffix(provider: LlmProvider): String =
+        if (provider == LlmProvider.ANTHROPIC) "" else "_${provider.id}"
+
+    private fun aliasFor(provider: LlmProvider): String = KEY_ALIAS + slotSuffix(provider)
+    private fun ciphertextPref(provider: LlmProvider): String = PREF_KEY_CIPHERTEXT + slotSuffix(provider)
+    private fun ivPref(provider: LlmProvider): String = PREF_KEY_IV + slotSuffix(provider)
+    private fun modelPref(provider: LlmProvider): String = PREF_MODEL + slotSuffix(provider)
+    private fun modelsPref(provider: LlmProvider): String = PREF_AVAILABLE_MODELS + slotSuffix(provider)
+
     companion object {
-        const val DEFAULT_MODEL = "claude-opus-4-8"
-
-        /** Fallback list until the first Models-API fetch succeeds (ModelCatalog). */
-        val AVAILABLE_MODELS = listOf("claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5")
-
         private const val KEYSTORE = "AndroidKeyStore"
         private const val KEY_ALIAS = "oau-agent-api-key"
         private const val TRANSFORMATION = "AES/GCM/NoPadding"
+        private const val PREF_SELECTED_PROVIDER = "selected_provider"
         private const val PREF_MODEL = "model"
         private const val PREF_CONFIRM_ACTIONS = "confirm_actions"
         private const val PREF_SPEAK_NARRATION = "speak_narration"
