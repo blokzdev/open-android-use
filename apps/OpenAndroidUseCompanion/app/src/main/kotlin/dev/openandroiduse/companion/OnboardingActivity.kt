@@ -82,7 +82,7 @@ class OnboardingActivity : ComponentActivity() {
         settings = AgentSettings(this)
         enableEdgeToEdge()
         setContent {
-            OpenAndroidUseTheme {
+            OpenAndroidUseTheme(themeMode = settings.themeMode, dynamicColor = settings.dynamicColor) {
                 OnboardingScreen(
                     settings = settings,
                     serviceRunning = serviceRunning,

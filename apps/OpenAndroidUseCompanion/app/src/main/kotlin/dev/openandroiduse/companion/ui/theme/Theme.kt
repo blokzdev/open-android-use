@@ -23,18 +23,26 @@ private val DarkColors = darkColorScheme(
     surface = IndigoDeep,
 )
 
+/** Light/dark preference (Phase 4.7e): follow the system, or force light/dark. */
+enum class ThemeMode { SYSTEM, LIGHT, DARK }
+
 /**
  * App theme for every Compose surface, built on the "Aurora" brand palette
- * (see Color.kt) so the product has a consistent identity. Dynamic color
- * (Material You) is opt-in and off by default — we lead with the brand colors
- * that match the app icon; the system tab can be honoured later via a setting.
+ * (see Color.kt) so the product has a consistent identity. [themeMode] chooses
+ * light/dark (or follows the system); dynamic color (Material You) is opt-in and
+ * off by default — we lead with the brand colors that match the app icon.
  */
 @Composable
 fun OpenAndroidUseTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
+    val darkTheme = when (themeMode) {
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+    }
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current

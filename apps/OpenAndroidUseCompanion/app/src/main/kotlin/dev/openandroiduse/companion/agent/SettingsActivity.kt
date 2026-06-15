@@ -34,6 +34,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
@@ -63,6 +66,7 @@ import dev.openandroiduse.companion.R
 import dev.openandroiduse.companion.ui.ResponsiveContent
 import dev.openandroiduse.companion.ui.markHeading
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
+import dev.openandroiduse.companion.ui.theme.ThemeMode
 
 /**
  * The settings home (Phase 4.5), promoting the former cramped in-chat dialog
@@ -80,13 +84,14 @@ class SettingsActivity : ComponentActivity() {
         settings = AgentSettings(this)
         enableEdgeToEdge()
         setContent {
-            OpenAndroidUseTheme(dynamicColor = settings.dynamicColor) {
+            OpenAndroidUseTheme(themeMode = settings.themeMode, dynamicColor = settings.dynamicColor) {
                 SettingsScreen(
                     settings = settings,
                     onDynamicColorChanged = {
                         // Recreate so the new color scheme applies immediately.
                         recreate()
                     },
+                    onThemeModeChanged = { recreate() },
                     onOpenPrivacy = { startActivity(Intent(this, PrivacyActivity::class.java)) },
                     onOpenAbout = { startActivity(Intent(this, AboutActivity::class.java)) },
                     onRerunSetup = {
@@ -105,6 +110,7 @@ class SettingsActivity : ComponentActivity() {
 private fun SettingsScreen(
     settings: AgentSettings,
     onDynamicColorChanged: () -> Unit,
+    onThemeModeChanged: () -> Unit,
     onOpenPrivacy: () -> Unit,
     onOpenAbout: () -> Unit,
     onRerunSetup: () -> Unit,
@@ -120,6 +126,7 @@ private fun SettingsScreen(
     var confirmActions by remember { mutableStateOf(settings.confirmActions) }
     var speak by remember { mutableStateOf(settings.speakNarration) }
     var dynamic by remember { mutableStateOf(settings.dynamicColor) }
+    var themeMode by remember { mutableStateOf(settings.themeMode) }
 
     val validMsg = stringResource(R.string.settings_key_valid)
     val invalidFmt = stringResource(R.string.settings_key_invalid)
@@ -235,6 +242,12 @@ private fun SettingsScreen(
 
             // --- Behavior ---
             SectionTitle(stringResource(R.string.settings_section_behavior))
+            Text(stringResource(R.string.settings_theme_title), style = MaterialTheme.typography.titleSmall)
+            ThemeModeSelector(themeMode) {
+                themeMode = it
+                settings.themeMode = it
+                onThemeModeChanged()
+            }
             SettingToggle(
                 stringResource(R.string.pref_confirm_title),
                 stringResource(R.string.pref_confirm_body),
@@ -271,6 +284,25 @@ private fun SettingsScreen(
                 Text(stringResource(R.string.settings_rerun_setup))
             }
         }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ThemeModeSelector(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) {
+    val options = listOf(
+        ThemeMode.SYSTEM to R.string.settings_theme_system,
+        ThemeMode.LIGHT to R.string.settings_theme_light,
+        ThemeMode.DARK to R.string.settings_theme_dark,
+    )
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+        options.forEachIndexed { index, (mode, label) ->
+            SegmentedButton(
+                selected = selected == mode,
+                onClick = { onSelect(mode) },
+                shape = SegmentedButtonDefaults.itemShape(index, options.size),
+            ) { Text(stringResource(label)) }
         }
     }
 }

@@ -9,6 +9,7 @@ import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
+import dev.openandroiduse.companion.ui.theme.ThemeMode
 
 /**
  * Agent configuration: the Anthropic API key (AES/GCM-encrypted with a
@@ -58,6 +59,14 @@ class AgentSettings(context: Context) {
         get() = prefs.getBoolean(PREF_DYNAMIC_COLOR, false)
         set(value) {
             prefs.edit().putBoolean(PREF_DYNAMIC_COLOR, value).apply()
+        }
+
+    /** Phase 4.7e: light/dark preference; defaults to following the system. */
+    var themeMode: ThemeMode
+        get() = runCatching { ThemeMode.valueOf(prefs.getString(PREF_THEME_MODE, null) ?: "") }
+            .getOrDefault(ThemeMode.SYSTEM)
+        set(value) {
+            prefs.edit().putString(PREF_THEME_MODE, value.name).apply()
         }
 
     /**
@@ -147,6 +156,7 @@ class AgentSettings(context: Context) {
         private const val PREF_SPEAK_NARRATION = "speak_narration"
         private const val PREF_ONBOARDING_COMPLETED = "onboarding_completed"
         private const val PREF_DYNAMIC_COLOR = "dynamic_color"
+        private const val PREF_THEME_MODE = "theme_mode"
         private const val PREF_BASE_URL = "base_url_override"
         private const val PREF_AVAILABLE_MODELS = "available_models"
         private const val PREF_KEY_CIPHERTEXT = "api_key_ciphertext"

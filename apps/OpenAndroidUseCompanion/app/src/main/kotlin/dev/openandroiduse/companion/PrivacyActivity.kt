@@ -62,7 +62,7 @@ class PrivacyActivity : ComponentActivity() {
         sessions = SessionStore(this)
         enableEdgeToEdge()
         setContent {
-            OpenAndroidUseTheme(dynamicColor = settings.dynamicColor) {
+            OpenAndroidUseTheme(themeMode = settings.themeMode, dynamicColor = settings.dynamicColor) {
                 PrivacyScreen(
                     onClearKey = {
                         val previous = settings.loadApiKey()

@@ -70,8 +70,9 @@ class MainActivity : ComponentActivity() {
     private var hasApiKey by mutableStateOf(false)
     private var recents by mutableStateOf<List<SessionMeta>>(emptyList())
 
-    /** The dynamic-color value this instance was themed with, to detect a Settings toggle. */
+    /** The theme values this instance was built with, to detect a Settings change. */
     private var appliedDynamicColor = false
+    private var appliedThemeMode = dev.openandroiduse.companion.ui.theme.ThemeMode.SYSTEM
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
@@ -79,6 +80,7 @@ class MainActivity : ComponentActivity() {
         settings = AgentSettings(this)
         sessions = SessionStore(this)
         appliedDynamicColor = settings.dynamicColor
+        appliedThemeMode = settings.themeMode
 
         // First run: route to the onboarding wizard, then never again.
         if (!settings.onboardingCompleted) {
@@ -89,7 +91,7 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            OpenAndroidUseTheme(dynamicColor = settings.dynamicColor) {
+            OpenAndroidUseTheme(themeMode = settings.themeMode, dynamicColor = settings.dynamicColor) {
                 MainScreen(
                     running = serviceRunning,
                     hasApiKey = hasApiKey,
@@ -131,7 +133,9 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         // Re-theme if Material You was toggled in Settings since this screen was built.
-        if (this::settings.isInitialized && settings.dynamicColor != appliedDynamicColor) {
+        if (this::settings.isInitialized &&
+            (settings.dynamicColor != appliedDynamicColor || settings.themeMode != appliedThemeMode)
+        ) {
             recreate()
             return
         }
