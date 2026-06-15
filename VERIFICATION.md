@@ -490,6 +490,16 @@ need a real device.
 - [ ] **V113. First-task chip**: on the Ready step, tap the example chip. Pass: onboarding
   completes and chat opens with that example prefilled in the composer (not auto-sent).
 
+### Phase 4.7e-1 — Settings: API-key depth
+
+- [ ] **V114. Show/hide key**: in Settings, the API-key field masks input; tapping the eye icon
+  reveals/hides it (icon + content description flip). 
+- [ ] **V115. Test key**: with a valid key entered (or saved), tap **Test key**. Pass: a spinner
+  shows, then a Snackbar reports "API key works"; with a bad key it reports "Key didn't work: …".
+  Testing uses the entered key if present, else the saved key.
+- [ ] **V116. Get a key**: tap "Get an API key". Pass: the Anthropic console keys page opens in a
+  browser.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |

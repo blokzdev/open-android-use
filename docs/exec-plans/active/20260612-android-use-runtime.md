@@ -204,10 +204,16 @@ build script, and docs synced.
   add `res/values-<locale>/` translations (zh-CN first, fitting the inherited-Chinese
   context) with a translation/review workflow. Carved out of 4.6 so the i18n framework
   lands without a translation-quality commitment.
-- [ ] **Phase 5 — Multi-provider BYOK** (`docs/design-docs/phase5-multi-provider-byok.md`):
-  Claude + Gemini via an in-house Kotlin `AgentBackend` interface + official
-  per-provider SDKs (keep `anthropic-java`; add `com.google.genai` for Gemini);
-  per-provider key + model in settings. Built after the Phase 4 foundation.
+- [ ] **Phase 5 — Pluggable models + on-device edge tier** (`docs/design-docs/phase5-multi-provider-byok.md`;
+  expanded scope approved 2026-06-15): a neutral `agent/llm/LlmClient` port with adapters for
+  **Claude**, **Gemini (BYOK, first)**, and a **downloaded on-device model (Gemma 4 E2B,
+  Apache-2.0, ~0.84 GB mobile text-only, native function calling)**; **device-capability
+  diagnostics + tier-based graceful degradation** (extends `Readiness`); **adaptive perception**
+  (text-first via the `get_app_state` accessibility tree, vision/screenshots on capable devices);
+  per-provider key + model in settings; runtime model download (MediaPipe LLM Inference / LiteRT-LM),
+  never bundled. Sub-phases 5.1–5.7. Runs **after** 4.7 + 4.8 (4.8's R8/shrink/ABI de-risks the
+  native-lib/APK size). Founder calls: ship both Gemini + on-device ("no cutting corners"),
+  Gemini first, adaptive perception.
 - [ ] Phase 3.x backlog (agent intelligence): models-API-driven live model list
   (per provider), per-action consent granularity, task memory (opt-in).
 
@@ -289,3 +295,11 @@ build script, and docs synced.
   (wired into the CLAUDE.md memory harness), keeping this plan for scheduled work.
   The robust no-companion bridge snapshot (deferred during the get_app_state
   hardening) is recorded there.
+- 2026-06-15: **Phase 5 scope expanded** from "multi-provider BYOK" to "pluggable models +
+  on-device edge tier" after research vetting. Verified (primary sources): Gemma 4 E2B is real
+  (2026-04-02), **Apache-2.0**, **~0.84 GB mobile text-only**, with native function calling — the
+  founder's claims checked out (my initial doubt was a pre-April-2026 knowledge-cutoff artifact).
+  ~2B multi-step reliability is the watch-item, mitigated by text-first perception (a11y tree) and
+  device-tier gating. Founder approved shipping both Gemini BYOK + an on-device tier ("no cutting
+  corners"), Gemini first, adaptive perception, after 4.7 + 4.8. Full sub-phase plan captured in
+  the session plan file; to be formalized as its own `docs/exec-plans/active/` doc when Phase 5 starts.

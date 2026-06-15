@@ -13,6 +13,32 @@ object ModelCatalog {
 
     private const val MAX_MODELS = 12
 
+    /** Result of a "Test key" check (Phase 4.7e). */
+    sealed interface KeyTest {
+        data object Valid : KeyTest
+        data class Invalid(val message: String) : KeyTest
+    }
+
+    /**
+     * Validates an API key by making a minimal authenticated call (the Models API). Network —
+     * call from a background thread. [baseUrl] honors the debug loopback override when set.
+     */
+    fun validateKey(apiKey: String, baseUrl: String?): KeyTest {
+        return try {
+            val builder = AnthropicOkHttpClient.builder().apiKey(apiKey)
+            if (baseUrl != null) builder.baseUrl(baseUrl)
+            val client = builder.build()
+            try {
+                client.models().list()
+                KeyTest.Valid
+            } finally {
+                client.close()
+            }
+        } catch (error: Exception) {
+            KeyTest.Invalid(error.message ?: error.javaClass.simpleName)
+        }
+    }
+
     @Volatile
     private var refreshing = false
 

@@ -1,6 +1,7 @@
 package dev.openandroiduse.companion.agent
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
@@ -14,18 +15,27 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -34,13 +44,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import dev.openandroiduse.companion.AboutActivity
 import dev.openandroiduse.companion.OnboardingActivity
 import dev.openandroiduse.companion.PrivacyActivity
@@ -95,15 +110,23 @@ private fun SettingsScreen(
     onRerunSetup: () -> Unit,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val snackbarHost = remember { SnackbarHostState() }
     var apiKey by remember { mutableStateOf("") }
     var hasKey by remember { mutableStateOf(settings.hasApiKey()) }
+    var keyVisible by remember { mutableStateOf(false) }
+    var testing by remember { mutableStateOf(false) }
     var model by remember { mutableStateOf(settings.model) }
     var confirmActions by remember { mutableStateOf(settings.confirmActions) }
     var speak by remember { mutableStateOf(settings.speakNarration) }
     var dynamic by remember { mutableStateOf(settings.dynamicColor) }
 
+    val validMsg = stringResource(R.string.settings_key_valid)
+    val invalidFmt = stringResource(R.string.settings_key_invalid)
+
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.settings_title)) }) },
+        snackbarHost = { SnackbarHost(snackbarHost) },
     ) { contentPadding ->
         ResponsiveContent(contentPadding) { inner ->
         Column(
@@ -125,10 +148,18 @@ private fun SettingsScreen(
                 onValueChange = { apiKey = it },
                 placeholder = { Text(stringResource(R.string.settings_api_key_placeholder)) },
                 singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation = if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { keyVisible = !keyVisible }) {
+                        Icon(
+                            if (keyVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                            contentDescription = stringResource(if (keyVisible) R.string.settings_key_hide else R.string.settings_key_show),
+                        )
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Button(
                     onClick = {
                         val key = apiKey.trim()
@@ -141,6 +172,32 @@ private fun SettingsScreen(
                     },
                     enabled = apiKey.isNotBlank(),
                 ) { Text(stringResource(R.string.settings_save_key)) }
+                // Test the entered key, or the saved key when the field is empty.
+                OutlinedButton(
+                    onClick = {
+                        val key = apiKey.trim().ifEmpty { settings.loadApiKey() } ?: return@OutlinedButton
+                        testing = true
+                        scope.launch {
+                            val result = withContext(Dispatchers.IO) {
+                                ModelCatalog.validateKey(key, settings.baseUrlOverride)
+                            }
+                            testing = false
+                            snackbarHost.showSnackbar(
+                                when (result) {
+                                    is ModelCatalog.KeyTest.Valid -> validMsg
+                                    is ModelCatalog.KeyTest.Invalid -> invalidFmt.format(result.message)
+                                },
+                            )
+                        }
+                    },
+                    enabled = !testing && (apiKey.isNotBlank() || hasKey),
+                ) {
+                    if (testing) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text(stringResource(R.string.settings_test_key))
+                    }
+                }
                 OutlinedButton(
                     onClick = {
                         settings.clearApiKey()
@@ -150,6 +207,16 @@ private fun SettingsScreen(
                     enabled = hasKey,
                 ) { Text(stringResource(R.string.settings_clear_key)) }
             }
+            TextButton(
+                onClick = {
+                    runCatching {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse(context.getString(R.string.settings_get_key_url))),
+                        )
+                    }
+                },
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
+            ) { Text(stringResource(R.string.settings_get_key)) }
 
             HorizontalDivider()
 

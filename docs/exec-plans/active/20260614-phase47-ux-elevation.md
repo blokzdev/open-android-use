@@ -97,7 +97,12 @@ tests, dependency-free control surface). Founder selected all themes + opportuni
   rows with check/neutral icons (accessibility + ready), a reduce-motion-aware step transition
   (Crossfade only when animations are on), and a one-tap first-task chip on the Ready step that
   opens chat prefilled (`EXTRA_PROMPT`). Builds + tests + APK + instrumentation green.
-- [ ] 4.7a-3 tokens/motion · [ ] 4.7e Settings/Privacy.
+- [x] 4.7e-1 — **Settings: API-key depth**: show/hide toggle on the key field; a **Test key**
+  action that validates via the Models API (background, spinner, Snackbar result) reusing a new
+  `ModelCatalog.validateKey`; a "Get an API key" link to the Anthropic console. Builds + tests +
+  APK + instrumentation green.
+- [ ] 4.7e-2 Settings (theme mode Light/Dark/System) · [ ] 4.7e-3 Privacy (storage usage + export
+  all) · [ ] 4.7a-3 tokens/motion.
 - _Deferred:_ 4.7c-2b multi-select bulk archive/delete → BACKLOG (stateful selection mode is the
   lowest-value / hardest-to-tune-blind item in 4.7c; revisit if requested).
 - _Founder call (2026-06-14):_ do the full per-message timestamps + role grouping (un-deferred
