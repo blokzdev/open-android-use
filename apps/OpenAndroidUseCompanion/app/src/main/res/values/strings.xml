@@ -56,10 +56,11 @@
 
     <!-- SettingsActivity -->
     <string name="settings_title">Settings</string>
+    <string name="settings_section_provider">Provider</string>
     <string name="settings_section_api_key">API key</string>
-    <string name="settings_api_key_configured">An Anthropic API key is configured. Enter a new one to replace it.</string>
-    <string name="settings_api_key_add">Add an Anthropic API key to let the agent run.</string>
-    <string name="settings_api_key_placeholder">sk-ant-…</string>
+    <string name="settings_api_key_configured">A %1$s API key is configured. Enter a new one to replace it.</string>
+    <string name="settings_api_key_add">Add a %1$s API key to let the agent run.</string>
+    <string name="settings_api_key_placeholder">Paste your API key</string>
     <string name="settings_save_key">Save key</string>
     <string name="settings_clear_key">Clear key</string>
     <string name="settings_key_saved">Key saved</string>
@@ -71,7 +72,6 @@
     <string name="settings_key_valid">API key works</string>
     <string name="settings_key_invalid">Key didn\'t work: %1$s</string>
     <string name="settings_get_key">Get an API key</string>
-    <string name="settings_get_key_url">https://console.anthropic.com/settings/keys</string>
     <string name="settings_section_behavior">Behavior</string>
     <string name="settings_theme_title">Theme</string>
     <string name="settings_theme_system">System</string>

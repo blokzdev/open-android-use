@@ -252,7 +252,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
         recentSessions = sessions.list()
         sessionList = recentSessions
         if (hasKey) {
-            Thread({ ModelCatalog.refresh(settings) }, "oau-model-refresh").start()
+            Thread({ ModelCatalog.refresh(settings.selectedProvider, settings) }, "oau-model-refresh").start()
         }
     }
 

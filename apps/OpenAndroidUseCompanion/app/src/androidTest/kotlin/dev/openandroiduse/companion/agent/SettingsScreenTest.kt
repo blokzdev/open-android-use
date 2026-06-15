@@ -42,4 +42,11 @@ class SettingsScreenTest {
         composeTestRule.onNodeWithText("API key")
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
     }
+
+    @Test
+    fun rendersProviderSelector() {
+        // Phase 5.2: both providers are selectable at the top of the screen.
+        composeTestRule.onNodeWithText("Claude (Anthropic)").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Gemini (Google)").assertIsDisplayed()
+    }
 }

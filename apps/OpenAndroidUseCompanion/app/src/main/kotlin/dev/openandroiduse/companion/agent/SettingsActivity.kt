@@ -63,6 +63,7 @@ import dev.openandroiduse.companion.AboutActivity
 import dev.openandroiduse.companion.OnboardingActivity
 import dev.openandroiduse.companion.PrivacyActivity
 import dev.openandroiduse.companion.R
+import dev.openandroiduse.companion.agent.llm.LlmProvider
 import dev.openandroiduse.companion.ui.ResponsiveContent
 import dev.openandroiduse.companion.ui.markHeading
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
@@ -119,11 +120,12 @@ private fun SettingsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHost = remember { SnackbarHostState() }
+    var provider by remember { mutableStateOf(settings.selectedProvider) }
     var apiKey by remember { mutableStateOf("") }
-    var hasKey by remember { mutableStateOf(settings.hasApiKey()) }
+    var hasKey by remember { mutableStateOf(settings.hasApiKey(provider)) }
     var keyVisible by remember { mutableStateOf(false) }
     var testing by remember { mutableStateOf(false) }
-    var model by remember { mutableStateOf(settings.model) }
+    var model by remember { mutableStateOf(settings.modelFor(provider)) }
     var confirmActions by remember { mutableStateOf(settings.confirmActions) }
     var speak by remember { mutableStateOf(settings.speakNarration) }
     var dynamic by remember { mutableStateOf(settings.dynamicColor) }
@@ -143,11 +145,26 @@ private fun SettingsScreen(
                 .padding(Spacing.xl),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
+            // --- Provider ---
+            SectionTitle(stringResource(R.string.settings_section_provider))
+            ProviderSelector(provider) { picked ->
+                if (picked == provider) return@ProviderSelector
+                settings.selectedProvider = picked
+                provider = picked
+                // Re-scope every field to the newly selected provider.
+                apiKey = ""
+                hasKey = settings.hasApiKey(picked)
+                model = settings.modelFor(picked)
+            }
+
+            HorizontalDivider()
+
             // --- API key ---
             SectionTitle(stringResource(R.string.settings_section_api_key))
             Text(
                 stringResource(
                     if (hasKey) R.string.settings_api_key_configured else R.string.settings_api_key_add,
+                    provider.displayName,
                 ),
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -172,10 +189,10 @@ private fun SettingsScreen(
                     onClick = {
                         val key = apiKey.trim()
                         if (key.isEmpty()) return@Button
-                        settings.storeApiKey(key)
+                        settings.storeApiKey(key, provider)
                         apiKey = ""
                         hasKey = true
-                        Thread({ ModelCatalog.refresh(settings) }, "oau-model-refresh").start()
+                        Thread({ ModelCatalog.refresh(provider, settings) }, "oau-model-refresh").start()
                         Toast.makeText(context, context.getString(R.string.settings_key_saved), Toast.LENGTH_SHORT).show()
                     },
                     enabled = apiKey.isNotBlank(),
@@ -183,11 +200,11 @@ private fun SettingsScreen(
                 // Test the entered key, or the saved key when the field is empty.
                 OutlinedButton(
                     onClick = {
-                        val key = apiKey.trim().ifEmpty { settings.loadApiKey() } ?: return@OutlinedButton
+                        val key = apiKey.trim().ifEmpty { settings.loadApiKey(provider) } ?: return@OutlinedButton
                         testing = true
                         scope.launch {
                             val result = withContext(Dispatchers.IO) {
-                                ModelCatalog.validateKey(key, settings.baseUrlOverride)
+                                ModelCatalog.validateKey(provider, key, settings.baseUrlOverride)
                             }
                             testing = false
                             snackbarHost.showSnackbar(
@@ -208,7 +225,7 @@ private fun SettingsScreen(
                 }
                 OutlinedButton(
                     onClick = {
-                        settings.clearApiKey()
+                        settings.clearApiKey(provider)
                         hasKey = false
                         Toast.makeText(context, context.getString(R.string.settings_key_cleared), Toast.LENGTH_SHORT).show()
                     },
@@ -218,9 +235,7 @@ private fun SettingsScreen(
             TextButton(
                 onClick = {
                     runCatching {
-                        context.startActivity(
-                            Intent(Intent.ACTION_VIEW, Uri.parse(context.getString(R.string.settings_get_key_url))),
-                        )
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(provider.keyHelpUrl)))
                     }
                 },
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
@@ -231,11 +246,11 @@ private fun SettingsScreen(
             // --- Model ---
             SectionTitle(stringResource(R.string.label_model))
             ModelDropdown(
-                models = settings.availableModels(),
+                models = settings.availableModels(provider),
                 selected = model,
                 onSelected = {
                     model = it
-                    settings.model = it
+                    settings.setModel(it, provider)
                 },
             )
 
@@ -285,6 +300,21 @@ private fun SettingsScreen(
                 Text(stringResource(R.string.settings_rerun_setup))
             }
         }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProviderSelector(selected: LlmProvider, onSelect: (LlmProvider) -> Unit) {
+    val options = LlmProvider.entries
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+        options.forEachIndexed { index, provider ->
+            SegmentedButton(
+                selected = selected == provider,
+                onClick = { onSelect(provider) },
+                shape = SegmentedButtonDefaults.itemShape(index, options.size),
+            ) { Text(provider.displayName) }
         }
     }
 }

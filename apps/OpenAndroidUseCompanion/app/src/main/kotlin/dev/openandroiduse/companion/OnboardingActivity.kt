@@ -1,6 +1,7 @@
 package dev.openandroiduse.companion
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -42,6 +43,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -63,6 +67,7 @@ import dev.openandroiduse.companion.agent.AgentSettings
 import dev.openandroiduse.companion.agent.ChatActivity
 import dev.openandroiduse.companion.agent.ModelCatalog
 import dev.openandroiduse.companion.agent.Motion
+import dev.openandroiduse.companion.agent.llm.LlmProvider
 import dev.openandroiduse.companion.ui.markHeading
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
 import dev.openandroiduse.companion.ui.theme.Spacing
@@ -91,7 +96,7 @@ class OnboardingActivity : ComponentActivity() {
                         startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
                     },
                     onRefreshModels = {
-                        Thread({ ModelCatalog.refresh(settings) }, "oau-model-refresh").start()
+                        Thread({ ModelCatalog.refresh(settings.selectedProvider, settings) }, "oau-model-refresh").start()
                     },
                     onComplete = ::completeOnboarding,
                     onTry = { prompt -> completeOnboarding(openChat = true, prompt = prompt) },
@@ -131,8 +136,9 @@ private fun OnboardingScreen(
 ) {
     var step by remember { mutableStateOf(0) }
     var apiKey by remember { mutableStateOf("") }
-    val models = remember { settings.availableModels() }
-    var model by remember { mutableStateOf(settings.model) }
+    var provider by remember { mutableStateOf(settings.selectedProvider) }
+    val models = settings.availableModels(provider)
+    var model by remember { mutableStateOf(settings.modelFor(provider)) }
     var confirmActions by remember { mutableStateOf(settings.confirmActions) }
     var speakNarration by remember { mutableStateOf(settings.speakNarration) }
 
@@ -161,6 +167,15 @@ private fun OnboardingScreen(
                         1 -> AccessibilityStep(serviceRunning, onOpenAccessibilitySettings)
                         2 -> PrivacyStep()
                         3 -> ApiKeyStep(
+                            provider = provider,
+                            onProviderChange = { picked ->
+                                if (picked != provider) {
+                                    settings.selectedProvider = picked
+                                    provider = picked
+                                    apiKey = ""
+                                    model = settings.modelFor(picked)
+                                }
+                            },
                             apiKey = apiKey,
                             onApiKeyChange = { apiKey = it },
                             models = models,
@@ -205,10 +220,11 @@ private fun OnboardingScreen(
                     3 -> {
                         TextButton(onClick = { step = 4 }) { Text(stringResource(R.string.onboarding_skip)) }
                         Button(onClick = {
+                            settings.selectedProvider = provider
+                            settings.setModel(model, provider)
                             val key = apiKey.trim()
                             if (key.isNotEmpty()) {
-                                settings.storeApiKey(key)
-                                settings.model = model
+                                settings.storeApiKey(key, provider)
                                 onRefreshModels()
                             }
                             step = 4
@@ -330,15 +346,29 @@ private fun PrivacyPoint(title: String, body: String) {
 
 @Composable
 private fun ApiKeyStep(
+    provider: LlmProvider,
+    onProviderChange: (LlmProvider) -> Unit,
     apiKey: String,
     onApiKeyChange: (String) -> Unit,
     models: List<String>,
     model: String,
     onModelChange: (String) -> Unit,
 ) {
+    val context = LocalContext.current
     StepIcon(Icons.Filled.Key)
     Text(stringResource(R.string.onboarding_apikey_title), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.markHeading())
     Text(stringResource(R.string.onboarding_apikey_body), style = MaterialTheme.typography.bodyMedium)
+    Text(stringResource(R.string.settings_section_provider), style = MaterialTheme.typography.titleSmall)
+    val providers = LlmProvider.entries
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+        providers.forEachIndexed { index, candidate ->
+            SegmentedButton(
+                selected = candidate == provider,
+                onClick = { onProviderChange(candidate) },
+                shape = SegmentedButtonDefaults.itemShape(index, providers.size),
+            ) { Text(candidate.displayName) }
+        }
+    }
     OutlinedTextField(
         value = apiKey,
         onValueChange = onApiKeyChange,
@@ -347,6 +377,12 @@ private fun ApiKeyStep(
         visualTransformation = PasswordVisualTransformation(),
         modifier = Modifier.fillMaxWidth(),
     )
+    TextButton(
+        onClick = {
+            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(provider.keyHelpUrl))) }
+        },
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
+    ) { Text(stringResource(R.string.settings_get_key)) }
     Text(stringResource(R.string.label_model), style = MaterialTheme.typography.titleSmall)
     ModelDropdown(models = models, selected = model, onSelected = onModelChange)
 }

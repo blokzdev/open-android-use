@@ -6,6 +6,7 @@ import dev.openandroiduse.companion.CompanionService
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.concurrent.CountDownLatch
@@ -22,6 +23,18 @@ import java.util.concurrent.TimeUnit
  */
 @RunWith(AndroidJUnit4::class)
 class AgentLoopEmulatorTest {
+
+    /**
+     * Each full-loop test takes a real accessibility screenshot, and
+     * `AccessibilityService.takeScreenshot` is rate-limited to roughly one per
+     * second. With two loop tests in this class (Anthropic + Gemini) running
+     * back-to-back, the second loop's screenshot would come back empty. Space
+     * the tests past the interval so each gets a real screenshot.
+     */
+    @Before
+    fun spaceScreenshotRateLimit() {
+        Thread.sleep(2_500)
+    }
 
     /**
      * `am instrument` force-restarts the app process, which unbinds the
@@ -145,6 +158,85 @@ class AgentLoopEmulatorTest {
             val settings = AgentSettings(ApplicationProvider.getApplicationContext())
             settings.baseUrlOverride = null
             settings.clearApiKey()
+        }
+    }
+
+    @Test
+    fun agentLoopExecutesToolTurnAgainstGeminiStubModel() {
+        val running = ensureServiceRunning()
+        val required = androidx.test.platform.app.InstrumentationRegistry.getArguments()
+            .getString("requireCompanion") == "true"
+        if (required) {
+            assertTrue("companion accessibility service must be running in CI", running)
+        } else {
+            assumeTrue("companion accessibility service must be enabled (CI smoke enables it)", running)
+        }
+
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val stub = StubModelServer().apply { provider = StubModelServer.Provider.GEMINI }
+        stub.start()
+        try {
+            java.net.Socket().use { probe ->
+                try {
+                    probe.connect(java.net.InetSocketAddress("127.0.0.1", stub.port), 3_000)
+                } catch (e: Exception) {
+                    org.junit.Assert.fail("stub server not reachable on 127.0.0.1:${stub.port}: $e")
+                }
+            }
+
+            val settings = AgentSettings(context)
+            settings.selectedProvider = dev.openandroiduse.companion.agent.llm.LlmProvider.GEMINI
+            settings.storeApiKey("stub-gemini-key", dev.openandroiduse.companion.agent.llm.LlmProvider.GEMINI)
+            settings.setModel("gemini-2.5-pro", dev.openandroiduse.companion.agent.llm.LlmProvider.GEMINI)
+            settings.baseUrlOverride = "http://127.0.0.1:${stub.port}"
+            settings.confirmActions = false
+            settings.speakNarration = false
+
+            val finished = CountDownLatch(1)
+            AgentController.resetConversation()
+            AgentController.listener = object : AgentController.Listener {
+                override fun onTaskStateChanged(running: Boolean) {
+                    if (!running) finished.countDown()
+                }
+
+                override fun onTranscriptChanged() {}
+            }
+
+            assertTrue("task should start", AgentController.startTask("Look at the current screen.", settings))
+            assertTrue("agent loop should finish within 90s", finished.await(90, TimeUnit.SECONDS))
+
+            val transcript = AgentController.transcriptSnapshot()
+            val dump = transcript.joinToString("\n") { "[${it.kind}] ${it.text.take(300)}" }
+            println("GEMINI AGENT TRANSCRIPT:\n$dump")
+            assertTrue(
+                "get_app_state should have executed; transcript:\n$dump",
+                transcript.any { it.kind == AgentController.KIND_TOOL && it.text.contains("get_app_state") },
+            )
+            assertEquals("stub should have served two turns; transcript:\n$dump", 2, stub.requestBodies.size)
+
+            val first = stub.requestBodies[0]
+            assertTrue("first request must carry the 9-tool function declarations",
+                first.contains("get_app_state"))
+            assertTrue("first request must carry the system instruction",
+                first.contains("Open Android Use companion agent"))
+
+            val second = stub.requestBodies[1]
+            assertTrue("second request must return a Gemini functionResponse",
+                second.contains("functionResponse"))
+            assertTrue("function response must reference the called tool", second.contains("get_app_state"))
+            assertTrue("tool result should include an inline screenshot", second.contains("image/png"))
+
+            assertTrue(
+                "transcript should contain the final narration",
+                transcript.any { it.kind == AgentController.KIND_ASSISTANT && it.text.contains("Done") },
+            )
+        } finally {
+            AgentController.listener = null
+            stub.shutdown()
+            val settings = AgentSettings(ApplicationProvider.getApplicationContext())
+            settings.baseUrlOverride = null
+            settings.clearApiKey(dev.openandroiduse.companion.agent.llm.LlmProvider.GEMINI)
+            settings.selectedProvider = dev.openandroiduse.companion.agent.llm.LlmProvider.ANTHROPIC
         }
     }
 }

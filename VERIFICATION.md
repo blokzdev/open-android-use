@@ -535,6 +535,19 @@ need a real device.
   continues the task normally. (Guards the `replayPayload` round-trip the keyless smoke can only
   approximate without a live key; everyday tasks running unchanged is the broader behavior-preservation check.)
 
+### Phase 5.2 — Gemini BYOK + provider switcher
+
+- [ ] **V123. Gemini key test + live model list**: Settings → Provider → Gemini; paste a real Gemini
+  API key → **Test key** reports valid, and the model dropdown populates from the live list (incl.
+  3.x ids). Pass: valid result + a non-empty, Gemini-only model list.
+- [ ] **V124. Gemini end-to-end task**: with Gemini selected and a key set, run a real multi-step task
+  (e.g. "open Settings and tell me the Android version"). Pass: the agent issues tool calls, receives
+  screenshots, and completes the task with a correct answer — no API errors about function calls or
+  parts.
+- [ ] **V125. Per-provider persistence & isolation**: set a Gemini key while a Claude key is already
+  configured; restart the app. Pass: provider, both keys, and each provider's model selection persist;
+  adding/clearing the Gemini key never affects the Claude key (and vice-versa).
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |
