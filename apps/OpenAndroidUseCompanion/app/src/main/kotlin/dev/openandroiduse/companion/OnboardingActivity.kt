@@ -369,6 +369,11 @@ private fun ApiKeyStep(
             ) { Text(candidate.displayName) }
         }
     }
+    if (!provider.requiresApiKey) {
+        // On-device needs no key here; the (large) model download lives in Settings.
+        Text(stringResource(R.string.onboarding_ondevice_note), style = MaterialTheme.typography.bodyMedium)
+        return
+    }
     OutlinedTextField(
         value = apiKey,
         onValueChange = onApiKeyChange,
