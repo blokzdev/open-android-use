@@ -13,6 +13,8 @@ import dev.openandroiduse.companion.agent.llm.AgentStopReason
 import dev.openandroiduse.companion.agent.llm.AnthropicBackend
 import dev.openandroiduse.companion.agent.llm.BackendRequest
 import dev.openandroiduse.companion.agent.llm.BackendStreamException
+import dev.openandroiduse.companion.agent.llm.GeminiBackend
+import dev.openandroiduse.companion.agent.llm.LlmProvider
 import dev.openandroiduse.companion.agent.llm.BackendSink
 import dev.openandroiduse.companion.agent.llm.ToolImage
 import org.json.JSONObject
@@ -216,6 +218,7 @@ object AgentController {
             VoiceNarrator.ensureInitialized(service)
         }
         val confirmActions = settings.confirmActions
+        val provider = settings.selectedProvider
         // The loopback base-URL override is a debug-only test hook: honoring a
         // persisted pref in release would let anything that can write prefs
         // redirect the API-key-bearing client. Release ignores it entirely.
@@ -223,7 +226,7 @@ object AgentController {
         worker = Thread(
             {
                 try {
-                    runLoop(service, apiKey, settings.model, confirmActions, baseUrl)
+                    runLoop(service, provider, apiKey, settings.model, confirmActions, baseUrl)
                 } finally {
                     service.interactionListener = null
                     GestureTrail.detach(service)
@@ -351,12 +354,18 @@ object AgentController {
 
     private fun runLoop(
         service: CompanionService,
+        provider: LlmProvider,
         apiKey: String,
         model: String,
         confirmActions: Boolean,
         baseUrl: String?,
     ) {
-        val backend = AnthropicBackend(apiKey, baseUrl)
+        // The only provider-specific line in the loop: pick the backend. Every
+        // other step works in neutral types.
+        val backend: AgentBackend = when (provider) {
+            LlmProvider.ANTHROPIC -> AnthropicBackend(apiKey, baseUrl)
+            LlmProvider.GEMINI -> GeminiBackend(apiKey, baseUrl)
+        }
         this.backend = backend
         val executor = ToolExecutor(service)
         // Live deltas render exactly as before: text to the assistant line (and
