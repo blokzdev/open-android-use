@@ -36,13 +36,20 @@ is preserved):
 
 ```
 interface AgentBackend {
-    fun stream(
-        messages: List<AgentMessage>,
-        tools: List<ToolSpec>,      // the frozen 9 tools, provider-neutral
-        model: String,
-    ): Flow<BackendEvent>           // text | thinking | tool_call | stop | error
+    fun streamTurn(request: BackendRequest, sink: BackendSink): CompletedTurn
+    fun cancel()   // force-close the in-flight stream (stop button)
+    fun close()
 }
 ```
+
+> Implementation note (2026-06-15, Phase 5.1): the seam shipped as a **blocking
+> sink** rather than the `Flow<BackendEvent>` sketched above. The loop is a single
+> sequential consumer on a dedicated worker thread that cancels by force-closing
+> the in-flight stream, so Flow's backpressure/operator/multi-collector features
+> would be unused and a `runBlocking` bridge would only add subtler cancellation
+> semantics. `streamTurn` blocks and returns the completed turn; live text/thinking
+> deltas go to `BackendSink`. The deferred Flow alternative (and the reasoning to
+> revisit it) is recorded in `docs/BACKLOG.md`.
 
 Refactor the current `agent/AgentController` so the **loop, safety gates
 (touch-to-pause, confirmation, stop), the in-process 9-tool executor, screenshot

@@ -184,11 +184,9 @@
   hardware-verified.
 - **On-device agent** (Phase 3.1a, `apps/OpenAndroidUseCompanion` `agent`
   package): the companion app hosts a complete agent loop — chat Activity →
-  `AgentController` (manual agentic loop on the Anthropic Java SDK: streaming,
-  adaptive thinking with summarized display, effort high, frozen tools+system
-  prompt with a prompt-cache breakpoint, refusal stop-reason handling, stop
-  gate between stream events and tool executions, screenshot pruning beyond a
-  2-result window) → `ToolExecutor` (the same 9-tool schema, ported verbatim
+  `AgentController` (manual agentic loop: streaming, refusal stop-reason
+  handling, stop gate between stream events and tool executions, screenshot
+  pruning beyond a 2-result window) → `ToolExecutor` (the same 9-tool schema, ported verbatim
   from the bridge's `toolDefinitions()`, executed in-process against
   SnapshotBuilder/ActionExecutor with bridge-identical semantics: element
   indexing, CoordinateScale, 800ms settle, fresh snapshot after each action).
@@ -199,6 +197,18 @@
   screenshots. The control surface stays dependency-free; the agent package
   is the registered exception (`docs/SUPPLY_CHAIN_SECURITY.md`). Plan:
   `docs/exec-plans/completed/20260612-phase3-on-device-agent.md`.
+- **Provider seam** (Phase 5.1, `agent/llm` package): the loop above is
+  provider-neutral. `AgentController` works in neutral types — `AgentMessage`/
+  `AgentContent` history, `AgentTools.specs()` (`ToolSpec`), `AgentStopReason` —
+  and drives a single `AgentBackend` (`streamTurn(request, sink)` blocking +
+  force-close `cancel()`). `AnthropicBackend` (+ `AnthropicMessageMapping`) is
+  the lone implementation: it owns the SDK client, the verbatim prompt-cache +
+  adaptive-thinking config, the accumulate-and-stream loop, and tool/message
+  translation, and is the only place under `agent` (besides `ModelCatalog`,
+  deferred) that imports `com.anthropic`. Assistant turns round-trip through an
+  opaque `replayPayload` so extended-thinking signatures stay byte-exact. Gemini
+  + the on-device tier plug in as further backends (Phase 5.2+,
+  `docs/exec-plans/active/20260615-phase5-pluggable-models.md`).
 - **Agent safety surfaces and voice** (Phase 3.1b/3.1c): *touch-to-pause* —
   direct-manipulation accessibility events outside the agent's own gesture
   window (temporal heuristic, `TouchPauseMonitor`) suspend the task; the
