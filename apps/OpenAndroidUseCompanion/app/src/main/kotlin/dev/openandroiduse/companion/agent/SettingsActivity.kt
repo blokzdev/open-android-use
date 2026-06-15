@@ -175,7 +175,7 @@ private fun SettingsScreen(
                         settings.storeApiKey(key)
                         apiKey = ""
                         hasKey = true
-                        Thread({ ModelCatalog.refresh(settings) }, "oau-model-refresh").start()
+                        Thread({ ModelCatalog.refresh(settings.selectedProvider, settings) }, "oau-model-refresh").start()
                         Toast.makeText(context, context.getString(R.string.settings_key_saved), Toast.LENGTH_SHORT).show()
                     },
                     enabled = apiKey.isNotBlank(),
@@ -187,7 +187,7 @@ private fun SettingsScreen(
                         testing = true
                         scope.launch {
                             val result = withContext(Dispatchers.IO) {
-                                ModelCatalog.validateKey(key, settings.baseUrlOverride)
+                                ModelCatalog.validateKey(settings.selectedProvider, key, settings.baseUrlOverride)
                             }
                             testing = false
                             snackbarHost.showSnackbar(

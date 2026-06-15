@@ -91,7 +91,7 @@ class OnboardingActivity : ComponentActivity() {
                         startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
                     },
                     onRefreshModels = {
-                        Thread({ ModelCatalog.refresh(settings) }, "oau-model-refresh").start()
+                        Thread({ ModelCatalog.refresh(settings.selectedProvider, settings) }, "oau-model-refresh").start()
                     },
                     onComplete = ::completeOnboarding,
                     onTry = { prompt -> completeOnboarding(openChat = true, prompt = prompt) },
