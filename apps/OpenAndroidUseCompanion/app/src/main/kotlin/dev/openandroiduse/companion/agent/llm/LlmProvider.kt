@@ -40,6 +40,19 @@ enum class LlmProvider(
     ),
     ;
 
+    /** This provider's key-validation + model-listing capability (Phase 5.3). */
+    val models: ProviderModels
+        get() = when (this) {
+            ANTHROPIC -> AnthropicModels
+            GEMINI -> GeminiModels
+        }
+
+    /** Construct the agent-loop backend for this provider (the loop's only provider-specific step). */
+    fun createBackend(apiKey: String, baseUrl: String?): AgentBackend = when (this) {
+        ANTHROPIC -> AnthropicBackend(apiKey, baseUrl)
+        GEMINI -> GeminiBackend(apiKey, baseUrl)
+    }
+
     companion object {
         /** Resolve a stored id back to a provider; unknown / null falls back to the original Claude path. */
         fun fromId(id: String?): LlmProvider = entries.firstOrNull { it.id == id } ?: ANTHROPIC
