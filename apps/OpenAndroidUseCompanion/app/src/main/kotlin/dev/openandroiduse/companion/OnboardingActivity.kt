@@ -7,7 +7,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,13 +17,27 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Accessibility
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.RocketLaunch
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.WavingHand
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -38,12 +54,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import dev.openandroiduse.companion.agent.AgentSettings
 import dev.openandroiduse.companion.agent.ChatActivity
 import dev.openandroiduse.companion.agent.ModelCatalog
+import dev.openandroiduse.companion.agent.Motion
 import dev.openandroiduse.companion.ui.markHeading
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
 
@@ -74,6 +93,7 @@ class OnboardingActivity : ComponentActivity() {
                         Thread({ ModelCatalog.refresh(settings) }, "oau-model-refresh").start()
                     },
                     onComplete = ::completeOnboarding,
+                    onTry = { prompt -> completeOnboarding(openChat = true, prompt = prompt) },
                 )
             }
         }
@@ -84,11 +104,13 @@ class OnboardingActivity : ComponentActivity() {
         serviceRunning = CompanionService.isRunning
     }
 
-    private fun completeOnboarding(openChat: Boolean) {
+    private fun completeOnboarding(openChat: Boolean, prompt: String? = null) {
         settings.onboardingCompleted = true
         startActivity(Intent(this, MainActivity::class.java))
         if (openChat) {
-            startActivity(Intent(this, ChatActivity::class.java))
+            val chat = Intent(this, ChatActivity::class.java)
+            if (prompt != null) chat.putExtra(ChatActivity.EXTRA_PROMPT, prompt)
+            startActivity(chat)
         }
         finish()
     }
@@ -104,6 +126,7 @@ private fun OnboardingScreen(
     onOpenAccessibilitySettings: () -> Unit,
     onRefreshModels: () -> Unit,
     onComplete: (openChat: Boolean) -> Unit,
+    onTry: (String) -> Unit,
 ) {
     var step by remember { mutableStateOf(0) }
     var apiKey by remember { mutableStateOf("") }
@@ -117,11 +140,14 @@ private fun OnboardingScreen(
         if (step == 1 && serviceRunning) step = 2
     }
 
+    val context = LocalContext.current
+    val reduceMotion = Motion.animationsDisabled(context)
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.onboarding_step, step + 1, STEP_COUNT)) }) },
     ) { contentPadding ->
         Column(modifier = Modifier.padding(contentPadding).fillMaxSize()) {
-            Crossfade(targetState = step, label = "onboarding-step", modifier = Modifier.weight(1f)) { current ->
+            StepDots(current = step, total = STEP_COUNT)
+            val stepContent: @Composable (Int) -> Unit = { current ->
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -146,8 +172,16 @@ private fun OnboardingScreen(
                             speakNarration = speakNarration,
                             onSpeakChange = { speakNarration = it },
                         )
-                        else -> ReadyStep(serviceRunning, settings.hasApiKey())
+                        else -> ReadyStep(serviceRunning, settings.hasApiKey(), onTry)
                     }
+                }
+            }
+            // Reduce-motion: render the step directly instead of cross-fading.
+            if (reduceMotion) {
+                Column(Modifier.weight(1f)) { stepContent(step) }
+            } else {
+                Crossfade(targetState = step, label = "onboarding-step", modifier = Modifier.weight(1f)) { current ->
+                    stepContent(current)
                 }
             }
 
@@ -194,8 +228,49 @@ private fun OnboardingScreen(
     }
 }
 
+/** Progress dots across the wizard (Phase 4.7d-2); current/total announced for TalkBack. */
+@Composable
+private fun StepDots(current: Int, total: Int) {
+    val desc = stringResource(R.string.onboarding_step, current + 1, total)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+            .markHeading(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        for (i in 0 until total) {
+            val active = i <= current
+            Box(
+                Modifier
+                    .padding(horizontal = 4.dp)
+                    .size(if (i == current) 10.dp else 8.dp)
+                    .background(
+                        if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                        CircleShape,
+                    ),
+            )
+        }
+    }
+}
+
+/** A large, centered step icon to give each onboarding step a face (Phase 4.7d-2). */
+@Composable
+private fun StepIcon(icon: ImageVector) {
+    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(56.dp),
+        )
+    }
+}
+
 @Composable
 private fun WelcomeStep() {
+    StepIcon(Icons.Filled.WavingHand)
     Text(stringResource(R.string.onboarding_welcome_title), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.markHeading())
     Text(stringResource(R.string.onboarding_welcome_body), style = MaterialTheme.typography.bodyMedium)
     Text(stringResource(R.string.onboarding_welcome_time), style = MaterialTheme.typography.bodyMedium)
@@ -203,13 +278,14 @@ private fun WelcomeStep() {
 
 @Composable
 private fun AccessibilityStep(serviceRunning: Boolean, onOpen: () -> Unit) {
+    StepIcon(Icons.Filled.Accessibility)
     Text(stringResource(R.string.onboarding_accessibility_title), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.markHeading())
     Text(stringResource(R.string.onboarding_accessibility_body), style = MaterialTheme.typography.bodyMedium)
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            stringResource(if (serviceRunning) R.string.onboarding_service_running else R.string.onboarding_service_not_enabled),
+        StatusLine(
+            ok = serviceRunning,
+            text = stringResource(if (serviceRunning) R.string.onboarding_service_running else R.string.onboarding_service_not_enabled),
             modifier = Modifier.padding(16.dp),
-            style = MaterialTheme.typography.titleMedium,
         )
     }
     Button(onClick = onOpen, modifier = Modifier.fillMaxWidth()) {
@@ -218,8 +294,24 @@ private fun AccessibilityStep(serviceRunning: Boolean, onOpen: () -> Unit) {
     Text(stringResource(R.string.restricted_setting_hint), style = MaterialTheme.typography.bodySmall)
 }
 
+/** A status line with a success/pending icon (green check vs neutral), for onboarding states. */
+@Composable
+private fun StatusLine(ok: Boolean, text: String, modifier: Modifier = Modifier) {
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            if (ok) Icons.Filled.CheckCircle else Icons.Filled.Cancel,
+            contentDescription = null,
+            tint = if (ok) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(text, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
 @Composable
 private fun PrivacyStep() {
+    StepIcon(Icons.Filled.Lock)
     Text(stringResource(R.string.onboarding_privacy_title), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.markHeading())
     PrivacyPoint(stringResource(R.string.privacy_on_device_title), stringResource(R.string.onboarding_privacy_on_device_body))
     PrivacyPoint(stringResource(R.string.privacy_leaves_title), stringResource(R.string.onboarding_privacy_leaves_body))
@@ -243,6 +335,7 @@ private fun ApiKeyStep(
     model: String,
     onModelChange: (String) -> Unit,
 ) {
+    StepIcon(Icons.Filled.Key)
     Text(stringResource(R.string.onboarding_apikey_title), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.markHeading())
     Text(stringResource(R.string.onboarding_apikey_body), style = MaterialTheme.typography.bodyMedium)
     OutlinedTextField(
@@ -283,6 +376,7 @@ private fun PreferencesStep(
     speakNarration: Boolean,
     onSpeakChange: (Boolean) -> Unit,
 ) {
+    StepIcon(Icons.Filled.Tune)
     Text(stringResource(R.string.onboarding_prefs_title), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.markHeading())
     ToggleRow(
         stringResource(R.string.pref_confirm_title),
@@ -312,14 +406,23 @@ private fun ToggleRow(title: String, body: String, checked: Boolean, onChange: (
 }
 
 @Composable
-private fun ReadyStep(serviceRunning: Boolean, hasKey: Boolean) {
+private fun ReadyStep(serviceRunning: Boolean, hasKey: Boolean, onTry: (String) -> Unit) {
+    StepIcon(Icons.Filled.RocketLaunch)
     Text(stringResource(R.string.onboarding_ready_title), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.markHeading())
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(stringResource(if (serviceRunning) R.string.onboarding_ready_accessibility_on else R.string.onboarding_ready_accessibility_off))
-            Text(stringResource(if (hasKey) R.string.onboarding_ready_key_set else R.string.onboarding_ready_key_unset))
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatusLine(
+                ok = serviceRunning,
+                text = stringResource(if (serviceRunning) R.string.onboarding_ready_accessibility_on else R.string.onboarding_ready_accessibility_off),
+            )
+            StatusLine(
+                ok = hasKey,
+                text = stringResource(if (hasKey) R.string.onboarding_ready_key_set else R.string.onboarding_ready_key_unset),
+            )
         }
     }
     Text(stringResource(R.string.onboarding_try_title), style = MaterialTheme.typography.titleSmall)
-    Text(stringResource(R.string.onboarding_try_example), style = MaterialTheme.typography.bodyMedium)
+    // A one-tap first task: opens chat with this example prefilled.
+    val example = stringResource(R.string.suggested_prompt_1)
+    AssistChip(onClick = { onTry(example) }, label = { Text(example) })
 }
