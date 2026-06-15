@@ -59,12 +59,21 @@ pruning, and narration** stay provider-independent. Everything provider-specific
 
 ### Providers
 
+> Status (2026-06-15): **both shipped** — 5.1 (`AnthropicBackend`) and 5.2
+> (`GeminiBackend`, `com.google.genai:google-genai:1.58.0`). Confirmed live Gemini
+> model ids: `gemini-2.5-pro` (default), `gemini-2.5-flash`, `gemini-2.5-flash-lite`,
+> `gemini-3.5-flash`, `gemini-3.1-flash-lite`, `gemini-3.1-pro-preview`,
+> `gemini-3-flash-preview` — surfaced via the live model-list fetch; the default is
+> the stable `gemini-2.5-pro` (preview ids get retired).
+
 - **`AnthropicBackend`** — keep `com.anthropic:anthropic-java:2.40.1` (the
   existing, working path); becomes one implementation of the interface.
 - **`GeminiBackend`** — add the **official Google Gen AI Java SDK
   (`com.google.genai`)**, BYOK with the user's Gemini key. Map the 9 tools to
   Gemini **function declarations**, and translate Gemini's streamed parts +
-  function calls into `BackendEvent`s.
+  function calls into the neutral turn (deltas to the sink). Gemini has no
+  signed-thinking round-trip, so its `replayPayload` is null; tool-call identity is
+  name-matched (the backend encodes the function name into the neutral tool_use id).
 - The interface is **provider-extensible** (OpenAI, etc., later) without
   committing to more now.
 

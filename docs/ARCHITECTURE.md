@@ -204,11 +204,21 @@
   force-close `cancel()`). `AnthropicBackend` (+ `AnthropicMessageMapping`) is
   the lone implementation: it owns the SDK client, the verbatim prompt-cache +
   adaptive-thinking config, the accumulate-and-stream loop, and tool/message
-  translation, and is the only place under `agent` (besides `ModelCatalog`,
-  deferred) that imports `com.anthropic`. Assistant turns round-trip through an
-  opaque `replayPayload` so extended-thinking signatures stay byte-exact. Gemini
-  + the on-device tier plug in as further backends (Phase 5.2+,
-  `docs/exec-plans/active/20260615-phase5-pluggable-models.md`).
+  translation, and (besides `ModelCatalog`) is the only place under `agent` that
+  imports `com.anthropic`. Assistant turns round-trip through an opaque
+  `replayPayload` so extended-thinking signatures stay byte-exact.
+- **Multi-provider BYOK** (Phase 5.2): `GeminiBackend` (+ `GeminiMessageMapping`,
+  `GeminiModels`) is the second backend, over the official `com.google.genai` SDK
+  (the 9 tools map to function declarations; neutral history ↔ Gemini `Content`s
+  with `functionResponse` + inline image; Gemini has no signed thinking so its
+  `replayPayload` is null). `LlmProvider` enumerates providers; `AgentSettings`
+  stores a per-provider key (own Keystore alias) + model + cached model list
+  (zero-migration — Anthropic keeps its legacy slots); `ModelCatalog` validates
+  keys and lists models per provider; `AgentController` picks the backend by
+  `selectedProvider` (the loop's only provider-specific line). Settings and
+  Onboarding expose a provider selector. `com.google.genai` stays inside
+  `agent/llm`. On-device tier + adaptive perception are Phase 5.4+
+  (`docs/exec-plans/active/20260615-phase5-pluggable-models.md`).
 - **Agent safety surfaces and voice** (Phase 3.1b/3.1c): *touch-to-pause* —
   direct-manipulation accessibility events outside the agent's own gesture
   window (temporal heuristic, `TouchPauseMonitor`) suspend the task; the

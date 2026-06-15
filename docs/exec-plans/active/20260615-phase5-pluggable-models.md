@@ -75,8 +75,10 @@ while keeping the on-device, no-server, key-stays-local posture intact.
 
 ## Progress
 
-- [x] 5.1 — `AgentBackend` seam + `AnthropicBackend` (this PR).
-- [ ] 5.2 — Gemini BYOK + provider settings/UI.
+- [x] 5.1 — `AgentBackend` seam + `AnthropicBackend`.
+- [x] 5.2 — Gemini BYOK + provider settings/UI (`GeminiBackend`/`GeminiMessageMapping`/
+      `GeminiModels`, `LlmProvider`, per-provider `AgentSettings`, provider-aware
+      `ModelCatalog`, provider selector in Settings + Onboarding).
 - [ ] 5.3 — model lists behind the backend; R8 keep-rules begin.
 - [ ] 5.4 — device-capability diagnostics + tiering.
 - [ ] 5.5 — on-device Gemma 4 E2B backend + runtime download.
@@ -98,3 +100,14 @@ while keeping the on-device, no-server, key-stays-local posture intact.
   represent `signature`/`redacted_thinking`, which would risk a silent 400.
 - 2026-06-15: **`ModelCatalog` left Anthropic-specific in 5.1**, folded behind a
   per-provider capability in 5.3.
+- 2026-06-15 (5.2): **per-provider storage is zero-migration** — Anthropic keeps its
+  legacy pref/Keystore-alias slots, other providers get an `_<id>` slot, so existing
+  installs keep their Claude key untouched.
+- 2026-06-15 (5.2): **Gemini tool-call identity is name-encoded** — Gemini matches a
+  function response to its call by name, but the neutral `ToolResult` only carries a
+  `toolUseId`, so the backend encodes `name@index` into the id and recovers it.
+- 2026-06-15 (5.2): **default Gemini model = `gemini-2.5-pro` (stable)**, not the
+  `gemini-3.1-pro-preview` flagship, because Google retires preview ids; the live
+  picker still surfaces the full lineup. Confirmed live ids (2026-06): `gemini-2.5-pro`,
+  `gemini-2.5-flash`, `gemini-2.5-flash-lite`, `gemini-3.5-flash`, `gemini-3.1-flash-lite`,
+  `gemini-3.1-pro-preview`, `gemini-3-flash-preview`.
