@@ -242,6 +242,13 @@
   2.6 GB on-device model); the build, native integration, R8, and FC format are
   CI-green. `litertlm` stays in `agent/llm`. Plan:
   `docs/exec-plans/active/20260615-phase5-pluggable-models.md`.
+- **Adaptive perception** (Phase 5.6): a per-provider `sendScreenshots` toggle
+  (`AgentSettings`, default ON for all) + a pure `PerceptionMode`. Vision is universal
+  (Claude/Gemini receive `image/png`; Gemma 4 E2B is multimodal — `OnDeviceBackend` sends
+  `Content.ImageBytes`, LiteRT-LM lazy-loads the vision encoder). In text-only mode
+  `ToolExecutor.capture()` builds the a11y tree at scale 1.0 and skips the screenshot — all 9
+  tools still work from the tree's element indices + bounds, faster/cheaper/more private.
+  Vision is the fallback for accessibility-poor surfaces + visual verification.
 - **Agent safety surfaces and voice** (Phase 3.1b/3.1c): *touch-to-pause* —
   direct-manipulation accessibility events outside the agent's own gesture
   window (temporal heuristic, `TouchPauseMonitor`) suspend the task; the

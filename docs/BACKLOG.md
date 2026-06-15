@@ -44,6 +44,12 @@ Each entry: **idea** — why deferred · _priority_ · origin.
   confirmed by research, 2026-06). _Low / probably-unwanted_ — text-rebuild is also
   better for privacy (no screenshots on disk); revisit only if the SDK ships public
   serialization and a real need appears. Origin: Phase 4.5.
+- **Adaptive-perception refinements (Phase 5.6 follow-ups)** — (a) a text-only system-prompt
+  hint so the model leans on element indices when no screenshot is present (the prompt is frozen
+  for cache stability, so add it per-mode); (b) a tier-based default for the vision toggle
+  (auto-off on LOW devices); (c) multi-image on-device (currently sends only the latest
+  screenshot, `maxNumImages=1`); (d) a clearer "text-only mode" affordance in the chat's
+  Agent's-view panel. _Low._ Origin: Phase 5.6.
 - **Native LiteRT-LM tool calling instead of prompt-based FC** — 5.5b does on-device
   function calling via `GemmaToolPrompt` (structured prompt render+parse) for portability +
   unit-testability. LiteRT-LM also has a native tool API (`ToolProvider`/`ToolCall`/

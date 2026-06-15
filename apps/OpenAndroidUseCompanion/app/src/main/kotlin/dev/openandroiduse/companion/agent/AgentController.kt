@@ -226,6 +226,8 @@ object AgentController {
             VoiceNarrator.ensureInitialized(service)
         }
         val confirmActions = settings.confirmActions
+        // Phase 5.6 adaptive perception: vision vs text-only for this provider.
+        val captureScreenshots = perceptionMode(settings.sendScreenshots(provider)) == PerceptionMode.VISION
         // The loopback base-URL override is a debug-only test hook: honoring a
         // persisted pref in release would let anything that can write prefs
         // redirect the API-key-bearing client. Release ignores it entirely.
@@ -233,7 +235,7 @@ object AgentController {
         worker = Thread(
             {
                 try {
-                    runLoop(service, provider, credential, settings.model, confirmActions, baseUrl)
+                    runLoop(service, provider, credential, settings.model, confirmActions, baseUrl, captureScreenshots)
                 } finally {
                     service.interactionListener = null
                     GestureTrail.detach(service)
@@ -366,12 +368,13 @@ object AgentController {
         model: String,
         confirmActions: Boolean,
         baseUrl: String?,
+        captureScreenshots: Boolean,
     ) {
         // The only provider-specific line in the loop: the provider builds its
         // backend. Every other step works in neutral types.
         val backend: AgentBackend = provider.createBackend(credential, baseUrl)
         this.backend = backend
-        val executor = ToolExecutor(service)
+        val executor = ToolExecutor(service, captureScreenshots)
         // Live deltas render exactly as before: text to the assistant line (and
         // narration), thinking to the thinking line. Runs on the loop thread.
         val sink = object : BackendSink {

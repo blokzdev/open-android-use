@@ -23,7 +23,12 @@ import kotlin.math.roundToInt
  * by CoordinateScale, an 800ms settle delay, and a fresh snapshot returned
  * after every action.
  */
-class ToolExecutor(private val service: CompanionService) {
+class ToolExecutor(
+    private val service: CompanionService,
+    // Phase 5.6 adaptive perception: when false, snapshots are tree-text only —
+    // no screenshot is captured/encoded/sent (faster, cheaper, more private).
+    private val captureScreenshots: Boolean = true,
+) {
 
     data class Outcome(val text: String, val screenshotPngBase64: String? = null, val isError: Boolean = false)
 
@@ -293,6 +298,27 @@ class ToolExecutor(private val service: CompanionService) {
     }
 
     private fun capture(pkg: String): AppSnapshot? {
+        // Text-only perception: build the a11y tree at scale 1.0 (device-pixel
+        // bounds == "screenshot" space, so element_index/x-y coords stay
+        // consistent) and skip the screenshot capture/downscale entirely.
+        if (!captureScreenshots) {
+            val tree = SnapshotBuilder.build(service)
+            if (!tree.optBoolean("ok")) return null
+            val snapshotPkg = tree.optString("package").ifEmpty { pkg }
+            val flattened = SnapshotFlattener.flatten(tree.optJSONObject("tree"), 1.0)
+            lastScale = 1.0
+            lastShotWidth = 0
+            lastShotHeight = 0
+            return AppSnapshot(
+                appName = packageLabel(snapshotPkg),
+                packageName = snapshotPkg,
+                screenshotPngBase64 = "",
+                treeLines = flattened.treeLines,
+                elements = flattened.elements,
+                focusedSummary = flattened.focusedSummary,
+                coordinateScale = 1.0,
+            )
+        }
         val bitmap = ScreenCapture.capture(service) ?: return null
         val downscaled = try {
             ImageBudget.downscale(bitmap)

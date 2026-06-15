@@ -589,6 +589,16 @@ need a real device.
   in the fenced `tool_call` JSON form `GemmaToolPrompt` parses; if not, tune the render/parse
   format (and the unit tests) to the model's real output. Confirm Stop cancels mid-generation.
 
+### Phase 5.6 — adaptive perception
+
+- [ ] **V133. Text-only mode works (any provider)**: Settings → turn "Send screenshots (vision)"
+  off for a cloud provider, run a task. Pass: the agent completes it acting by element index/
+  bounds (no image sent — confirm via the model's behavior / the Agent's-view panel showing the
+  text-only placeholder); turn it back on → screenshots return.
+- [ ] **V134. Toggle is per-provider and persists**: set Claude vision on, Gemma vision off (or
+  vice-versa), restart the app → each provider keeps its own setting. (On-device default is
+  vision-on; see V131.)
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |
