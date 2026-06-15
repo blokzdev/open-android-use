@@ -60,6 +60,11 @@ jobs:
         run: (cd apps/OpenAndroidUseCompanion && gradle testDebugUnitTest --no-daemon)
       - name: build companion APK
         run: ./scripts/build-open-android-use-companion.sh
+      # Phase 5.3: validate the R8 keep-rules on every PR (build-time). The
+      # minified release build catches missing-rule regressions early; on-device
+      # validation of the shrunk build is the Phase 6 gate.
+      - name: assemble minified release (R8 keep-rules gate)
+        run: (cd apps/OpenAndroidUseCompanion && gradle assembleRelease --no-daemon)
       - uses: actions/upload-artifact@v4
         with:
           name: open-android-use-companion-apk

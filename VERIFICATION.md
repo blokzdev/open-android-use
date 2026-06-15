@@ -548,6 +548,15 @@ need a real device.
   configured; restart the app. Pass: provider, both keys, and each provider's model selection persist;
   adding/clearing the Gemini key never affects the Claude key (and vice-versa).
 
+### Phase 5.3 — model lists behind the provider + R8
+
+- [ ] **V126. Minified release build runs end-to-end (R8 gate)**: install the **release** APK
+  (`gradle assembleRelease`, R8 code-shrink on) and run a real task on **both** Claude and Gemini.
+  Pass: no runtime `ClassNotFoundException`/`NoSuchMethodError`/JSON-(de)serialization failure from
+  R8 stripping; both providers stream, call tools, and complete. (The keep-rules build clean, but only
+  an on-device run of the shrunk build proves no reflected SDK member was removed — this is the Phase 6
+  final-shrink gate, staged now.)
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |

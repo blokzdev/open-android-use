@@ -24,7 +24,14 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // Phase 5.3: begin R8 code shrink (the big win is pruning unused
+            // material-icons-extended + androidx). Resource shrink and final
+            // tuning land in Phase 6; keep-rules live in proguard-rules.pro.
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 

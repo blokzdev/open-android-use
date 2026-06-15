@@ -10,10 +10,8 @@ import dev.openandroiduse.companion.agent.llm.AgentContent
 import dev.openandroiduse.companion.agent.llm.AgentMessage
 import dev.openandroiduse.companion.agent.llm.AgentRole
 import dev.openandroiduse.companion.agent.llm.AgentStopReason
-import dev.openandroiduse.companion.agent.llm.AnthropicBackend
 import dev.openandroiduse.companion.agent.llm.BackendRequest
 import dev.openandroiduse.companion.agent.llm.BackendStreamException
-import dev.openandroiduse.companion.agent.llm.GeminiBackend
 import dev.openandroiduse.companion.agent.llm.LlmProvider
 import dev.openandroiduse.companion.agent.llm.BackendSink
 import dev.openandroiduse.companion.agent.llm.ToolImage
@@ -360,12 +358,9 @@ object AgentController {
         confirmActions: Boolean,
         baseUrl: String?,
     ) {
-        // The only provider-specific line in the loop: pick the backend. Every
-        // other step works in neutral types.
-        val backend: AgentBackend = when (provider) {
-            LlmProvider.ANTHROPIC -> AnthropicBackend(apiKey, baseUrl)
-            LlmProvider.GEMINI -> GeminiBackend(apiKey, baseUrl)
-        }
+        // The only provider-specific line in the loop: the provider builds its
+        // backend. Every other step works in neutral types.
+        val backend: AgentBackend = provider.createBackend(apiKey, baseUrl)
         this.backend = backend
         val executor = ToolExecutor(service)
         // Live deltas render exactly as before: text to the assistant line (and

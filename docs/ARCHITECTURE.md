@@ -204,21 +204,26 @@
   force-close `cancel()`). `AnthropicBackend` (+ `AnthropicMessageMapping`) is
   the lone implementation: it owns the SDK client, the verbatim prompt-cache +
   adaptive-thinking config, the accumulate-and-stream loop, and tool/message
-  translation, and (besides `ModelCatalog`) is the only place under `agent` that
-  imports `com.anthropic`. Assistant turns round-trip through an opaque
-  `replayPayload` so extended-thinking signatures stay byte-exact.
-- **Multi-provider BYOK** (Phase 5.2): `GeminiBackend` (+ `GeminiMessageMapping`,
+  translation. Assistant turns round-trip through an opaque `replayPayload` so
+  extended-thinking signatures stay byte-exact.
+- **Multi-provider BYOK** (Phase 5.2–5.3): `GeminiBackend` (+ `GeminiMessageMapping`,
   `GeminiModels`) is the second backend, over the official `com.google.genai` SDK
   (the 9 tools map to function declarations; neutral history ↔ Gemini `Content`s
   with `functionResponse` + inline image; Gemini has no signed thinking so its
-  `replayPayload` is null). `LlmProvider` enumerates providers; `AgentSettings`
-  stores a per-provider key (own Keystore alias) + model + cached model list
-  (zero-migration — Anthropic keeps its legacy slots); `ModelCatalog` validates
-  keys and lists models per provider; `AgentController` picks the backend by
-  `selectedProvider` (the loop's only provider-specific line). Settings and
-  Onboarding expose a provider selector. `com.google.genai` stays inside
-  `agent/llm`. On-device tier + adaptive perception are Phase 5.4+
-  (`docs/exec-plans/active/20260615-phase5-pluggable-models.md`).
+  `replayPayload` is null). **`LlmProvider` is the single provider registry**: each
+  arm carries its display name/default model/key-help URL/fallback list, plus
+  `models: ProviderModels` (per-provider key-validate + live model list, impls
+  `AnthropicModels`/`GeminiModels`) and `createBackend(apiKey, baseUrl)`.
+  `AgentSettings` stores a per-provider key (own Keystore alias) + model + cached
+  model list (zero-migration — Anthropic keeps its legacy slots); `ModelCatalog` is a
+  provider-agnostic coordinator (delegates to `provider.models`); `AgentController`
+  builds the backend via `provider.createBackend` (the loop's only provider-specific
+  step). Settings and Onboarding expose a provider selector. **Invariant:** provider
+  SDKs (`com.anthropic`, `com.google.genai`) are imported only under `agent/llm`.
+  Adding a provider = one `LlmProvider` arm + a backend + a `ProviderModels`. The
+  release build runs R8 code-shrink (keep-rules in `app/proguard-rules.pro`, ~32M→
+  ~8.5M; resource shrink + on-device verify are Phase 6). On-device tier + adaptive
+  perception are Phase 5.4+ (`docs/exec-plans/active/20260615-phase5-pluggable-models.md`).
 - **Agent safety surfaces and voice** (Phase 3.1b/3.1c): *touch-to-pause* —
   direct-manipulation accessibility events outside the agent's own gesture
   window (temporal heuristic, `TouchPauseMonitor`) suspend the task; the
