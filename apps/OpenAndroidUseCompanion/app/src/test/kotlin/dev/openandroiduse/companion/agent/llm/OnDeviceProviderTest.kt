@@ -36,17 +36,7 @@ class OnDeviceProviderTest {
         OnDeviceModels.validateKey("", null) // no-op: must not throw
     }
 
-    @Test
-    fun onDeviceBackendPlaceholderEndsTheTurnWithANote() {
-        val sink = object : BackendSink {
-            val text = StringBuilder()
-            override fun onTextDelta(text: String) { this.text.append(text) }
-            override fun onThinkingDelta(text: String) {}
-        }
-        val turn = LlmProvider.ON_DEVICE.createBackend("/tmp/model.litertlm", null)
-            .streamTurn(BackendRequest("gemma-4-E2B", "sys", emptyList(), emptyList()), sink)
-        assertEquals(AgentStopReason.END_TURN, turn.stopReason)
-        assertTrue(sink.text.isNotEmpty())
-        assertTrue(turn.assistant.content.filterIsInstance<AgentContent.Text>().isNotEmpty())
-    }
+    // The on-device backend's actual inference (LiteRT-LM native runtime) is
+    // hardware-validated, not unit-tested; the function-calling format it relies on
+    // is pinned by GemmaToolPromptTest.
 }
