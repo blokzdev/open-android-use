@@ -66,6 +66,7 @@ import dev.openandroiduse.companion.R
 import dev.openandroiduse.companion.ui.ResponsiveContent
 import dev.openandroiduse.companion.ui.markHeading
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
+import dev.openandroiduse.companion.ui.theme.Spacing
 import dev.openandroiduse.companion.ui.theme.ThemeMode
 
 /**
@@ -139,8 +140,8 @@ private fun SettingsScreen(
         Column(
             modifier = inner
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(Spacing.xl),
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
             // --- API key ---
             SectionTitle(stringResource(R.string.settings_section_api_key))
@@ -166,7 +167,7 @@ private fun SettingsScreen(
                 },
                 modifier = Modifier.fillMaxWidth(),
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
                 Button(
                     onClick = {
                         val key = apiKey.trim()
@@ -315,7 +316,7 @@ private fun SectionTitle(text: String) {
 @Composable
 private fun SettingToggle(title: String, body: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             Text(body, style = MaterialTheme.typography.bodySmall)
         }

@@ -1,7 +1,9 @@
 # Phase 4.7 — UX Elevation (Companion)
 
 > Sub-plan of `docs/exec-plans/active/20260612-android-use-runtime.md` (Phase 4 UI/UX).
-> English-first. Play-readiness renumbered 4.7 → **4.8**.
+> English-first. **Status: COMPLETE (2026-06-15)** — 4.7a→4.7e + 4.7a-3 all merged (PRs #16–#32).
+> Play-readiness/distribution moved to the dedicated final **Phase 6 — Launch readiness & hardening**
+> (after Phase 5); see the master roadmap.
 
 ## Goal
 
@@ -109,7 +111,11 @@ tests, dependency-free control surface). Founder selected all themes + opportuni
   count + bytes (`SessionStore.usage()` + `Formatter.formatShortFileSize`); "Export all
   conversations" writes every saved session as one Markdown file shared via FileProvider (reusing
   `ConversationExport`). Closes **4.7e**. Builds + tests + APK + instrumentation green.
-- [ ] 4.7a-3 tokens/motion (closes Phase 4.7).
+- [x] 4.7a-3 — **spacing tokens + reduce-motion completeness**: new `ui/theme/Spacing.kt` (4dp-grid
+  tokens) adopted across the structural spacing of all 7 Compose surfaces; `ui/MotionUi.kt`
+  `isReducedMotion()` helper standardizes the reduce-motion check and the previously-unguarded chat
+  jump-to-latest FAB now scrolls instantly when animations are off. Custom Type tokens + motion-
+  wrapper composables deferred to BACKLOG. **Closes Phase 4.7.**
 - _Deferred:_ 4.7c-2b multi-select bulk archive/delete → BACKLOG (stateful selection mode is the
   lowest-value / hardest-to-tune-blind item in 4.7c; revisit if requested).
 - _Founder call (2026-06-14):_ do the full per-message timestamps + role grouping (un-deferred

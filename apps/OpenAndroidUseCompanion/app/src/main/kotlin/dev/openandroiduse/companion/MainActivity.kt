@@ -55,6 +55,7 @@ import dev.openandroiduse.companion.agent.SettingsActivity
 import dev.openandroiduse.companion.ui.ResponsiveContent
 import dev.openandroiduse.companion.ui.markHeading
 import dev.openandroiduse.companion.ui.theme.OpenAndroidUseTheme
+import dev.openandroiduse.companion.ui.theme.Spacing
 
 /**
  * Home dashboard (Phase 4.7d) and consent surface: shows whether the agent is ready (the
@@ -170,8 +171,8 @@ private fun MainScreen(
             Column(
                 modifier = inner
                     .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                    .padding(Spacing.xl),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xl),
             ) {
                 Hero()
                 ReadinessCard(running, hasApiKey, port, ready, restrictedHint, onOpenChat, onFinishSetup)
@@ -218,7 +219,7 @@ private fun ReadinessCard(
     onFinishSetup: () -> Unit,
 ) {
     ElevatedCard {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.padding(Spacing.xl), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     if (ready) Icons.Filled.CheckCircle else Icons.Filled.ErrorOutline,
@@ -274,7 +275,7 @@ private fun RecentsSection(
     onResumeSession: (String) -> Unit,
     onOpenHistory: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 stringResource(R.string.main_recent_title),
@@ -285,7 +286,7 @@ private fun RecentsSection(
         }
         recents.forEach { meta ->
             ElevatedCard(Modifier.fillMaxWidth().clickable { onResumeSession(meta.id) }) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     Text(meta.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     if (meta.preview.isNotBlank()) {
                         Text(
@@ -304,7 +305,7 @@ private fun RecentsSection(
 
 @Composable
 private fun SuggestionsSection(onSuggestion: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Text(
             stringResource(R.string.main_suggestions_title),
             style = MaterialTheme.typography.titleSmall,
@@ -327,7 +328,7 @@ private fun SecondaryNav(
     onOpenHistory: () -> Unit,
     onOpenAbout: () -> Unit,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
         OutlinedButton(onClick = onOpenSettings, modifier = Modifier.weight(1f)) {
             Icon(Icons.Filled.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(6.dp))
@@ -348,7 +349,7 @@ private fun SecondaryNav(
 
 @Composable
 private fun AccessibilityFooter(onOpenAccessibility: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         OutlinedButton(onClick = onOpenAccessibility, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.action_open_accessibility))
         }

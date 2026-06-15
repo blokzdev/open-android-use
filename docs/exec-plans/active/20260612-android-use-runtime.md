@@ -129,7 +129,8 @@ build script, and docs synced.
 - [~] **Phase 4 — Product UI/UX** (`docs/design-docs/phase4-product-ui.md`):
   Compose/Material 3 presentation layer; 4.1 guided onboarding wizard → 4.2
   design-system foundation → 4.3 chat polish → 4.4 trust/control surface → 4.5
-  settings & privacy → 4.5.1 hardening → 4.6 a11y/i18n/responsive → 4.7 UX elevation → 4.8 Play readiness.
+  settings & privacy → 4.5.1 hardening → 4.6 a11y/i18n/responsive → 4.7 UX elevation →
+  Phase 5 pluggable models/edge tier → Phase 6 launch readiness & hardening (final).
   - [x] PR-A (foundation): Compose + Material 3 enabled (Kotlin 2.0 compose
     plugin), `OpenAndroidUseTheme` on the brand "Aurora" palette, designed brand
     icon — the agent's hand tapping out an AI sparkle (+ gradient background +
@@ -188,18 +189,11 @@ build script, and docs synced.
     (responsive: edge-to-edge, predictive back, resizeable, content max-width +
     chat bubble caps). 4.6d done (markdown links + pipe tables). Actual
     translations are a future Localization phase.
-  - [~] 4.7 UX elevation
-    (`docs/exec-plans/active/20260614-phase47-ux-elevation.md`): a design-led sweep across
+  - [x] 4.7 UX elevation
+    (`docs/exec-plans/completed/20260614-phase47-ux-elevation.md`): a design-led sweep across
     every surface (icons/splash/Snackbar+Undo/motion, chat depth, History power features,
-    Home+onboarding glow-up, Settings/Privacy depth). Sub-PRs 4.7a→4.7e. 4.7a done (real
-    Material icons + Android-12 splash).
-- [ ] **Phase 4.8 — Distribution & Play readiness**: (a) tagged GitHub release of
-  the signed APK; (b) Play Store **signed AAB** (the Android 13+ "Restricted
-  setting" prompt is an install-source gate removed by a Play install, *not* by
-  release signing); (c) release signing keystore/config (founder-held); (d) the
-  `QUERY_ALL_PACKAGES` Play-policy decision for `list_apps` (justified `<queries>`
-  vs. a narrower approach); (e) the true foreground-service type deferred from 4.4;
-  (f) store-listing assets + a privacy policy.
+    Home+onboarding glow-up, Settings/Privacy depth, spacing tokens + reduce-motion). Sub-PRs
+    4.7a→4.7e + 4.7a-3 — all merged.
 - [ ] **Localization (ship languages)**: with the UI fully externalized by Phase 4.6,
   add `res/values-<locale>/` translations (zh-CN first, fitting the inherited-Chinese
   context) with a translation/review workflow. Carved out of 4.6 so the i18n framework
@@ -211,9 +205,19 @@ build script, and docs synced.
   diagnostics + tier-based graceful degradation** (extends `Readiness`); **adaptive perception**
   (text-first via the `get_app_state` accessibility tree, vision/screenshots on capable devices);
   per-provider key + model in settings; runtime model download (MediaPipe LLM Inference / LiteRT-LM),
-  never bundled. Sub-phases 5.1–5.7. Runs **after** 4.7 + 4.8 (4.8's R8/shrink/ABI de-risks the
-  native-lib/APK size). Founder calls: ship both Gemini + on-device ("no cutting corners"),
-  Gemini first, adaptive perception.
+  never bundled. Sub-phases 5.1–5.7. Runs **after** Phase 4.7, **before** Phase 6. R8/minify-enable
+  folds into Phase 5 build work (incremental keep-rules). Founder calls: ship both Gemini +
+  on-device ("no cutting corners"), Gemini first, adaptive perception.
+- [ ] **Phase 6 — Launch readiness & hardening** (final gate; was "Phase 4.8", moved + expanded
+  2026-06-15): done last, against the real shipping surface that Phase 5 reshapes. **Distribution/
+  Play**: tagged GitHub release of the signed APK; Play Store **signed AAB** (the Android 13+
+  "Restricted setting" prompt is an install-source gate removed by a Play install, not by release
+  signing); release signing keystore/config (founder-held); the `QUERY_ALL_PACKAGES` Play-policy
+  decision for `list_apps` (justified `<queries>` vs. a narrower approach); the true
+  foreground-service type deferred from 4.4; store-listing assets + a privacy policy. **Performance
+  hardening**: startup/inference profiling, jank/memory passes. **Security hardening**: egress
+  review of all providers (Anthropic/Gemini/on-device download sources), model-file integrity/source
+  trust, threat-model pass, final R8/resource-shrink + verification.
 - [ ] Phase 3.x backlog (agent intelligence): models-API-driven live model list
   (per provider), per-action consent granularity, task memory (opt-in).
 
@@ -295,6 +299,12 @@ build script, and docs synced.
   (wired into the CLAUDE.md memory harness), keeping this plan for scheduled work.
   The robust no-companion bridge snapshot (deferred during the get_app_state
   hardening) is recorded there.
+- 2026-06-15: **Distribution moved to a dedicated final phase.** The old "Phase 4.8 — Play
+  readiness" is now **Phase 6 — Launch readiness & hardening**, sequenced *after* Phase 5 and
+  expanded to add performance + security hardening. Rationale: Phase 5 (native libs, runtime model
+  download, new provider egress, on-device perf) reshapes the exact size/egress/perf/security
+  surface hardening targets, so doing launch readiness last avoids rework. R8/minify-enable folds
+  into Phase 5 build work; the final shrink/verify lands in Phase 6. (Founder call.)
 - 2026-06-15: **Phase 5 scope expanded** from "multi-provider BYOK" to "pluggable models +
   on-device edge tier" after research vetting. Verified (primary sources): Gemma 4 E2B is real
   (2026-04-02), **Apache-2.0**, **~0.84 GB mobile text-only**, with native function calling — the
