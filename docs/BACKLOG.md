@@ -77,6 +77,11 @@ Each entry: **idea** — why deferred · _priority_ · origin.
 - **Draggable in-control badge showing the live action** — let the user reposition the badge and
   show the current tool/step on it. _Low._ Origin: Phase 4.7.
 - **Conversation folders / tags** — organize History beyond pin/archive. _Low._ Origin: Phase 4.7.
+- **Multi-select bulk archive/delete in History** — deferred from Phase 4.7c-2. A selection mode
+  (long-press to enter, per-row checkboxes, a contextual action bar with bulk archive/delete +
+  batch undo, back-to-exit) on the shared `SessionsList`, interoperating with search/grouping.
+  Lower value than the per-row actions already shipped and hard to tune well without a device.
+  _Low–Medium._ Origin: Phase 4.7c-2b (deferred).
 - **Pull-to-refresh on History**; **AMOLED (true-black) theme** option; **message reactions /
   feedback** (👍/👎 on answers to inform future tuning). _Low._ Origin: Phase 4.7.
 - **Per-message timestamps in the Markdown export** — the chat now shows per-message times

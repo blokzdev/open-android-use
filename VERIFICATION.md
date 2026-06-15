@@ -462,6 +462,21 @@ need a real device.
   default list; a "Show archived" chip appears (only when archived ones exist) and toggling it
   brings archived rows back (with their badge). Works on both phone and the two-pane History.
 
+### Phase 4.7d-1 — Home dashboard
+
+- [ ] **V106. Context-aware CTA**: open Home. Pass: when set up, a brand hero shows and the
+  readiness card shows a green check + "Agent ready" with an **Open chat** primary button; with a
+  prerequisite missing, it shows a warning + the relevant message and a **Finish setup** button
+  that routes to the first missing step (accessibility if the service is off, else Settings for the
+  key).
+- [ ] **V107. Recents + resume**: with saved conversations, Home shows up to 3 recent ones (title +
+  preview); tapping one opens that conversation; "See all" opens History; archived ones are
+  excluded.
+- [ ] **V108. Suggestion prefill**: tap a suggestion chip under "Try asking". Pass: chat opens
+  with that prompt prefilled in the composer (not auto-sent), ready to edit/send.
+- [ ] **V109. Nav + kill switch**: Settings / History / About each open their screen; the
+  accessibility button still opens accessibility settings (the kill switch), and the hint remains.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |

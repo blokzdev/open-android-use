@@ -177,6 +177,10 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
         intent.getStringExtra(EXTRA_SESSION_ID)?.let { id ->
             if (!AgentController.isRunning) sessions.load(id)?.let { AgentController.restore(it) }
         }
+        // Prefill the composer when launched from a Home suggestion (Phase 4.7d).
+        if (!AgentController.isRunning) {
+            intent.getStringExtra(EXTRA_PROMPT)?.let { if (it.isNotBlank()) input = it }
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
             android.content.pm.PackageManager.PERMISSION_GRANTED
@@ -494,6 +498,9 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
     companion object {
         /** Intent extra: a SessionStore id to resume when the chat opens. */
         const val EXTRA_SESSION_ID = "session_id"
+
+        /** Intent extra: text to prefill the composer with (Home suggestion, Phase 4.7d). */
+        const val EXTRA_PROMPT = "prompt"
     }
 
 }
