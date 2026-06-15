@@ -42,6 +42,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -134,6 +135,21 @@ private fun SettingsScreen(
     var keyVisible by remember { mutableStateOf(false) }
     var testing by remember { mutableStateOf(false) }
     var model by remember { mutableStateOf(settings.modelFor(provider)) }
+    // Phase 5.7 Local-Only Mode: re-check readiness when a download finishes.
+    var localOnly by remember { mutableStateOf(settings.localOnlyMode) }
+    val downloadInfos by OnDeviceModelManager.downloadFlow(context).collectAsState(initial = emptyList())
+    val modelReady = remember(downloadInfos) { OnDeviceModelManager.isReady(context) }
+    val localOnlyAvail = localOnlyAvailability(deviceTier, modelReady)
+    var showLocalOnlyDownloadDialog by remember { mutableStateOf(false) }
+    // Re-scope every per-provider field to a newly selected provider.
+    val applyProvider: (LlmProvider) -> Unit = { picked ->
+        settings.selectedProvider = picked
+        provider = picked
+        apiKey = ""
+        hasKey = settings.hasApiKey(picked)
+        model = settings.modelFor(picked)
+        sendScreenshots = settings.sendScreenshots(picked)
+    }
     var confirmActions by remember { mutableStateOf(settings.confirmActions) }
     var speak by remember { mutableStateOf(settings.speakNarration) }
     var dynamic by remember { mutableStateOf(settings.dynamicColor) }
@@ -155,15 +171,58 @@ private fun SettingsScreen(
         ) {
             // --- Provider ---
             SectionTitle(stringResource(R.string.settings_section_provider))
-            ProviderSelector(provider) { picked ->
+            ProviderSelector(provider, localOnly) { picked ->
                 if (picked == provider) return@ProviderSelector
-                settings.selectedProvider = picked
-                provider = picked
-                // Re-scope every field to the newly selected provider.
-                apiKey = ""
-                hasKey = settings.hasApiKey(picked)
-                model = settings.modelFor(picked)
-                sendScreenshots = settings.sendScreenshots(picked)
+                applyProvider(picked)
+            }
+
+            // Phase 5.7: Privacy / Local-Only Mode umbrella — forces the on-device
+            // provider so nothing leaves the device. Tier-gated + readiness-aware.
+            SettingToggle(
+                stringResource(R.string.pref_localonly_title),
+                if (localOnlyAvail == LocalOnlyAvailability.UNSUPPORTED) {
+                    stringResource(R.string.pref_localonly_unsupported)
+                } else {
+                    stringResource(R.string.pref_localonly_body)
+                },
+                checked = localOnly,
+                enabled = localOnlyAvail != LocalOnlyAvailability.UNSUPPORTED,
+            ) { want ->
+                when {
+                    !want -> {
+                        localOnly = false
+                        settings.localOnlyMode = false
+                    }
+                    localOnlyAvail == LocalOnlyAvailability.READY -> {
+                        localOnly = true
+                        settings.localOnlyMode = true
+                        applyProvider(LlmProvider.ON_DEVICE)
+                    }
+                    localOnlyAvail == LocalOnlyAvailability.NEEDS_MODEL -> showLocalOnlyDownloadDialog = true
+                    else -> Unit
+                }
+            }
+
+            if (showLocalOnlyDownloadDialog) {
+                AlertDialog(
+                    onDismissRequest = { showLocalOnlyDownloadDialog = false },
+                    title = { Text(stringResource(R.string.localonly_dialog_title)) },
+                    text = { Text(stringResource(R.string.localonly_dialog_body)) },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            showLocalOnlyDownloadDialog = false
+                            localOnly = true
+                            settings.localOnlyMode = true
+                            applyProvider(LlmProvider.ON_DEVICE)
+                            OnDeviceModelManager.enqueueDownload(context)
+                        }) { Text(stringResource(R.string.localonly_dialog_confirm)) }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showLocalOnlyDownloadDialog = false }) {
+                            Text(stringResource(R.string.action_cancel))
+                        }
+                    },
+                )
             }
 
             HorizontalDivider()
@@ -202,7 +261,7 @@ private fun SettingsScreen(
                 Button(
                     onClick = {
                         val key = apiKey.trim()
-                        if (key.isEmpty()) return@Button
+                        if (key.isEmpty() || settings.localOnlyMode) return@Button
                         settings.storeApiKey(key, provider)
                         apiKey = ""
                         hasKey = true
@@ -214,6 +273,7 @@ private fun SettingsScreen(
                 // Test the entered key, or the saved key when the field is empty.
                 OutlinedButton(
                     onClick = {
+                        if (settings.localOnlyMode) return@OutlinedButton
                         val key = apiKey.trim().ifEmpty { settings.loadApiKey(provider) } ?: return@OutlinedButton
                         testing = true
                         scope.launch {
@@ -368,13 +428,15 @@ private fun OnDeviceModelCard(tier: DeviceTier) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ProviderSelector(selected: LlmProvider, onSelect: (LlmProvider) -> Unit) {
+private fun ProviderSelector(selected: LlmProvider, localOnly: Boolean, onSelect: (LlmProvider) -> Unit) {
     val options = LlmProvider.entries
     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
         options.forEachIndexed { index, provider ->
             SegmentedButton(
                 selected = selected == provider,
                 onClick = { onSelect(provider) },
+                // Phase 5.7: Local-Only Mode locks the picker to the on-device provider.
+                enabled = !localOnly || !provider.requiresApiKey,
                 shape = SegmentedButtonDefaults.itemShape(index, options.size),
             ) { Text(provider.displayName) }
         }
@@ -406,14 +468,20 @@ private fun SectionTitle(text: String) {
 }
 
 @Composable
-private fun SettingToggle(title: String, body: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+private fun SettingToggle(
+    title: String,
+    body: String,
+    checked: Boolean,
+    enabled: Boolean = true,
+    onChange: (Boolean) -> Unit,
+) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             Text(body, style = MaterialTheme.typography.bodySmall)
         }
         Spacer(Modifier.padding(horizontal = 4.dp))
-        Switch(checked = checked, onCheckedChange = onChange)
+        Switch(checked = checked, onCheckedChange = onChange, enabled = enabled)
     }
 }
 
