@@ -43,6 +43,7 @@ are registered here, one entry per dependency, with the reasoning:
 | Dependency | License | Where | Why | Added |
 |---|---|---|---|---|
 | `com.anthropic:anthropic-java` 2.40.1 (Maven Central) | Apache-2.0 | `apps/OpenAndroidUseCompanion` `agent` package only | First-party Anthropic SDK for the on-device agent's Claude API access; hand-rolled HTTP against a streaming LLM API is a larger risk than a pinned official SDK. Decision record: `docs/exec-plans/completed/20260612-phase3-on-device-agent.md`. | 2026-06-12 |
+| `com.google.genai:google-genai` 1.58.0 (Maven Central) | Apache-2.0 | `apps/OpenAndroidUseCompanion` `agent` package only (`agent/llm`) | First-party Google Gen AI SDK for the on-device agent's Gemini API access (Phase 5.2 BYOK), same rationale as the Anthropic SDK. Pulls `com.google.http-client`, `com.google.code.gson`, `com.google.protobuf:protobuf-java` transitively (Apache-2.0/BSD-3-Clause). Decision record: `docs/exec-plans/active/20260615-phase5-pluggable-models.md`. | 2026-06-15 |
 | Jetpack Compose (BOM `2024.09.03`) + Material 3 + `androidx.activity:activity-compose` 1.9.2 | Apache-2.0 | `apps/OpenAndroidUseCompanion` presentation layer (Activities, `ui/theme`, screens) | Phase 4 world-class UI; Compose/Material 3 is the modern Android UI standard (dynamic color, dark mode, accessibility). Presentation layer only. Design: `docs/design-docs/phase4-product-ui.md`. | 2026-06-14 |
 
 Rules for the register: pin exact versions (Compose libs are pinned via the BOM),

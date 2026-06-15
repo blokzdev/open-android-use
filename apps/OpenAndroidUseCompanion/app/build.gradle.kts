@@ -48,6 +48,10 @@ android {
                 "META-INF/*.md",
                 "META-INF/INDEX.LIST",
             )
+            // Phase 5.2: the Gemini SDK's transitive HTTP stack (google-http-client)
+            // bundles the Mozilla public-suffix list; more than one copy lands on
+            // the merge path. Keep one — it's a runtime data file, not metadata.
+            pickFirsts += listOf("mozilla/public-suffix-list.txt")
         }
     }
 }
@@ -57,11 +61,17 @@ android {
 // service, loopback endpoint, snapshot/action code — stays dependency-free
 // (org.json, ServerSocket, programmatic UI). The on-device agent feature
 // (the `agent` package) talks to the Claude API through the official Anthropic
+// Java SDK and (Phase 5.2) to the Gemini API through the official Google Gen AI
 // Java SDK. Phase 4 adds Jetpack Compose / Material 3 for the *presentation
 // layer only* (Activities, theme, screens); the control surface must not import
-// androidx/compose, and nothing under it may import com.anthropic.
+// androidx/compose, and nothing under it may import com.anthropic or
+// com.google.genai (those stay inside the `agent` package).
 dependencies {
     implementation("com.anthropic:anthropic-java:2.40.1")
+    // Phase 5.2: the second model provider (Gemini, BYOK) talks to the Gemini
+    // API through the official Google Gen AI Java SDK. Same agent-package-only
+    // rule as the Anthropic SDK (see the dependency policy note below).
+    implementation("com.google.genai:google-genai:1.58.0")
 
     // Presentation layer only (Phase 4): Jetpack Compose + Material 3. The BOM
     // pins mutually-compatible Compose library versions; the Compose compiler
