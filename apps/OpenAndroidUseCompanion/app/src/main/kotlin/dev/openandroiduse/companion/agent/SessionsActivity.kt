@@ -41,7 +41,7 @@ class SessionsActivity : ComponentActivity() {
         store = SessionStore(this)
         enableEdgeToEdge()
         setContent {
-            OpenAndroidUseTheme(dynamicColor = settings.dynamicColor) {
+            OpenAndroidUseTheme(themeMode = settings.themeMode, dynamicColor = settings.dynamicColor) {
                 SessionsScreen(
                     sessions = sessions,
                     onResume = ::resume,

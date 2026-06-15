@@ -160,8 +160,9 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
     private var sessionList by mutableStateOf<List<SessionMeta>>(emptyList())
     private lateinit var sessions: SessionStore
 
-    /** The dynamic-color value this instance was themed with, to detect a Settings toggle. */
+    /** The theme values this instance was built with, to detect a Settings change. */
     private var appliedDynamicColor = false
+    private var appliedThemeMode = dev.openandroiduse.companion.ui.theme.ThemeMode.SYSTEM
 
     /** Transcript revision last written to SessionStore, so onPause doesn't re-save no-ops. */
     private var lastSavedRevision = -1
@@ -172,6 +173,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
         settings = AgentSettings(this)
         sessions = SessionStore(this)
         appliedDynamicColor = settings.dynamicColor
+        appliedThemeMode = settings.themeMode
         enableEdgeToEdge()
         // Resume a saved session if launched from History (rebuilds context).
         intent.getStringExtra(EXTRA_SESSION_ID)?.let { id ->
@@ -188,7 +190,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
             requestNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
         }
         setContent {
-            OpenAndroidUseTheme(dynamicColor = settings.dynamicColor) {
+            OpenAndroidUseTheme(themeMode = settings.themeMode, dynamicColor = settings.dynamicColor) {
                 val widthClass = calculateWindowSizeClass(this).widthSizeClass
                 if (TwoPane.isTwoPane(widthClass)) {
                     Row(Modifier.fillMaxSize()) {
@@ -232,9 +234,9 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
 
     override fun onResume() {
         super.onResume()
-        // A Material You toggle in Settings changes the theme this instance was built
-        // with; rebuild so the brand/system palette applies without an app restart.
-        if (settings.dynamicColor != appliedDynamicColor) {
+        // A Material You / theme-mode change in Settings changes the theme this instance was
+        // built with; rebuild so the new palette applies without an app restart.
+        if (settings.dynamicColor != appliedDynamicColor || settings.themeMode != appliedThemeMode) {
             recreate()
             return
         }

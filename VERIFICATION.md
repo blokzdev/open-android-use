@@ -500,6 +500,13 @@ need a real device.
 - [ ] **V116. Get a key**: tap "Get an API key". Pass: the Anthropic console keys page opens in a
   browser.
 
+### Phase 4.7e-2 — Settings: theme mode (Light/Dark/System)
+
+- [ ] **V117. Theme mode applies app-wide**: in Settings, pick Light / Dark / System via the
+  segmented control. Pass: the app re-themes immediately; navigating to Home/Chat/History/Privacy
+  shows the chosen mode; "System" follows the device dark-theme setting. Choice persists across
+  app restart and composes correctly with the Material You toggle.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |
