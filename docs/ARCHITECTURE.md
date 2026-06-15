@@ -222,8 +222,12 @@
   SDKs (`com.anthropic`, `com.google.genai`) are imported only under `agent/llm`.
   Adding a provider = one `LlmProvider` arm + a backend + a `ProviderModels`. The
   release build runs R8 code-shrink (keep-rules in `app/proguard-rules.pro`, ~32M→
-  ~8.5M; resource shrink + on-device verify are Phase 6). On-device tier + adaptive
-  perception are Phase 5.4+ (`docs/exec-plans/active/20260615-phase5-pluggable-models.md`).
+  ~8.5M; resource shrink + on-device verify are Phase 6). `DeviceCapability` (Phase
+  5.4, root package beside `Readiness`) classifies the device into a coarse
+  HIGH/MEDIUM/LOW `DeviceTier` from honest facts (RAM, cores, SDK, 64-bit, low-RAM
+  flag), surfaced as an About diagnostic — the signal the on-device tier (5.5) and
+  adaptive perception (5.6) will gate on. On-device tier + adaptive perception are
+  Phase 5.5+ (`docs/exec-plans/active/20260615-phase5-pluggable-models.md`).
 - **Agent safety surfaces and voice** (Phase 3.1b/3.1c): *touch-to-pause* —
   direct-manipulation accessibility events outside the agent's own gesture
   window (temporal heuristic, `TouchPauseMonitor`) suspend the task; the

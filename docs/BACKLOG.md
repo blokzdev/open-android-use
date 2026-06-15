@@ -44,6 +44,12 @@ Each entry: **idea** — why deferred · _priority_ · origin.
   confirmed by research, 2026-06). _Low / probably-unwanted_ — text-rebuild is also
   better for privacy (no screenshots on disk); revisit only if the SDK ships public
   serialization and a real need appears. Origin: Phase 4.5.
+- **Tune the `DeviceTier` thresholds against the real on-device model** — 5.4's
+  HIGH/MEDIUM/LOW cutoffs (RAM ≥8/≥4 GiB, ≥6 cores, SDK ≥31, 64-bit, low-RAM flag) are a
+  coarse first cut; the precise "can run Gemma 4 E2B" cutoff (and any GPU/NPU/accelerator
+  signal the runtime needs) should be measured and set in Phase 5.5 when the model lands.
+  Nothing gates on the tier until then, so the current cutoffs only affect the About label.
+  _Medium._ Origin: Phase 5.4.
 - **`AgentBackend` as `Flow<BackendEvent>` instead of the blocking sink** — 5.1 chose
   a blocking `streamTurn(request, sink)` because the loop is a single sequential
   consumer on a dedicated worker thread that cancels by force-closing the in-flight
