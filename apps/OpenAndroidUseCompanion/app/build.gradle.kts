@@ -15,11 +15,13 @@ android {
         versionCode = 1
         versionName = "0.2.3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        // Phase 5.5b: the LiteRT-LM runtime ships native libraries. Keep only
-        // 64-bit arm — the runtime is arm64, and the on-device tier already
-        // gates on a 64-bit device (DeviceTier). This avoids shipping unused ABIs.
+        // Phase 5.5b: the LiteRT-LM runtime ships native libraries. Keep arm64-v8a
+        // (real devices) and x86_64 (emulators / Chromebooks) — the AAR provides
+        // both. A 32-bit ABI is intentionally excluded (the runtime is 64-bit, and
+        // the on-device tier already gates on a 64-bit device). Per-device size is
+        // handled by the Play AAB ABI split in Phase 6.
         ndk {
-            abiFilters += "arm64-v8a"
+            abiFilters += listOf("arm64-v8a", "x86_64")
         }
     }
 
