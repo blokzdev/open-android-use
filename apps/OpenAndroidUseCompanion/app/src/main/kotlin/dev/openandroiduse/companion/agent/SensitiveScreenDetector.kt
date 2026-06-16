@@ -31,4 +31,19 @@ object SensitiveScreenDetector {
     /** True when [elements] contain a credential or payment field. Used pre-snapshot too (6.5c-1). */
     fun isSensitive(elements: List<ElementRecord>): Boolean =
         elements.any { it.password || it.creditCard }
+
+    /** What kind of secret a sensitive screen holds, so the handoff (6.5c-2) can speak to it. */
+    enum class Kind { PASSWORD, PAYMENT, BOTH }
+
+    /** Classifies a sensitive screen, or null when it is not sensitive. */
+    fun classify(elements: List<ElementRecord>): Kind? {
+        val hasPassword = elements.any { it.password }
+        val hasPayment = elements.any { it.creditCard }
+        return when {
+            hasPassword && hasPayment -> Kind.BOTH
+            hasPassword -> Kind.PASSWORD
+            hasPayment -> Kind.PAYMENT
+            else -> null
+        }
+    }
 }

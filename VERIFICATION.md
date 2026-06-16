@@ -672,6 +672,16 @@ device for 5.8.
   rather than looping "I can't see". On a non-sensitive screen the screenshot is sent as usual. In
   text-only mode (vision off) behavior is unchanged (no screenshot either way, tree still redacted).
 
+- [ ] **V147. Sensitive-screen human handoff/takeover**: ask the agent to do something that requires
+  acting on a login screen (e.g. "sign in to <app>"). Pass: when the agent reaches the password field
+  it does **not** type; instead a "🔒 You take it from here" overlay appears over the app with the
+  right copy (password vs payment), the agent loop pauses, and **Continue** resumes the task (the
+  agent then calls `get_app_state` and proceeds on the post-sign-in screen) while **Stop** ends the
+  task. The agent never types the password. Repeat on a card-entry screen → the overlay says "payment".
+- [ ] **V148. Stop is responsive during handoff**: with the handoff overlay showing, tap the Stop
+  action (notification / in-control chip / overlay Stop). Pass: the parked agent wakes immediately and
+  the task ends; no action is performed on the sensitive field.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |

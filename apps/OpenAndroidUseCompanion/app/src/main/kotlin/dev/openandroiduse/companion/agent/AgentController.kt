@@ -291,9 +291,10 @@ object AgentController {
 
     fun requestStop() {
         cancelRequested = true
-        // Release a loop thread parked in the consent sheet so Stop is
-        // responsive even mid-confirmation.
+        // Release a loop thread parked in the consent sheet or the sensitive-screen
+        // handoff overlay so Stop is responsive even mid-confirmation / mid-handoff.
         ConfirmationSheet.cancel()
+        HandoffSheet.cancel()
         backend?.cancel()
     }
 
@@ -460,26 +461,47 @@ object AgentController {
                             !ConfirmationSheet.ask(service, batchSummary(executor, toolUses))
                         val results = mutableListOf<AgentContent.ToolResult>()
                         var interrupted = false
+                        var handedOff = false
                         for (toolUse in toolUses) {
                             if (cancelRequested) {
                                 interrupted = true
                                 break
                             }
-                            results.add(
-                                if (denied) deniedResult(toolUse) else executeTool(executor, toolUse),
-                            )
+                            if (denied) {
+                                results.add(deniedResult(toolUse))
+                                continue
+                            }
+                            // Phase 6.5c-2: on a password/payment screen, hand off to the
+                            // human instead of acting — the agent never types the secret.
+                            // Continue ends this batch so the model re-observes the screen
+                            // the human left; Stop ends the task (treated as an interrupt).
+                            if (executor.sensitivityBlock(toolUse.name, argsOf(toolUse))) {
+                                log(KIND_NOTE, "🔒 " + str(R.string.agent_note_handoff))
+                                val decision = HandoffSheet.await(service, handoffBody(executor, toolUse))
+                                if (decision == HandoffSheet.Result.STOP || cancelRequested) {
+                                    interrupted = true
+                                    break
+                                }
+                                log(KIND_NOTE, str(R.string.agent_note_handoff_done))
+                                results.add(handedOffResult(toolUse))
+                                handedOff = true
+                                break
+                            }
+                            results.add(executeTool(executor, toolUse))
                         }
                         // Every tool_use must get a tool_result or the next
-                        // request 400s ("tool_use without tool_result"); fill
-                        // any the interruption skipped so the conversation
-                        // stays resumable.
+                        // request 400s ("tool_use without tool_result"); fill any
+                        // the interruption / handoff skipped so the conversation stays
+                        // resumable (handoff fills with a non-error "user handled it").
+                        val filler: (AgentContent.ToolUse) -> AgentContent.ToolResult =
+                            if (interrupted) ::interruptedResult else ::handedOffResult
                         for (index in results.size until toolUses.size) {
-                            results.add(interruptedResult(toolUses[index]))
+                            results.add(filler(toolUses[index]))
                         }
                         appendToolResults(results)
                         if (denied) {
                             log(KIND_NOTE, str(R.string.agent_note_denied))
-                        } else if (!interrupted) {
+                        } else if (!interrupted && !handedOff) {
                             // Phase 6.3b: stop gracefully if actions stop moving the screen,
                             // rather than spinning the same no-op to the turn cap.
                             when (executor.actionChanged) {
@@ -559,6 +581,27 @@ object AgentController {
 
     private fun interruptedResult(toolUse: AgentContent.ToolUse): AgentContent.ToolResult =
         errorResult(toolUse, "This action was not performed because the task was interrupted.")
+
+    /**
+     * Phase 6.5c-2: the result for a tool the human took over. Not an error — the handoff
+     * succeeded — so the model doesn't retry the gated action; it re-observes and continues.
+     */
+    private fun handedOffResult(toolUse: AgentContent.ToolUse): AgentContent.ToolResult =
+        AgentContent.ToolResult(
+            toolUseId = toolUse.id,
+            text = "A password/payment field was on screen, so the user entered it themselves — " +
+                "its contents are hidden from you. Call get_app_state to see the current screen, " +
+                "then continue with the next non-secret step or finish.",
+            isError = false,
+        )
+
+    /** Auth-aware takeover copy for the handoff overlay (6.5c-2). */
+    private fun handoffBody(executor: ToolExecutor, toolUse: AgentContent.ToolUse): String =
+        when (executor.sensitivityKind(argsOf(toolUse))) {
+            SensitiveScreenDetector.Kind.PASSWORD -> str(R.string.handoff_body_password)
+            SensitiveScreenDetector.Kind.PAYMENT -> str(R.string.handoff_body_payment)
+            else -> str(R.string.handoff_body_both)
+        }
 
     private fun errorResult(toolUse: AgentContent.ToolUse, text: String): AgentContent.ToolResult =
         AgentContent.ToolResult(toolUseId = toolUse.id, text = text, isError = true)
