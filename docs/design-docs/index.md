@@ -11,3 +11,11 @@
 ## 初始文档
 
 - `core-beliefs.md`
+
+## 设计文档
+
+- `second-pair-of-hands.md` — 产品愿景。
+- `on-device-companion.md` · `phase3-agent-loop.md` · `phase4-product-ui.md` ·
+  `phase5-multi-provider-byok.md` — 各阶段设计。
+- `agent-security-trust-architecture.md` — Agent 安全与信任模型（敏感屏幕、注入防御、
+  分级授权）的长期参考文档（Phase 6.5c 引入）。
