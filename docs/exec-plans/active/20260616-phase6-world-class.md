@@ -101,6 +101,7 @@ ends, land quick wins, add advanced features, elevate UX, and modernize — so o
   6.5c-1 redaction ✅; 6.5c-2 human handoff/takeover ✅; 6.5c-2b login tap-to-fill ✅;
   6.5c-3 scoped trust **complete**: 3a building blocks ✅; 3b once/session integration ✅; **3c ✅**
   (persistent "Always allow" + Privacy "Trusted apps" list with revoke/decay countdown; audit
-  *viewing* UI folded into 6.5c-5); → 6.5c-4 injection hardening → 6.5c-5 risk-adaptive confirm +
-  transparency.
+  *viewing* UI folded into 6.5c-5); **6.5c-4 injection hardening ✅** (spotlighting system-prompt
+  clause + pure `InjectionHeuristic` annotating flagged perception); → 6.5c-5 risk-adaptive confirm +
+  transparency (incl. audit viewer).
 - [ ] 6.6–6.9 polish/reach.
