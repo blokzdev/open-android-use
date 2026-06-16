@@ -629,6 +629,10 @@ device for 5.8.
   labelled control. Pass: the consent sheet and the chat tool chips name the element ("Tap 'Send'",
   "Set 'Email' = …") rather than "[42]"; coordinate-only taps still read sensibly. A model refusal
   shows its actual reason in the transcript.
+- [ ] **V140. Gesture overlay + action caption**: run a task that taps and scrolls. Pass: the
+  Agent's-view draws a ring at taps *and* an arrow showing swipe/drag direction (aligned to the
+  control), and the caption under the title names the current step ("Scrolling down in 'Inbox'…").
+  Both clear when the agent goes idle / a new conversation starts.
 
 ## Results log
 
