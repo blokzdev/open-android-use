@@ -30,7 +30,14 @@ class ToolExecutor(
     private val captureScreenshots: Boolean = true,
 ) {
 
-    data class Outcome(val text: String, val screenshotPngBase64: String? = null, val isError: Boolean = false)
+    data class Outcome(
+        val text: String,
+        val screenshotPngBase64: String? = null,
+        val isError: Boolean = false,
+        // Phase 6.3b: whether an action visibly changed the screen (null for reads/errors),
+        // read by AgentController for no-progress / stuck detection.
+        val changed: Boolean? = null,
+    )
 
     private val snapshots = mutableMapOf<String, AppSnapshot>()
     private var cachedLaunchableApps: List<Pair<String, String>>? = null
@@ -51,8 +58,15 @@ class ToolExecutor(
     /** The current action's gestures in normalized screenshot space; read by AgentController. */
     val lastGesturesNormalized: List<GestureMark> get() = gestureMarks.toList()
 
+    @Volatile
+    private var lastActionChanged: Boolean? = null
+
+    /** Whether the most recent tool call was an action that changed the screen (null = no action). */
+    val actionChanged: Boolean? get() = lastActionChanged
+
     fun callTool(name: String, args: JSONObject): Outcome = try {
         gestureMarks.clear()
+        lastActionChanged = null
         when (name) {
             "list_apps" -> listApps()
             "get_app_state" -> getAppState(args.optString("app"))
@@ -311,7 +325,11 @@ class ToolExecutor(
         val pkg = foregroundPackage() ?: previous.packageName
         val snapshot = capture(pkg) ?: return error("Action performed, but the new screen state could not be captured.")
         remember(app, snapshot)
-        return snapshot.outcome()
+        val diff = SnapshotDiff.summarize(previous, snapshot)
+        lastActionChanged = diff.changed
+        val base = snapshot.renderedText()
+        val text = if (diff.summary.isEmpty()) base else "${diff.summary}\n\n$base"
+        return Outcome(text, snapshot.screenshotPngBase64.ifEmpty { null }, changed = diff.changed)
     }
 
     private fun capture(pkg: String): AppSnapshot? {

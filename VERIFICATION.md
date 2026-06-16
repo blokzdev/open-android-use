@@ -638,6 +638,11 @@ device for 5.8.
   aborting, the Agent's-view shows a "retrying… (n/3)" badge during backoff, and the task resumes on
   recovery with no duplicated assistant text. A permanent error (bad API key) fails fast with no
   retry. Pressing Stop during a backoff wait ends the task promptly.
+- [ ] **V142. Snapshot diff + stuck detection**: run a multi-step task. Pass: after an action that
+  changes the screen, the next tool-result text begins with a "Screen changed: …" line, and an
+  action with no visible effect reads "Screen unchanged."; deliberately wedging the agent on an
+  unresponsive control makes it stop with the "I may be stuck" note within a few turns rather than
+  burning to the 60-turn cap. Read-only `get_app_state` results carry no diff line.
 
 ## Results log
 

@@ -279,4 +279,5 @@
     <string name="agent_note_max_turns">The task exceeded %1$d tool turns and was stopped.</string>
     <string name="agent_status_retrying">Connection problem, retrying… (%1$d/%2$d)</string>
     <string name="agent_status_rate_limited">Rate-limited, retrying… (%1$d/%2$d)</string>
+    <string name="agent_note_stuck">The screen hasn\'t changed after several actions — I may be stuck. Tell me how you\'d like to proceed.</string>
 </resources>
