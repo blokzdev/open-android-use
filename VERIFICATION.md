@@ -701,6 +701,16 @@ device for 5.8.
   controls. Confirm the audit (once the Privacy UI lands in 6.5c-3c) records the trusted non-secret
   actions, never a field value.
 
+- [ ] **V152. Persistent "Always allow"**: on a sensitive screen needing a non-secret control, tap
+  **Always** in the takeover overlay. Pass: the action runs; the app now appears under Privacy →
+  **Trusted apps** with a "Lapses in N days if unused" line; the grant survives an app restart (still
+  listed) and the agent no longer shows the overlay for that app's non-secret controls — until it
+  lapses after 30 unused days. Secret fields still hand off.
+- [ ] **V153. Revoke trusted apps**: in Privacy → Trusted apps, tap **Revoke** on an app (confirm) →
+  it leaves the list and the agent hands off again on its next sensitive screen; the Snackbar **Undo**
+  restores it. **Revoke all** clears the list (Undo restores). The list updates live without leaving
+  the screen.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |

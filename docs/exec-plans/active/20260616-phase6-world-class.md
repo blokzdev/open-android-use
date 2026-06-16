@@ -99,8 +99,8 @@ ends, land quick wins, add advanced features, elevate UX, and modernize — so o
 - [~] 6.5c — layered trust model for sensitive screens (spec:
   `docs/design-docs/agent-security-trust-architecture.md`). 6.5c-0 (spec + doc alignment) ✅;
   6.5c-1 redaction ✅; 6.5c-2 human handoff/takeover ✅; 6.5c-2b login tap-to-fill ✅;
-  6.5c-3 scoped trust: 3a building blocks ✅; **3b integration ✅** (in-memory once/session grants +
-  gate consulting `activeGrants` + element-level handoff + audit + HandoffSheet grant buttons) → 3c
-  (persistent "Always allow" + Privacy "Trusted apps" list/revoke/audit UI); → 6.5c-4 injection
-  hardening → 6.5c-5 risk-adaptive confirm + transparency.
+  6.5c-3 scoped trust **complete**: 3a building blocks ✅; 3b once/session integration ✅; **3c ✅**
+  (persistent "Always allow" + Privacy "Trusted apps" list with revoke/decay countdown; audit
+  *viewing* UI folded into 6.5c-5); → 6.5c-4 injection hardening → 6.5c-5 risk-adaptive confirm +
+  transparency.
 - [ ] 6.6–6.9 polish/reach.

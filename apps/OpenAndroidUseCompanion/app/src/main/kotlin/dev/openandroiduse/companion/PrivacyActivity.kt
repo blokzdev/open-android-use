@@ -38,6 +38,8 @@ import dev.openandroiduse.companion.agent.AgentSettings
 import dev.openandroiduse.companion.agent.ConversationExport
 import dev.openandroiduse.companion.agent.SessionStore
 import dev.openandroiduse.companion.agent.SessionTitle
+import dev.openandroiduse.companion.agent.TrustPolicy
+import dev.openandroiduse.companion.agent.TrustStore
 import dev.openandroiduse.companion.ui.ResponsiveContent
 import dev.openandroiduse.companion.ui.markHeading
 import dev.openandroiduse.companion.ui.showUndo
@@ -61,11 +63,13 @@ class PrivacyActivity : ComponentActivity() {
 
     private lateinit var settings: AgentSettings
     private lateinit var sessions: SessionStore
+    private lateinit var trust: TrustStore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         settings = AgentSettings(this)
         sessions = SessionStore(this)
+        trust = TrustStore(this)
         enableEdgeToEdge()
         setContent {
             OpenAndroidUseTheme(themeMode = settings.themeMode, dynamicColor = settings.dynamicColor) {
@@ -96,8 +100,28 @@ class PrivacyActivity : ComponentActivity() {
                         sessions.deleteAll();
                         { saved.forEach { sessions.save(it) } }
                     },
+                    loadTrustedApps = ::loadTrustedApps,
+                    onRevokeApp = { pkg -> trust.revoke(pkg); { trust.grant(pkg, System.currentTimeMillis()) } },
+                    onRevokeAllApps = {
+                        val now = System.currentTimeMillis()
+                        val saved = trust.list(now)
+                        trust.revokeAll();
+                        { saved.forEach { trust.grant(it.packageName, now) } }
+                    },
                 )
             }
+        }
+    }
+
+    /** Active persistent trust grants, resolved to app labels for the Trusted-apps list (6.5c-3c). */
+    private fun loadTrustedApps(): List<TrustedAppItem> {
+        val now = System.currentTimeMillis()
+        return trust.list(now).map { grant ->
+            val label = runCatching {
+                val info = packageManager.getApplicationInfo(grant.packageName, 0)
+                packageManager.getApplicationLabel(info).toString()
+            }.getOrDefault(grant.packageName)
+            TrustedAppItem(grant.packageName, label, TrustPolicy.daysUntilDecay(grant, now))
         }
     }
 
@@ -142,6 +166,9 @@ private fun PrivacyScreen(
     onClearKey: () -> (() -> Unit),
     onClearConversation: () -> (() -> Unit),
     onDeleteAllSessions: () -> (() -> Unit),
+    loadTrustedApps: () -> List<TrustedAppItem>,
+    onRevokeApp: (String) -> (() -> Unit),
+    onRevokeAllApps: () -> (() -> Unit),
 ) {
     val snackbarHost = remember { SnackbarHostState() }
     Scaffold(
@@ -172,6 +199,11 @@ private fun PrivacyScreen(
             OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.privacy_localonly_manage))
             }
+
+            HorizontalDivider()
+
+            // --- Trusted apps (Phase 6.5c-3c) ---
+            TrustedAppsSection(loadTrustedApps, onRevokeApp, onRevokeAllApps, snackbarHost)
 
             HorizontalDivider()
 
@@ -212,6 +244,67 @@ private fun PrivacyScreen(
         }
         }
     }
+}
+
+/** A persistent trust grant resolved for the Privacy "Trusted apps" list (6.5c-3c). */
+data class TrustedAppItem(val packageName: String, val label: String, val daysUntilDecay: Long)
+
+@Composable
+private fun TrustedAppsSection(
+    loadTrustedApps: () -> List<TrustedAppItem>,
+    onRevokeApp: (String) -> (() -> Unit),
+    onRevokeAllApps: () -> (() -> Unit),
+    host: SnackbarHostState,
+) {
+    // A bump counter re-reads the store after a revoke / undo so the list stays live.
+    val refresh = remember { mutableStateOf(0) }
+    val apps = remember(refresh.value) { loadTrustedApps() }
+
+    Text(
+        stringResource(R.string.privacy_trusted_title),
+        style = MaterialTheme.typography.titleMedium,
+        modifier = Modifier.markHeading(),
+    )
+    Text(stringResource(R.string.privacy_trusted_intro), style = MaterialTheme.typography.bodyMedium)
+
+    if (apps.isEmpty()) {
+        Text(stringResource(R.string.privacy_trusted_empty), style = MaterialTheme.typography.bodyMedium)
+        return
+    }
+    apps.forEach { app ->
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Text(app.label, style = MaterialTheme.typography.titleSmall)
+            Text(
+                stringResource(R.string.privacy_trusted_decay, app.daysUntilDecay.toInt()),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            DangerControl(
+                label = stringResource(R.string.privacy_trusted_revoke),
+                confirmTitle = stringResource(R.string.privacy_trusted_revoke_q),
+                confirmBody = stringResource(R.string.privacy_trusted_revoke_body),
+                successMessage = stringResource(R.string.privacy_trusted_revoke_toast),
+                host = host,
+                onConfirmed = {
+                    val undo = onRevokeApp(app.packageName)
+                    refresh.value++;
+                    { undo(); refresh.value = refresh.value + 1 }
+                },
+            )
+        }
+    }
+    DangerControl(
+        label = stringResource(R.string.privacy_trusted_revoke_all),
+        confirmTitle = stringResource(R.string.privacy_trusted_revoke_all_q),
+        confirmBody = stringResource(R.string.privacy_trusted_revoke_all_body),
+        successMessage = stringResource(R.string.privacy_trusted_revoke_all_toast),
+        host = host,
+        onConfirmed = {
+            val undo = onRevokeAllApps()
+            refresh.value++;
+            { undo(); refresh.value = refresh.value + 1 }
+        },
+    )
 }
 
 @Composable

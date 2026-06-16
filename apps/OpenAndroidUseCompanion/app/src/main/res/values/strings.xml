@@ -150,6 +150,20 @@
     <string name="privacy_delete_all_body">Permanently deletes every saved conversation on this device. This can\'t be undone.</string>
     <string name="privacy_delete_all_toast">All conversations deleted</string>
 
+    <!-- Trusted apps (Phase 6.5c-3c) -->
+    <string name="privacy_trusted_title">Trusted apps</string>
+    <string name="privacy_trusted_intro">Apps you\'ve let the agent operate on sensitive screens without asking. It still hands off password and payment fields, and a grant lapses if unused.</string>
+    <string name="privacy_trusted_empty">No trusted apps. You can grant trust from the agent\'s takeover prompt on a sensitive screen.</string>
+    <string name="privacy_trusted_decay">Lapses in %1$d days if unused</string>
+    <string name="privacy_trusted_revoke">Revoke</string>
+    <string name="privacy_trusted_revoke_q">Revoke trust for this app?</string>
+    <string name="privacy_trusted_revoke_body">The agent will ask again before acting on this app\'s sensitive screens.</string>
+    <string name="privacy_trusted_revoke_toast">Trust revoked</string>
+    <string name="privacy_trusted_revoke_all">Revoke all trusted apps</string>
+    <string name="privacy_trusted_revoke_all_q">Revoke all trusted apps?</string>
+    <string name="privacy_trusted_revoke_all_body">Every app will need to re-earn trust from a takeover prompt.</string>
+    <string name="privacy_trusted_revoke_all_toast">All trust revoked</string>
+
     <!-- OnboardingActivity -->
     <string name="onboarding_step">Set up · Step %1$d of %2$d</string>
     <string name="onboarding_back">Back</string>
@@ -229,6 +243,7 @@
     <string name="handoff_stop">Stop</string>
     <string name="handoff_allow_once">Allow once</string>
     <string name="handoff_allow_session">Allow this session</string>
+    <string name="handoff_allow_always">Always</string>
     <string name="handoff_grant_hint">Trust lets me act on this app\'s non-secret controls without asking. Secret fields always stay yours.</string>
     <string name="agent_note_trusted_action">Acting on a trusted app (%1$s).</string>
     <string name="agent_note_handoff">Handed off to you for a password/payment field — waiting for you to enter it.</string>
