@@ -12,6 +12,12 @@ Unscheduled ideas we've deliberately deferred, kept here so they aren't lost.
 
 Each entry: **idea** — why deferred · _priority_ · origin.
 
+> **Phase 6 (world-class app) is in progress** — `docs/exec-plans/active/20260616-phase6-world-class.md`
+> schedules many of the UX/refinement/modernization items below (labeled actions ✓, richer live
+> feedback, reliability/perception, safety depth, model-picker bottom sheet, ToolChipLabel i18n,
+> reactive theme, two-pane Settings, zh-CN, etc.). Each is removed from here as its sub-phase PR
+> lands. Launch-readiness/hardening items moved to **Phase 7/8** (see the master roadmap).
+
 ## Android runtime / bridge
 
 - **Robust no-companion bridge snapshot** — the host-side bridge reads the UI via

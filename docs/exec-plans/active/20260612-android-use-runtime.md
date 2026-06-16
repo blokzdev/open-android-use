@@ -208,16 +208,28 @@ build script, and docs synced.
   never bundled. Sub-phases 5.1–5.7. Runs **after** Phase 4.7, **before** Phase 6. R8/minify-enable
   folds into Phase 5 build work (incremental keep-rules). Founder calls: ship both Gemini +
   on-device ("no cutting corners"), Gemini first, adaptive perception.
-- [ ] **Phase 6 — Launch readiness & hardening** (final gate; was "Phase 4.8", moved + expanded
-  2026-06-15): done last, against the real shipping surface that Phase 5 reshapes. **Distribution/
-  Play**: tagged GitHub release of the signed APK; Play Store **signed AAB** (the Android 13+
-  "Restricted setting" prompt is an install-source gate removed by a Play install, not by release
-  signing); release signing keystore/config (founder-held); the `QUERY_ALL_PACKAGES` Play-policy
-  decision for `list_apps` (justified `<queries>` vs. a narrower approach); the true
-  foreground-service type deferred from 4.4; store-listing assets + a privacy policy. **Performance
-  hardening**: startup/inference profiling, jank/memory passes. **Security hardening**: egress
-  review of all providers (Anthropic/Gemini/on-device download sources), model-file integrity/source
-  trust, threat-model pass, final R8/resource-shrink + verification.
+- [ ] **Phase 6 — World-class app** (inserted 2026-06-16; the old "Phase 6 — launch readiness"
+  was split into Phase 7 + 8 below). Before launch, make the app genuinely world-class: agent
+  trust & transparency (labeled actions, richer live feedback), reliability & perception within
+  the frozen 9-tool schema (snapshot diffing, stuck detection, focus/scroll/modal awareness),
+  safety depth (sensitive-screen detection), UX polish, and modernization (adaptive UI,
+  localization). Plan: `docs/exec-plans/active/20260616-phase6-world-class.md`.
+- [ ] **On-device verification pass** (founder-led, after Phase 6): clear the `VERIFICATION.md`
+  ledger on real hardware — especially V131 (on-device inference) and V135–V138 (Local-Only Mode)
+  — so the launch phases harden a verified surface.
+- [ ] **Phase 7 — Distribution & packaging** (was part of "Phase 6 launch readiness"): AAB bundle
+  config (ABI/density/language splits) + resource-shrink; release signing keystore/config
+  (founder-held); the `QUERY_ALL_PACKAGES` Play-policy decision for `list_apps` (justified
+  `<queries>` vs. a narrower approach); the true foreground-service type (deferred from 4.4) +
+  model-download hardening (resumable/range + progress notification); store-listing assets + a
+  privacy policy; tagged GitHub release of the signed APK / Play **signed AAB** (the Android 13+
+  "Restricted setting" prompt is an install-source gate removed by a Play install).
+- [ ] **Phase 8 — Performance & security hardening (final gate)**: startup/inference profiling,
+  jank/memory passes, `DeviceTier` tuning against real hardware; threat-model pass; supply-chain
+  CI wiring (OSV/SBOM/Scorecard/dependency-review/action-pinning) + Gradle dependency locking;
+  native LiteRT-LM tool-calling evaluation; final R8/resource-shrink verification — then the actual
+  store submission. Ordering: 7 builds the shippable artifact + resolves policy; 8 hardens/optimizes
+  against that final artifact, informed by the on-device verification data.
 - [ ] Phase 3.x backlog (agent intelligence): models-API-driven live model list
   (per provider), per-action consent granularity, task memory (opt-in).
 
