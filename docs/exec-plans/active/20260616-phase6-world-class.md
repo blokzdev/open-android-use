@@ -41,9 +41,17 @@ ends, land quick wins, add advanced features, elevate UX, and modernize — so o
 - **6.3 — Reliability:** transient-error retry/backoff + status badge (6.3a ✅); snapshot diffing
   ("what changed") in action results + stuck/no-progress detection (6.3b ✅).
 - **6.4 — Perception richness:** focus-change, scroll-state, modal awareness, adaptive tree budget
-  in the a11y-tree text (no schema change).
+  in the a11y-tree text (no schema change). _Deferred after 6.3b_: focus already ships in the 6.3b
+  action diff, and the remaining wins (scroll/modal hints) change the rendered tree-line **text**,
+  which is kept byte-aligned across the Kotlin companion and the Go bridge flatteners — so each
+  signal must be mirrored in both runtimes. Lower marginal value / higher cost than 6.5; see
+  `docs/BACKLOG.md`.
 - **6.5 — Safety depth:** sensitive-screen detection (password/payment → auto-decline),
   pause-on-touch re-snapshot + resume confirmation, per-app "always allow" consent.
+  - **6.5a ✅** — credential-screen gate: `SensitiveScreenDetector` auto-declines the seven action
+    tools on a screen with a password field (authoritative `isPassword`); reads stay open.
+  - **6.5b** — payment detection (autofill hints), a Privacy-settings toggle (default on), per-app
+    "always allow", and optional screenshot suppression on sensitive screens.
 - **6.6 — Composer & messages:** suggested follow-ups, `SelectionContainer` selection + copy
   feedback, model-picker bottom sheet (dedup `ModelDropdown`) with descriptions + recommended badge.
 - **6.7 — Refinements:** externalize `ToolChipLabel` verbs, export timestamps, reactive theme
@@ -65,4 +73,7 @@ ends, land quick wins, add advanced features, elevate UX, and modernize — so o
 - [x] 6.2 — gesture overlay (`GestureMark`) + live action caption in the Agent's-view.
 - [x] 6.3a — transient-error retry/backoff (`RetryPolicy`) + live status badge.
 - [x] 6.3b — snapshot diffing (`SnapshotDiff`) in action results + stuck/no-op detection.
-- [ ] 6.4–6.9 (planned per the loop; 6.4–6.5 are the substance, 6.6–6.9 polish/reach).
+- [~] 6.4 — perception richness: **deferred** (focus shipped in 6.3b; scroll/modal hints carry a
+  dual-runtime rendered-text cost — see BACKLOG). Reorder approved 2026-06-16.
+- [x] 6.5a — credential-screen safety gate (`SensitiveScreenDetector` + `ToolExecutor` action gate).
+- [ ] 6.5b — payment detection + toggle + per-app allow; 6.6–6.9 polish/reach.

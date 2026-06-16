@@ -20,6 +20,19 @@ Each entry: **idea** — why deferred · _priority_ · origin.
 
 ## Android runtime / bridge
 
+- **6.5b — sensitive-screen detection (payment + controls)** — 6.5a shipped the credential gate
+  (`SensitiveScreenDetector` keying on `isPassword`). Follow-ups: payment detection via autofill
+  hints (`AUTOFILL_HINT_CREDIT_CARD_*`, requires surfacing the hints into the snapshot JSON like
+  `password` was); a Privacy-settings toggle (default on) so the gate is user-controllable; per-app
+  "always allow"; and optionally suppress the screenshot on a sensitive screen (a11y already masks
+  the field value). _Medium._ Origin: Phase 6.5a (deferred).
+- **6.4 — perception richness (scroll/modal hints in the a11y text)** — deferred after 6.3b. Focus
+  already ships in the 6.3b action diff; the remaining wins (scroll "can-scroll-further", modal/
+  dialog hint, adaptive breadth-first tree budget) change the rendered tree-line **text**, which is
+  kept byte-aligned across the Kotlin companion (`SnapshotFlattener`) and the Go bridge
+  (`flattenCompanionTree`) flatteners — each pinned by its own test. So every signal must be
+  mirrored in both runtimes (the value *is* the text format, unlike 6.5's logic-only change). Lower
+  marginal value / higher cost than 6.5. _Medium._ Origin: Phase 6.4 (deferred 2026-06-16).
 - **Robust no-companion bridge snapshot** — the host-side bridge reads the UI via
   the `uiautomator dump` CLI, which is brittle (idle-wait timeouts / null root,
   worse right after boot and on Android 11+). It's now hardened with

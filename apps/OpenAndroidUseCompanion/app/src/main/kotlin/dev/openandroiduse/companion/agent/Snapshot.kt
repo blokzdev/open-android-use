@@ -39,6 +39,10 @@ data class ElementRecord(
     val frame: ElementFrame? = null,
     val actions: List<String> = emptyList(),
     val focused: Boolean = false,
+    // Phase 6.5a: the framework's AccessibilityNodeInfo.isPassword flag, captured by
+    // SnapshotBuilder and carried through here so the action gate can auto-decline
+    // interaction with credential fields. Not rendered into the tree-line text.
+    val password: Boolean = false,
 )
 
 data class AppSnapshot(
@@ -111,6 +115,7 @@ object SnapshotFlattener {
                     frame = frame,
                     actions = actions(node),
                     focused = node.optBoolean("focused"),
+                    password = node.optBoolean("password"),
                 ),
                 depth,
                 selected = node.optBoolean("checked") || node.optBoolean("selected"),

@@ -64,23 +64,34 @@ class ToolExecutor(
     /** Whether the most recent tool call was an action that changed the screen (null = no action). */
     val actionChanged: Boolean? get() = lastActionChanged
 
-    fun callTool(name: String, args: JSONObject): Outcome = try {
+    fun callTool(name: String, args: JSONObject): Outcome {
         gestureMarks.clear()
         lastActionChanged = null
-        when (name) {
-            "list_apps" -> listApps()
-            "get_app_state" -> getAppState(args.optString("app"))
-            "click" -> click(args)
-            "perform_secondary_action" -> performSecondaryAction(args)
-            "scroll" -> scroll(args)
-            "drag" -> drag(args)
-            "type_text" -> typeText(args)
-            "press_key" -> pressKey(args)
-            "set_value" -> setValue(args)
-            else -> error("unsupportedTool(\"$name\")")
+        // Phase 6.5a: never act on a credential screen. Action tools gate on the
+        // last snapshot for this app; reads stay open so the agent can still
+        // perceive, narrate, and ask the human to enter the secret themselves.
+        if (name in ACTION_TOOLS) {
+            val snapshot = current(args.optString("app"))
+            if (snapshot != null && SensitiveScreenDetector.isSensitive(snapshot)) {
+                return error(SensitiveScreenDetector.REASON_PASSWORD)
+            }
         }
-    } catch (failure: Exception) {
-        error("Tool $name failed: ${failure.message}")
+        return try {
+            when (name) {
+                "list_apps" -> listApps()
+                "get_app_state" -> getAppState(args.optString("app"))
+                "click" -> click(args)
+                "perform_secondary_action" -> performSecondaryAction(args)
+                "scroll" -> scroll(args)
+                "drag" -> drag(args)
+                "type_text" -> typeText(args)
+                "press_key" -> pressKey(args)
+                "set_value" -> setValue(args)
+                else -> error("unsupportedTool(\"$name\")")
+            }
+        } catch (failure: Exception) {
+            error("Tool $name failed: ${failure.message}")
+        }
     }
 
     // --- read tools ---
@@ -493,6 +504,13 @@ class ToolExecutor(
     companion object {
         private const val SETTLE_DELAY_MS = 800L
         private const val MAX_SCROLL_SWIPES = 20
+
+        // The tools that manipulate the screen (not reads) — gated on the
+        // sensitive-screen check in callTool. list_apps/get_app_state are reads.
+        private val ACTION_TOOLS = setOf(
+            "click", "perform_secondary_action", "scroll", "drag",
+            "type_text", "press_key", "set_value",
+        )
 
         private fun error(message: String): Outcome = Outcome(message, isError = true)
 
