@@ -61,8 +61,14 @@ while keeping the on-device, no-server, key-stays-local posture intact.
    native function calling.
 6. **5.6 — Adaptive perception.** Text-first via the `get_app_state` a11y tree;
    vision/screenshots only on capable tiers.
-7. **5.7 — Phase-5 hardening.** Supply-chain registration (`com.google.genai`,
-   model source), egress review of new providers, cross-backend test matrix.
+7. **5.7 — Privacy / Local-Only Mode + egress review.** Umbrella toggle that forces
+   the on-device provider (tier-gated + readiness-aware) so nothing egresses; honest
+   two-mode egress docs; the merge-then-plan working loop. (Reframed from "hardening":
+   supply-chain registration was already current, so the egress half became a shipped
+   *feature*, not just docs.)
+8. **5.8 — Cross-backend test matrix.** Parameterized streaming parity across
+   Anthropic+Gemini (fills the Anthropic backend-streaming gap) + `EgressPolicy`
+   loopback-guard extraction/test + supply-chain audit note. (Split out of 5.7.)
 
 ## Verification
 
@@ -92,7 +98,11 @@ while keeping the on-device, no-server, key-stays-local posture intact.
 - [x] 5.6 — adaptive perception: per-provider `sendScreenshots` toggle (`PerceptionMode`),
       text-only `ToolExecutor` path (tree at scale 1.0, no image), on-device vision via
       LiteRT-LM `Content.ImageBytes`. Default vision-on for all providers.
-- [ ] 5.7 — Phase-5 hardening.
+- [x] 5.7 — Privacy / Local-Only Mode: pure `PrivacyMode` (`localOnlyAvailability` tier/readiness
+      state machine + `effectiveProvider` chokepoint), global `AgentSettings.localOnlyMode`,
+      Settings toggle (tier-gated, confirm-on-needs-model), chat badge + Privacy status row,
+      two-mode egress docs (`SECURITY.md`), and the merge-then-plan loop in the harness docs.
+- [ ] 5.8 — Cross-backend test matrix + `EgressPolicy` extraction + supply-chain audit note.
 
 ## Decisions
 
@@ -149,3 +159,13 @@ while keeping the on-device, no-server, key-stays-local posture intact.
   5.4 only **produces + surfaces** the tier (About diagnostic); the gates ship with
   5.5 (offer on-device model) and 5.6 (text-first vs vision). Tier thresholds are
   **provisional**, tuned against the real model in 5.5 (BACKLOG).
+- 2026-06-15 (5.7): **5.7 became a feature, not just docs.** Supply-chain registration was
+  already current, and the egress review found `SECURITY.md` falsely claimed "no upload"; rather
+  than just correct the doc, we shipped **Privacy / Local-Only Mode** — a single umbrella
+  (`localOnlyMode`) that forces the on-device provider so the strong guarantee is *true*.
+  Enforcement is a **single chokepoint** (`effectiveProvider` in `AgentController.startTask`) so
+  "no cloud backend constructed" is CI-verifiable via the pure helper; the on-device runtime
+  itself stays hardware-pending. **Tier-gated** (off on `LOW`) + **readiness-aware** (confirm +
+  download when capable-but-not-downloaded). **Control in Settings**, status mirrored on the
+  Privacy screen + a chat badge. Cloud keys are **kept, just ignored** (least friction). The
+  cross-backend test matrix split to **5.8**; Gradle dependency locking deferred (BACKLOG).

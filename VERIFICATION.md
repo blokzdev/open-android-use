@@ -599,6 +599,22 @@ need a real device.
   vice-versa), restart the app → each provider keeps its own setting. (On-device default is
   vision-on; see V131.)
 
+### Phase 5.7 — Privacy / Local-Only Mode
+
+- [ ] **V135. Tier-gated availability**: on a `DeviceTier.LOW` device, the Local-only toggle is
+  shown **disabled** with the "can't run the on-device model" explanation; on a MEDIUM/HIGH device
+  it's actionable.
+- [ ] **V136. Confirm + download when capable-but-not-downloaded**: on a capable device with no
+  model, enabling Local-only shows the confirm dialog; confirming switches the provider to
+  on-device and starts the ~2.6 GB download (progress in the on-device card / chat banner).
+- [ ] **V137. Zero-egress operation**: with the model present and Local-only on, put the device in
+  **airplane mode** and run a task → it completes fully on-device (proves no network dependency in
+  the loop). Ties to V131 (on-device inference).
+- [ ] **V138. Cloud is locked out**: with Local-only on, the provider picker's cloud options are
+  disabled, the key Save/Test controls don't fire, and a started task uses the on-device provider
+  (no `api.anthropic.com` / `generativelanguage.googleapis.com` egress). Saved cloud keys remain
+  (turning Local-only off restores cloud access without re-entry).
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |
