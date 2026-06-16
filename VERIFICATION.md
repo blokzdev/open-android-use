@@ -615,6 +615,14 @@ need a real device.
   (no `api.anthropic.com` / `generativelanguage.googleapis.com` egress). Saved cloud keys remain
   (turning Local-only off restores cloud access without re-entry).
 
+### Phase 5.8 — cross-backend test matrix
+
+No new hardware items. Cross-provider parity (Anthropic + Gemini) is proven in CI by
+`CloudBackendStreamingMatrixTest` (JVM, loopback stub) + the existing dual-provider emulator
+smoke; the `EgressPolicy` loopback guard is unit-tested. On-device (Gemma) parity remains covered
+by the existing on-device hardware items (V131, V135–V138) — there is nothing new to check on a
+device for 5.8.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |
