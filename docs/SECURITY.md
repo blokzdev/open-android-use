@@ -59,6 +59,34 @@ additionally refuses any non-loopback `http` base-URL override (`AgentController
 The control surface (accessibility/loopback core) remains dependency-free and makes no provider
 calls. Dependency provenance is in `docs/SUPPLY_CHAIN_SECURITY.md`.
 
+## Sensitive-screen trust model & injection posture (Phase 6.5c, English)
+
+The on-device agent treats credentials and payment data as **outside the model's trust boundary**.
+The full design is `docs/design-docs/agent-security-trust-architecture.md`; the operative rules:
+
+- **Secrets never enter the model loop.** The agent never receives, types, or transmits a user
+  password/credit-card. At a secret field it **hands off** to the human (or to OS-mediated autofill,
+  where the secret flows password-manager→field and the agent never reads it). This matches every
+  major computer-use agent (Operator, Anthropic computer use, Mariner, Claude Code).
+- **We redact secrets ourselves — we do not rely on the framework.** Password-field text masking to an
+  accessibility service is version/capability-dependent (not guaranteed), and ordinary card `EditText`
+  text is not masked at all. On a sensitive screen the agent redacts secret field *values* to
+  `[redacted]` at snapshot emission (covering both the on-device agent and the host bridge / external
+  MCP runtimes) and withholds the screenshot in vision mode, while keeping screen *structure*.
+  `FLAG_SECURE` is pixel-only (it blocks screenshots, not the accessibility tree, and is not even
+  readable via any `isSecure()` API), so suppression is driven by our own sensitivity inference.
+- **Trust is scoped, not blanket.** Per-app "allow" is default-deny and offered as one-time / this-session
+  / (effortful, risk-framed) persistent grants that are revocable and **decay** when unused, with a
+  text-only audit log — never a single always-on toggle. A granted app still hands off secrets and still
+  confirms high-risk/injection-suspected actions (enforced structurally, only the screen-level gate is
+  grant-aware).
+- **Injection posture.** On-screen text is untrusted data, delivered to the model only inside
+  `tool_result` blocks with provenance, never as instructions; a v1 injection-signal classifier flags
+  injection-like content; irreversible actions (send/pay/delete/post) require confirmation. We rely on
+  the cloud provider's model hardening (Claude/Gemini); the on-device tier is weaker and leans harder on
+  these structural layers. We adopt CaMeL's principles (control/data separation, least-privilege
+  capabilities) but defer the full system (`docs/BACKLOG.md`).
+
 ## 授权与最小权限
 
 - 当前只保留一层密码管理器 bundle denylist / bundle-id gate：

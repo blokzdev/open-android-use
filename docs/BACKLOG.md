@@ -20,16 +20,23 @@ Each entry: **idea** — why deferred · _priority_ · origin.
 
 ## Android runtime / bridge
 
-- **6.5c — per-app "always allow" + screenshot suppression on sensitive screens** — 6.5a (password
-  gate) and 6.5b (payment heuristic + default-on user toggle) shipped. Remaining: a per-app
-  allowlist so the user can let the agent operate on a trusted app's sensitive screens — the gate
-  hook is trivial (`snapshot.packageName !in allowList`), the work is the **consent UI** to add
-  entries (a button on the refusal / Privacy screen + a confirm dialog) and `Set<String>` pref
-  storage. Also: optionally suppress the screenshot on a sensitive screen (a11y already masks the
-  field value, but the surrounding screen still uploads in vision mode). _Medium._ Origin: Phase
-  6.5b (deferred). Note: payment detection is a **label heuristic** (cvv/cvc/csc, "card number",
-  "credit/debit card", "security code", "card verification") because `AccessibilityNodeInfo` does
-  not expose autofill hints; revisit if a more authoritative signal becomes reachable.
+- **6.5c is now scheduled** — promoted out of the backlog into the layered trust model
+  (`docs/design-docs/agent-security-trust-architecture.md`, sub-PRs 6.5c-0..-5 in the Phase 6
+  exec-plan). The deferred follow-ups it spun off live below.
+- **Full CaMeL (provable data-flow control)** — 6.5c-4 adopts CaMeL's *principles* (control/data
+  separation, least-privilege capabilities = our scoped grants, policy at the action boundary) but not
+  the full dual-LLM + capability-tracking + policy-engine system (arXiv 2503.18813), which carries a
+  large utility cost (~77% vs ~84% task completion) and would fight the frozen 9-tool schema and the
+  on-device tier. Revisit if a future provider/runtime makes structured capability tracking cheap, or
+  if the layered defenses prove insufficient on real fleets. _Low / investigate._ Origin: Phase 6.5c.
+- **Region-mask the screenshot on sensitive screens** — 6.5c-1 withholds the whole screenshot on a
+  sensitive screen (vision mode) with an explanatory note. A richer version paints over only the
+  flagged field bounds and keeps the rest of the screen, preserving non-secret visual context. Needs
+  bitmap region-painting from element bounds (heavier, device-dependent, harder to unit-test). _Low._
+  Origin: Phase 6.5c-1 (deferred). Note: payment detection is a **label heuristic** (cvv/cvc/csc,
+  "card number", "credit/debit card", "security code", "card verification") because
+  `AccessibilityNodeInfo` does not expose autofill hints; revisit if a more authoritative signal
+  becomes reachable.
 - **6.4 — perception richness (scroll/modal hints in the a11y text)** — deferred after 6.3b. Focus
   already ships in the 6.3b action diff; the remaining wins (scroll "can-scroll-further", modal/
   dialog hint, adaptive breadth-first tree budget) change the rendered tree-line **text**, which is

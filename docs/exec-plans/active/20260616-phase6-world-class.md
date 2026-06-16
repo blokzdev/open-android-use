@@ -54,8 +54,23 @@ ends, land quick wins, add advanced features, elevate UX, and modernize — so o
     hints, so `SnapshotBuilder` keys on card-specific tokens) folded into the same gate, plus a
     **default-on Settings toggle** (`AgentSettings.sensitiveScreenGuard`) so the guard is
     user-controllable.
-  - **6.5c** — per-app "always allow" (consent UI + allowlist) and optional screenshot suppression
-    on sensitive screens (see BACKLOG).
+  - **6.5c** — the trust model for sensitive screens, reframed by research (2026-06-16) from a single
+    "per-app always allow" toggle into a **layered, least-privilege trust model**. Cardinal rule:
+    **secrets never enter the model loop** (handoff, never agent-typed — verified industry/academic
+    consensus). Spec: `docs/design-docs/agent-security-trust-architecture.md`. Sub-PRs:
+    - **6.5c-0** — Security & Trust Architecture spec (permanent reference) + doc alignment (this doc,
+      SECURITY, BACKLOG, QUALITY_SCORE). Doc-only.
+    - **6.5c-1** — L0 privacy redaction: secret field values → `[redacted]` at `SnapshotBuilder`
+      emission (covers companion + Go bridge) + `ElementRecord` defense-in-depth; screenshot withheld
+      on sensitive screens in vision mode (note explains why). Fixes a live card-digit leak.
+    - **6.5c-2** — L1 human handoff/takeover (in-flow "🔒 you take it from here" overlay, auth-aware)
+      + opportunistic login **tap-to-fill** (focus field → OS chip → user taps; agent never reads it).
+    - **6.5c-3** — L2 scoped trust: default-deny per-app grants (once/session/persistent), revocable +
+      decaying, Privacy "Trusted apps" list, text-only audit log. Granted app still hands off secrets.
+    - **6.5c-4** — L3 injection hardening: untrusted-content isolation/spotlighting + a v1
+      injection-signal classifier hook. CaMeL principles adopted; full CaMeL deferred (BACKLOG).
+    - **6.5c-5** — L4 capstone: risk-adaptive confirmation (high-risk/injection-flagged actions confirm
+      even under a grant) + a consolidated Trust & Safety surface, activity receipts, onboarding step.
 - **6.6 — Composer & messages:** suggested follow-ups, `SelectionContainer` selection + copy
   feedback, model-picker bottom sheet (dedup `ModelDropdown`) with descriptions + recommended badge.
 - **6.7 — Refinements:** externalize `ToolChipLabel` verbs, export timestamps, reactive theme
@@ -81,4 +96,8 @@ ends, land quick wins, add advanced features, elevate UX, and modernize — so o
   dual-runtime rendered-text cost — see BACKLOG). Reorder approved 2026-06-16.
 - [x] 6.5a — credential-screen safety gate (`SensitiveScreenDetector` + `ToolExecutor` action gate).
 - [x] 6.5b — payment detection (label heuristic) folded into the gate + default-on `sensitiveScreenGuard` toggle.
-- [ ] 6.5c — per-app "always allow" + screenshot suppression (BACKLOG); 6.6–6.9 polish/reach.
+- [~] 6.5c — layered trust model for sensitive screens (spec:
+  `docs/design-docs/agent-security-trust-architecture.md`). 6.5c-0 (spec + doc alignment) ✅; 6.5c-1
+  redaction → 6.5c-2 handoff+tap-to-fill → 6.5c-3 scoped trust → 6.5c-4 injection hardening →
+  6.5c-5 risk-adaptive confirm + transparency.
+- [ ] 6.6–6.9 polish/reach.

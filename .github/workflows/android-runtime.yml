@@ -6,6 +6,10 @@ name: android-runtime
 # check never reported. The expensive emulator-smoke job gates its heavy work
 # behind a code-paths filter, so it still reports success on docs PRs without
 # burning ~20 minutes booting an emulator.
+#
+# The distributable companion APK is NOT built here: it moved to the manual
+# `build-apk.yml` (workflow_dispatch), run on demand. PRs still validate the
+# release build through the `companion` job's R8 keep-rules gate (no upload).
 on:
   push:
     branches: [main]
@@ -47,8 +51,10 @@ jobs:
   companion:
     # ubuntu-latest ships an Android SDK and Gradle. The control surface is
     # dependency-free Kotlin; the agent package adds the pinned Anthropic SDK
-    # (see docs/SUPPLY_CHAIN_SECURITY.md). Builds the APK and runs the JVM
-    # unit tests.
+    # (see docs/SUPPLY_CHAIN_SECURITY.md). Runs the JVM unit tests and the R8
+    # keep-rules gate. The distributable APK artifact is NOT built here — it
+    # moved to the manual `build-apk.yml` (workflow_dispatch) so docs/code PRs
+    # don't generate an APK on every run.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -58,17 +64,12 @@ jobs:
           java-version: "17"
       - name: companion unit tests
         run: (cd apps/OpenAndroidUseCompanion && gradle testDebugUnitTest --no-daemon)
-      - name: build companion APK
-        run: ./scripts/build-open-android-use-companion.sh
       # Phase 5.3: validate the R8 keep-rules on every PR (build-time). The
       # minified release build catches missing-rule regressions early; on-device
-      # validation of the shrunk build is the Phase 6 gate.
+      # validation of the shrunk build is the Phase 6 gate. Kept on PRs (it is a
+      # correctness gate, not artifact distribution — the APK is not uploaded).
       - name: assemble minified release (R8 keep-rules gate)
         run: (cd apps/OpenAndroidUseCompanion && gradle assembleRelease --no-daemon)
-      - uses: actions/upload-artifact@v4
-        with:
-          name: open-android-use-companion-apk
-          path: dist/companion/open-android-use-companion.apk
 
   emulator-smoke:
     # Boots a real Android emulator (GitHub-hosted runners provide KVM) and
