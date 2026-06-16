@@ -2,6 +2,7 @@ package dev.openandroiduse.companion
 
 import android.graphics.Rect
 import android.view.accessibility.AccessibilityNodeInfo
+import dev.openandroiduse.companion.agent.Redaction
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -31,7 +32,15 @@ object SnapshotBuilder {
     private fun nodeJson(node: AccessibilityNodeInfo, depth: Int): JSONObject {
         val json = JSONObject()
         json.put("className", node.className?.toString() ?: "")
-        putIfNotEmpty(json, "text", node.text?.toString())
+
+        // Phase 6.5c-1 (L0 redaction): emit the field VALUE through the redaction
+        // policy so a password/payment field's contents never reach the model — not
+        // in the on-device tree and not in the host bridge, which reads this same
+        // JSON. contentDesc/resourceId are field LABELS, not values, so they stay.
+        val password = node.isPassword
+        val creditCard = isAutofillCreditCard(node)
+        Redaction.emittedText(password, creditCard, node.text?.toString())
+            ?.let { json.put("text", it) }
         putIfNotEmpty(json, "contentDesc", node.contentDescription?.toString())
         putIfNotEmpty(json, "resourceId", node.viewIdResourceName)
 
@@ -48,8 +57,8 @@ object SnapshotBuilder {
         putIfTrue(json, "checkable", node.isCheckable)
         putIfTrue(json, "checked", node.isChecked)
         putIfTrue(json, "selected", node.isSelected)
-        putIfTrue(json, "password", node.isPassword)
-        putIfTrue(json, "creditCard", isAutofillCreditCard(node))
+        putIfTrue(json, "password", password)
+        putIfTrue(json, "creditCard", creditCard)
         if (!node.isEnabled) {
             json.put("enabled", false)
         }

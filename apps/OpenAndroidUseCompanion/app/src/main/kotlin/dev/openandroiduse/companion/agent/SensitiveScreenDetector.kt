@@ -25,6 +25,10 @@ object SensitiveScreenDetector {
     /** True when [snapshot] contains a credential or payment field the agent must not act on. */
     fun isSensitive(snapshot: AppSnapshot?): Boolean {
         if (snapshot == null) return false
-        return snapshot.elements.any { it.password || it.creditCard }
+        return isSensitive(snapshot.elements)
     }
+
+    /** True when [elements] contain a credential or payment field. Used pre-snapshot too (6.5c-1). */
+    fun isSensitive(elements: List<ElementRecord>): Boolean =
+        elements.any { it.password || it.creditCard }
 }

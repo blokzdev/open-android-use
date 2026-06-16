@@ -220,6 +220,36 @@ func TestFlattenCompanionTreeMatchesUIAutomatorFormat(t *testing.T) {
 	}
 }
 
+// Phase 6.5c-1: redaction is done upstream at snapshot emission (the Kotlin
+// SnapshotBuilder), so the host bridge receives an already-"[redacted]" value and
+// must simply render it through — it never un-redacts and never needs to know why.
+// This pins the topology-agnostic contract for the companion path.
+func TestFlattenCompanionTreeRendersRedactedValueThrough(t *testing.T) {
+	tree := companionNode{
+		ClassName: "android.widget.FrameLayout",
+		Bounds:    []int{0, 0, 1080, 2400},
+		Children: []companionNode{{
+			ClassName:  "android.widget.EditText",
+			Text:       "[redacted]",
+			ResourceID: "com.shop:id/card_number",
+			Bounds:     []int{0, 0, 980, 80},
+			Editable:   true,
+			Password:   true,
+		}},
+	}
+	treeLines, _, _ := flattenCompanionTree(&tree, 1)
+	joined := strings.Join(treeLines, "\n")
+	if strings.Contains(joined, "4111") {
+		t.Fatalf("rendered tree leaked a secret-looking value:\n%s", joined)
+	}
+	if !strings.Contains(joined, "[redacted]") {
+		t.Fatalf("expected the redacted marker to survive rendering:\n%s", joined)
+	}
+	if !strings.Contains(joined, "com.shop:id/card_number") {
+		t.Fatalf("expected structure (resource id) to survive:\n%s", joined)
+	}
+}
+
 func trimAll(lines []string) []string {
 	var trimmed []string
 	for _, line := range lines {

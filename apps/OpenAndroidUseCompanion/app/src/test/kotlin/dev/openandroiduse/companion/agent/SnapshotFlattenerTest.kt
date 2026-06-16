@@ -2,6 +2,7 @@ package dev.openandroiduse.companion.agent
 
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -146,5 +147,81 @@ class SnapshotFlattenerTest {
         assertEquals(2, flattened.elements.size)
         assertTrue(flattened.elements[0].password)
         assertTrue(flattened.elements[1].creditCard)
+    }
+
+    @Test
+    fun redactedValueSurvivesAsTreeTextWhileStructureRemains() {
+        // The JSON as SnapshotBuilder emits it for a payment screen: the card field's
+        // value is already "[redacted]" at the wire; a non-secret sibling is untouched.
+        val tree = JSONObject(
+            """
+            {
+              "className": "android.widget.FrameLayout",
+              "bounds": [0, 0, 1080, 2400],
+              "children": [
+                {
+                  "className": "android.widget.EditText",
+                  "text": "[redacted]",
+                  "resourceId": "com.shop:id/card_number",
+                  "bounds": [0, 0, 980, 80],
+                  "editable": true,
+                  "creditCard": true
+                },
+                {
+                  "className": "android.widget.EditText",
+                  "text": "Jane Buyer",
+                  "resourceId": "com.shop:id/cardholder",
+                  "bounds": [0, 100, 980, 180],
+                  "editable": true
+                }
+              ]
+            }
+            """,
+        )
+        val flattened = SnapshotFlattener.flatten(tree, 1.0)
+        val rendered = flattened.treeLines.joinToString("\n")
+
+        // No raw card digits anywhere; the redaction marker and the structure remain.
+        assertFalse(rendered.contains("4111"))
+        assertTrue(rendered.contains("[redacted]"))
+        assertTrue(rendered.contains("com.shop:id/card_number"))
+        assertTrue(rendered.contains("set_value"))
+        // The non-secret sibling value still renders as its label.
+        assertTrue(rendered.contains("Jane Buyer"))
+        assertEquals("[redacted]", flattened.elements[0].value)
+    }
+
+    @Test
+    fun flattenValueBackstopRedactsEvenRawSecretText() {
+        // Defense in depth: even if a record were built from un-redacted JSON, the
+        // ElementRecord value must never carry the raw secret.
+        val tree = JSONObject(
+            """
+            {
+              "className": "android.widget.EditText",
+              "text": "4111111111111111",
+              "bounds": [0, 0, 980, 80],
+              "editable": true,
+              "creditCard": true
+            }
+            """,
+        )
+        val flattened = SnapshotFlattener.flatten(tree, 1.0)
+        assertEquals(1, flattened.elements.size)
+        assertEquals("[redacted]", flattened.elements[0].value)
+    }
+
+    @Test
+    fun withheldScreenshotAddsModelFacingNote() {
+        val withheld = AppSnapshot(
+            appName = "Shop",
+            packageName = "com.shop",
+            treeLines = listOf("[1] EditText \"[redacted]\" (id: com.shop:id/card_number) {{x: 0, y: 0, width: 980, height: 80}} [set_value]"),
+            screenshotWithheld = true,
+        )
+        assertTrue(withheld.renderedText().contains(Redaction.SCREENSHOT_WITHHELD_NOTE))
+
+        val normal = withheld.copy(screenshotWithheld = false)
+        assertFalse(normal.renderedText().contains(Redaction.SCREENSHOT_WITHHELD_NOTE))
     }
 }
