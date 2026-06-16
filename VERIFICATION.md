@@ -650,6 +650,13 @@ device for 5.8.
   still succeeds so the agent can describe the screen; once the human fills the password and moves on
   to a non-credential screen, actions resume normally. A normal screen with ordinary text fields is
   not blocked.
+- [ ] **V144. Payment-screen gate + user toggle**: open a real card-entry screen (a checkout/add-card
+  form with "Card number" / "CVV" fields) and ask the agent to fill or tap them. Pass: with the
+  "Protect password & payment screens" toggle **on** (default), the agent declines with the message
+  naming a "password or payment" field and never types/taps; `get_app_state` still works. Turn the
+  toggle **off** in Settings → the agent proceeds normally on the same screen. Turn it back **on** →
+  the block returns. Confirm an ordinary form (e.g. a shopping cart, a profile with "Add to cart" /
+  "Dashboard" labels) is **not** blocked (no false positive from the card-token heuristic).
 
 ## Results log
 

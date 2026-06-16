@@ -47,4 +47,23 @@ class SensitiveScreenDetectorTest {
         )
         assertTrue(SensitiveScreenDetector.isSensitive(s))
     }
+
+    @Test
+    fun creditCardFieldIsSensitive() {
+        val s = snap(
+            listOf(
+                ElementRecord(index = 1, name = "Cardholder", actions = listOf("set_value")),
+                ElementRecord(index = 2, name = "Card number", actions = listOf("set_value"), creditCard = true),
+            ),
+        )
+        assertTrue(SensitiveScreenDetector.isSensitive(s))
+    }
+
+    @Test
+    fun bothPasswordAndCreditCardIsSensitive() {
+        val s = snap(
+            listOf(ElementRecord(index = 1, name = "PIN", actions = listOf("set_value"), password = true, creditCard = true)),
+        )
+        assertTrue(SensitiveScreenDetector.isSensitive(s))
+    }
 }

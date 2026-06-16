@@ -43,6 +43,10 @@ data class ElementRecord(
     // SnapshotBuilder and carried through here so the action gate can auto-decline
     // interaction with credential fields. Not rendered into the tree-line text.
     val password: Boolean = false,
+    // Phase 6.5b: a payment/credit-card field, inferred by SnapshotBuilder from the
+    // node's labels (autofill hints aren't exposed to accessibility). Same gate as
+    // password; not rendered into the tree-line text.
+    val creditCard: Boolean = false,
 )
 
 data class AppSnapshot(
@@ -116,6 +120,7 @@ object SnapshotFlattener {
                     actions = actions(node),
                     focused = node.optBoolean("focused"),
                     password = node.optBoolean("password"),
+                    creditCard = node.optBoolean("creditCard"),
                 ),
                 depth,
                 selected = node.optBoolean("checked") || node.optBoolean("selected"),

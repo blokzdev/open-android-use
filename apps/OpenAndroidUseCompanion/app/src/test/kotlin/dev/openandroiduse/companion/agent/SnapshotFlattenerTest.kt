@@ -117,4 +117,34 @@ class SnapshotFlattenerTest {
         assertNull(snapshot.lookupElement("99"))
         assertNull(snapshot.lookupElement("not-a-number"))
     }
+
+    @Test
+    fun sensitiveFlagsPassThroughFlatten() {
+        val tree = JSONObject(
+            """
+            {
+              "className": "android.widget.FrameLayout",
+              "bounds": [0, 0, 1080, 2400],
+              "children": [
+                {
+                  "className": "android.widget.EditText",
+                  "bounds": [0, 0, 980, 80],
+                  "editable": true,
+                  "password": true
+                },
+                {
+                  "className": "android.widget.EditText",
+                  "bounds": [0, 100, 980, 180],
+                  "editable": true,
+                  "creditCard": true
+                }
+              ]
+            }
+            """,
+        )
+        val flattened = SnapshotFlattener.flatten(tree, 1.0)
+        assertEquals(2, flattened.elements.size)
+        assertTrue(flattened.elements[0].password)
+        assertTrue(flattened.elements[1].creditCard)
+    }
 }
