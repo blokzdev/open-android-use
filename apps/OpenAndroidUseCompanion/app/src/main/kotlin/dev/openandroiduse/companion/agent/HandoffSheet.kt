@@ -34,7 +34,7 @@ object HandoffSheet {
      * app (6.5c-3b) so the agent may act on its *non-secret* controls without asking again
      * (once / for this task). Grant options are only offered for a non-secret-targeting action.
      */
-    enum class Result { CONTINUE, STOP, GRANT_ONCE, GRANT_SESSION }
+    enum class Result { CONTINUE, STOP, GRANT_ONCE, GRANT_SESSION, GRANT_PERSISTENT }
 
     // Humans type a password, so allow longer than the confirm sheet's 120s.
     private const val TIMEOUT_MS = 300_000L
@@ -139,6 +139,7 @@ object HandoffSheet {
                     orientation = LinearLayout.HORIZONTAL
                     addView(grantButton(R.string.handoff_allow_once, Result.GRANT_ONCE))
                     addView(grantButton(R.string.handoff_allow_session, Result.GRANT_SESSION))
+                    addView(grantButton(R.string.handoff_allow_always, Result.GRANT_PERSISTENT))
                 })
                 layout.addView(TextView(service).apply {
                     text = service.getString(R.string.handoff_grant_hint)

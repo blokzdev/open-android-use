@@ -530,6 +530,11 @@ object AgentController {
                                         results.add(executeTool(executor, toolUse, bypassGuard = true))
                                         if (pkg != null) recordTrustedAction(executor, toolUse, pkg, GrantScope.ONCE)
                                     }
+                                    HandoffSheet.Result.GRANT_PERSISTENT -> {
+                                        if (pkg != null) trustStore?.grant(pkg, System.currentTimeMillis())
+                                        results.add(executeTool(executor, toolUse, bypassGuard = true))
+                                        if (pkg != null) recordTrustedAction(executor, toolUse, pkg, GrantScope.PERSISTENT)
+                                    }
                                 }
                                 if (cancelRequested) {
                                     interrupted = true
