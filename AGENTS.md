@@ -45,3 +45,6 @@ tools。新文档默认用英文写，存量中文文档在迁移前仍然有效
 - prompt、规则、架构约束尽量都版本化落在仓库里。
 - 复杂任务不要只靠聊天上下文，应该落 execution plan。
 - 完成的代码变更要记到 `docs/histories/`。
+- 工作节奏（merge-then-plan）：PR 的 CI 绿且评审无未决意见即可合并（绿=CI 通过、硬件待验，
+  `VERIFICATION.md` 仍是设备侧的真值），随后立即进入 plan mode 规划下一个子阶段并交付审批。
+  详见 `CLAUDE.md` 的 Memory harness 第 7 条。

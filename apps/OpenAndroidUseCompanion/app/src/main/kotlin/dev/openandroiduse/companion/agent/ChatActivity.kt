@@ -268,6 +268,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
             agentView = agentView,
             tapPoint = tapPoint,
             modelLabel = settings.model,
+            localOnly = settings.localOnlyMode,
             recentSessions = recentSessions,
             modifier = modifier,
             showHistoryAction = showHistory,
@@ -529,6 +530,7 @@ private fun ChatScreen(
     agentView: ImageBitmap?,
     tapPoint: Pair<Float, Float>?,
     modelLabel: String,
+    localOnly: Boolean,
     recentSessions: List<SessionMeta>,
     modifier: Modifier = Modifier,
     showHistoryAction: Boolean = true,
@@ -583,6 +585,10 @@ private fun ChatScreen(
                         Text(stringResource(R.string.chat_title))
                         Spacer(Modifier.width(8.dp))
                         ModelChip(modelLabel, onOpenSettings)
+                        if (localOnly) {
+                            Spacer(Modifier.width(6.dp))
+                            LocalOnlyBadge(onOpenSettings)
+                        }
                     }
                 },
                 actions = {
@@ -707,6 +713,22 @@ private fun HistoryPane(
             onDelete = deleteWithUndo,
             onPin = onPin,
             modifier = Modifier.padding(padding),
+        )
+    }
+}
+
+@Composable
+private fun LocalOnlyBadge(onClick: () -> Unit) {
+    // Phase 5.7 trust signal: visible while Local-Only Mode keeps everything on-device.
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        modifier = Modifier.clickable { onClick() },
+    ) {
+        Text(
+            stringResource(R.string.chat_local_only_badge),
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
         )
     }
 }

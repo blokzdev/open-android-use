@@ -76,6 +76,10 @@ class PrivacyActivity : ComponentActivity() {
                         usage.count,
                         Formatter.formatShortFileSize(this, usage.bytes),
                     ),
+                    localOnly = settings.localOnlyMode,
+                    onOpenSettings = {
+                        startActivity(Intent(this, dev.openandroiduse.companion.agent.SettingsActivity::class.java))
+                    },
                     onExportAll = ::exportAllConversations,
                     onClearKey = {
                         val previous = settings.loadApiKey()
@@ -132,6 +136,8 @@ class PrivacyActivity : ComponentActivity() {
 @Composable
 private fun PrivacyScreen(
     storageSummary: String,
+    localOnly: Boolean,
+    onOpenSettings: () -> Unit,
     onExportAll: () -> Unit,
     onClearKey: () -> (() -> Unit),
     onClearConversation: () -> (() -> Unit),
@@ -155,6 +161,17 @@ private fun PrivacyScreen(
             PrivacyPoint(stringResource(R.string.privacy_key_title), stringResource(R.string.privacy_key_body))
             PrivacyPoint(stringResource(R.string.privacy_saved_title), stringResource(R.string.privacy_saved_body))
             PrivacyPoint(stringResource(R.string.privacy_kill_title), stringResource(R.string.privacy_kill_body))
+
+            HorizontalDivider()
+
+            // --- Local-only mode status (Phase 5.7; the control lives in Settings) ---
+            PrivacyPoint(
+                stringResource(R.string.privacy_localonly_title),
+                stringResource(if (localOnly) R.string.privacy_localonly_on else R.string.privacy_localonly_off),
+            )
+            OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.privacy_localonly_manage))
+            }
 
             HorizontalDivider()
 

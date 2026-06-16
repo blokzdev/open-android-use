@@ -50,6 +50,16 @@ Each entry: **idea** — why deferred · _priority_ · origin.
   (auto-off on LOW devices); (c) multi-image on-device (currently sends only the latest
   screenshot, `maxNumImages=1`); (d) a clearer "text-only mode" affordance in the chat's
   Agent's-view panel. _Low._ Origin: Phase 5.6.
+- **Build-level supply-chain enforcement** — direct deps are pinned + registered, but there's no
+  Gradle dependency locking (`gradle.lockfile`) or `gradle/verification-metadata.xml` (sha256
+  checksum/signature enforcement). Deferred from 5.7: AGP makes verification-metadata brittle
+  (large, platform-specific artifacts, frequent churn), so it needs a dedicated, careful pass.
+  _Medium._ Origin: Phase 5.7 (user call).
+- **Local-only mode follow-ups (Phase 5.7)** — (a) deep-link the confirm dialog straight to the
+  on-device download card / show progress inline rather than relying on the existing
+  card+banner; (b) auto-suggest local-only on first run for HIGH-tier devices; (c) re-evaluate
+  "wipe keys on enable" as an opt-in strict variant (we chose keep-and-ignore). _Low._
+  Origin: Phase 5.7.
 - **Native LiteRT-LM tool calling instead of prompt-based FC** — 5.5b does on-device
   function calling via `GemmaToolPrompt` (structured prompt render+parse) for portability +
   unit-testability. LiteRT-LM also has a native tool API (`ToolProvider`/`ToolCall`/

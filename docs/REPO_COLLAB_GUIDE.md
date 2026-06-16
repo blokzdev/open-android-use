@@ -25,6 +25,11 @@
 - 提交或发 PR 前，确认文档、示例、脚本和 history 是否已经反映最终状态。
 - 复杂或高风险改动，先落一份 execution plan 到 `docs/exec-plans/`。
 - 评审里尽量引用仓库内文件，不要依赖只有少数人知道的上下文。
+- Merge-then-plan cadence: merge a PR as soon as its CI is green and review is clean — "green" means
+  CI-clean but **hardware-pending** (the `VERIFICATION.md` ledger remains the on-device source of
+  truth). Then move straight into planning the next subphase/PR for approval, so the human's blocker
+  is plan approval rather than merging. Don't auto-merge over unresolved review comments, flaky/red
+  CI, or low confidence. Canonical statement: `CLAUDE.md` Memory harness item 7.
 
 ## 测试与验证
 

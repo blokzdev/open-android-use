@@ -41,6 +41,12 @@
     <string name="pref_speak_body">The agent reads its narration out loud while it works.</string>
     <string name="pref_vision_title">Send screenshots (vision)</string>
     <string name="pref_vision_body">On: the model sees the screen (more capable). Off: text-only — faster, cheaper, more private; the agent acts from the screen\'s accessibility structure. Set per provider.</string>
+    <string name="pref_localonly_title">Local-only mode</string>
+    <string name="pref_localonly_body">Runs entirely on your device with Gemma — nothing about your screen, input, or device is uploaded. Disables the cloud providers.</string>
+    <string name="pref_localonly_unsupported">Your device can\'t run the on-device model, so local-only mode isn\'t available.</string>
+    <string name="localonly_dialog_title">Enable local-only mode?</string>
+    <string name="localonly_dialog_body">Local-only mode runs entirely on your device using Gemma, so nothing is uploaded. You\'ll be switched to the on-device model, which needs a one-time download (~2.6 GB). Continue?</string>
+    <string name="localonly_dialog_confirm">Switch &amp; download</string>
 
     <!-- MainActivity -->
     <string name="main_status_ready">Agent ready</string>
@@ -118,6 +124,10 @@
     <string name="privacy_saved_body">Conversations are saved on this device as text so you can revisit and resume them. Screenshots are never written to disk. Delete any conversation, or all of them, below or from History.</string>
     <string name="privacy_kill_title">Kill switch</string>
     <string name="privacy_kill_body">Press Stop any time. Disabling the accessibility service fully cuts the agent off.</string>
+    <string name="privacy_localonly_title">Local-only mode</string>
+    <string name="privacy_localonly_on">On — the agent runs entirely on your device with Gemma. Nothing about your screen, input, or device is uploaded.</string>
+    <string name="privacy_localonly_off">Off — you\'re using a cloud model (your own key). Your task, the screen\'s accessibility tree, and any screenshots are sent to your chosen provider. Turn on local-only mode to keep everything on-device.</string>
+    <string name="privacy_localonly_manage">Manage in Settings</string>
     <string name="privacy_storage_title">Storage</string>
     <string name="privacy_storage_summary">%1$d saved conversation(s) · %2$s on this device</string>
     <string name="privacy_export_all">Export all conversations</string>
@@ -210,6 +220,7 @@
 
     <!-- ChatActivity -->
     <string name="chat_title">Agent</string>
+    <string name="chat_local_only_badge">Local-only</string>
     <string name="chat_history">History</string>
     <string name="chat_export">Export</string>
     <string name="chat_new">New</string>
