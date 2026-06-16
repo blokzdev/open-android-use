@@ -20,12 +20,16 @@ Each entry: **idea** — why deferred · _priority_ · origin.
 
 ## Android runtime / bridge
 
-- **6.5b — sensitive-screen detection (payment + controls)** — 6.5a shipped the credential gate
-  (`SensitiveScreenDetector` keying on `isPassword`). Follow-ups: payment detection via autofill
-  hints (`AUTOFILL_HINT_CREDIT_CARD_*`, requires surfacing the hints into the snapshot JSON like
-  `password` was); a Privacy-settings toggle (default on) so the gate is user-controllable; per-app
-  "always allow"; and optionally suppress the screenshot on a sensitive screen (a11y already masks
-  the field value). _Medium._ Origin: Phase 6.5a (deferred).
+- **6.5c — per-app "always allow" + screenshot suppression on sensitive screens** — 6.5a (password
+  gate) and 6.5b (payment heuristic + default-on user toggle) shipped. Remaining: a per-app
+  allowlist so the user can let the agent operate on a trusted app's sensitive screens — the gate
+  hook is trivial (`snapshot.packageName !in allowList`), the work is the **consent UI** to add
+  entries (a button on the refusal / Privacy screen + a confirm dialog) and `Set<String>` pref
+  storage. Also: optionally suppress the screenshot on a sensitive screen (a11y already masks the
+  field value, but the surrounding screen still uploads in vision mode). _Medium._ Origin: Phase
+  6.5b (deferred). Note: payment detection is a **label heuristic** (cvv/cvc/csc, "card number",
+  "credit/debit card", "security code", "card verification") because `AccessibilityNodeInfo` does
+  not expose autofill hints; revisit if a more authoritative signal becomes reachable.
 - **6.4 — perception richness (scroll/modal hints in the a11y text)** — deferred after 6.3b. Focus
   already ships in the 6.3b action diff; the remaining wins (scroll "can-scroll-further", modal/
   dialog hint, adaptive breadth-first tree budget) change the rendered tree-line **text**, which is

@@ -82,6 +82,16 @@ class AgentSettings(context: Context) {
             prefs.edit().putBoolean(PREF_CONFIRM_ACTIONS, value).apply()
         }
 
+    /**
+     * Phase 6.5: auto-decline action tools on a password/payment screen so secrets
+     * are never typed or tapped. Default on — disabling is a conscious opt-out.
+     */
+    var sensitiveScreenGuard: Boolean
+        get() = prefs.getBoolean(PREF_SENSITIVE_SCREEN_GUARD, true)
+        set(value) {
+            prefs.edit().putBoolean(PREF_SENSITIVE_SCREEN_GUARD, value).apply()
+        }
+
     /** Phase 3.1c: speak the agent's narration via TTS while it works. */
     var speakNarration: Boolean
         get() = prefs.getBoolean(PREF_SPEAK_NARRATION, false)
@@ -210,6 +220,7 @@ class AgentSettings(context: Context) {
         private const val PREF_SEND_SCREENSHOTS = "send_screenshots"
         private const val PREF_LOCAL_ONLY_MODE = "local_only_mode"
         private const val PREF_CONFIRM_ACTIONS = "confirm_actions"
+        private const val PREF_SENSITIVE_SCREEN_GUARD = "sensitive_screen_guard"
         private const val PREF_SPEAK_NARRATION = "speak_narration"
         private const val PREF_ONBOARDING_COMPLETED = "onboarding_completed"
         private const val PREF_DYNAMIC_COLOR = "dynamic_color"

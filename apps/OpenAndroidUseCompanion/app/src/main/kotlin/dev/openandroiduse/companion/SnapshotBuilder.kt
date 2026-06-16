@@ -49,6 +49,7 @@ object SnapshotBuilder {
         putIfTrue(json, "checked", node.isChecked)
         putIfTrue(json, "selected", node.isSelected)
         putIfTrue(json, "password", node.isPassword)
+        putIfTrue(json, "creditCard", isAutofillCreditCard(node))
         if (!node.isEnabled) {
             json.put("enabled", false)
         }
@@ -64,6 +65,35 @@ object SnapshotBuilder {
             }
         }
         return json
+    }
+
+    // Phase 6.5b: payment-field heuristic. AccessibilityNodeInfo does not expose
+    // autofill hints (those reach only the autofill ViewStructure), so we match the
+    // node's visible labels against a tight, card-specific token set. Scoped to tokens
+    // that essentially never appear off a payment form (no bare "card"/"expiry") to
+    // keep false positives near-zero; camelCase ids like "cardNumber" are split first.
+    private val PAYMENT_TOKENS = Regex(
+        "\\b(cvv|cvc|csc|card number|credit card|debit card|security code|card verification)\\b",
+    )
+
+    private fun isAutofillCreditCard(node: AccessibilityNodeInfo): Boolean =
+        looksLikePaymentLabel(
+            listOfNotNull(
+                node.hintText?.toString(),
+                node.text?.toString(),
+                node.contentDescription?.toString(),
+                node.viewIdResourceName,
+            ).joinToString(" "),
+        )
+
+    /** Pure label heuristic, split out for unit testing (no Android types). */
+    internal fun looksLikePaymentLabel(raw: String): Boolean {
+        if (raw.isBlank()) return false
+        val normalized = raw
+            .replace(Regex("([a-z])([A-Z])"), "$1 $2") // split camelCase before lowercasing
+            .lowercase()
+            .replace(Regex("[^a-z0-9]+"), " ")
+        return PAYMENT_TOKENS.containsMatchIn(normalized)
     }
 
     private fun putIfNotEmpty(json: JSONObject, key: String, value: String?) {

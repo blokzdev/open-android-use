@@ -28,6 +28,10 @@ class ToolExecutor(
     // Phase 5.6 adaptive perception: when false, snapshots are tree-text only —
     // no screenshot is captured/encoded/sent (faster, cheaper, more private).
     private val captureScreenshots: Boolean = true,
+    // Phase 6.5: when true (default), action tools auto-decline on a password/payment
+    // screen. The user can disable it in Privacy settings; defaults true so a missed
+    // injection fails safe (guard on).
+    private val sensitiveScreenGuard: Boolean = true,
 ) {
 
     data class Outcome(
@@ -67,13 +71,14 @@ class ToolExecutor(
     fun callTool(name: String, args: JSONObject): Outcome {
         gestureMarks.clear()
         lastActionChanged = null
-        // Phase 6.5a: never act on a credential screen. Action tools gate on the
-        // last snapshot for this app; reads stay open so the agent can still
-        // perceive, narrate, and ask the human to enter the secret themselves.
-        if (name in ACTION_TOOLS) {
+        // Phase 6.5: never act on a password/payment screen (unless the user turned the
+        // guard off). Action tools gate on the last snapshot for this app; reads stay
+        // open so the agent can still perceive, narrate, and ask the human to enter the
+        // secret themselves.
+        if (sensitiveScreenGuard && name in ACTION_TOOLS) {
             val snapshot = current(args.optString("app"))
             if (snapshot != null && SensitiveScreenDetector.isSensitive(snapshot)) {
-                return error(SensitiveScreenDetector.REASON_PASSWORD)
+                return error(SensitiveScreenDetector.REASON_SENSITIVE)
             }
         }
         return try {

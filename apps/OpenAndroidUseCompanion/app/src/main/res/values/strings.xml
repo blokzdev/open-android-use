@@ -37,6 +37,8 @@
     <string name="label_model">Model</string>
     <string name="pref_confirm_title">Ask before each action batch</string>
     <string name="pref_confirm_body">Show a confirmation sheet before the agent taps or types.</string>
+    <string name="pref_sensitive_guard_title">Protect password &amp; payment screens</string>
+    <string name="pref_sensitive_guard_body">Stop the agent from tapping or typing on screens with a password or card field. You enter those yourself.</string>
     <string name="pref_speak_title">Speak narration aloud</string>
     <string name="pref_speak_body">The agent reads its narration out loud while it works.</string>
     <string name="pref_vision_title">Send screenshots (vision)</string>

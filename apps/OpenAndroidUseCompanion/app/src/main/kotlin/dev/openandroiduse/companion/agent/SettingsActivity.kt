@@ -151,6 +151,7 @@ private fun SettingsScreen(
         sendScreenshots = settings.sendScreenshots(picked)
     }
     var confirmActions by remember { mutableStateOf(settings.confirmActions) }
+    var sensitiveScreenGuard by remember { mutableStateOf(settings.sensitiveScreenGuard) }
     var speak by remember { mutableStateOf(settings.speakNarration) }
     var dynamic by remember { mutableStateOf(settings.dynamicColor) }
     var themeMode by remember { mutableStateOf(settings.themeMode) }
@@ -344,6 +345,11 @@ private fun SettingsScreen(
                 stringResource(R.string.pref_confirm_body),
                 confirmActions,
             ) { confirmActions = it; settings.confirmActions = it }
+            SettingToggle(
+                stringResource(R.string.pref_sensitive_guard_title),
+                stringResource(R.string.pref_sensitive_guard_body),
+                sensitiveScreenGuard,
+            ) { sensitiveScreenGuard = it; settings.sensitiveScreenGuard = it }
             SettingToggle(
                 stringResource(R.string.pref_speak_title),
                 stringResource(R.string.pref_speak_body),
