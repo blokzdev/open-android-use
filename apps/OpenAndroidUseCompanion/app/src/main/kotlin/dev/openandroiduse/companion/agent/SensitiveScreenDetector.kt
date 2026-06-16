@@ -35,6 +35,23 @@ object SensitiveScreenDetector {
     /** What kind of secret a sensitive screen holds, so the handoff (6.5c-2) can speak to it. */
     enum class Kind { PASSWORD, PAYMENT, BOTH }
 
+    /**
+     * Phase 6.5c-3 element-level check: true when this action would act on an *actual*
+     * secret field, so it must hand off even inside a trusted app — a per-app grant only
+     * relaxes the screen-level gate, never element-level secret entry. `type_text` targets
+     * the focused field; the element-addressed tools target their `element_index`.
+     */
+    fun targetsSecretField(toolName: String, elementIndex: String?, snapshot: AppSnapshot?): Boolean {
+        if (snapshot == null) return false
+        val target = when (toolName) {
+            "type_text" -> snapshot.elements.firstOrNull { it.focused }
+            "set_value", "click", "perform_secondary_action" ->
+                elementIndex?.takeIf { it.isNotBlank() }?.let { snapshot.lookupElement(it) }
+            else -> null
+        } ?: return false
+        return target.password || target.creditCard
+    }
+
     /** Classifies a sensitive screen, or null when it is not sensitive. */
     fun classify(elements: List<ElementRecord>): Kind? {
         val hasPassword = elements.any { it.password }
