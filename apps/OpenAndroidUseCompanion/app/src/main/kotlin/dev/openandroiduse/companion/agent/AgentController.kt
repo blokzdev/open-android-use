@@ -12,6 +12,7 @@ import dev.openandroiduse.companion.agent.llm.AgentRole
 import dev.openandroiduse.companion.agent.llm.AgentStopReason
 import dev.openandroiduse.companion.agent.llm.BackendRequest
 import dev.openandroiduse.companion.agent.llm.BackendStreamException
+import dev.openandroiduse.companion.agent.llm.CompletedTurn
 import dev.openandroiduse.companion.agent.llm.EgressPolicy
 import dev.openandroiduse.companion.agent.llm.LlmProvider
 import dev.openandroiduse.companion.agent.llm.BackendSink
@@ -48,6 +49,14 @@ object AgentController {
          * already-downscaled PNG; it is in-memory only, never written to disk.
          */
         fun onScreenshotCaptured(pngBase64: String) {}
+
+        /**
+         * The agent's transient connection status changed (Phase 6.3a): non-null
+         * while it is backing off / retrying a flaky model stream ("Rate-limited,
+         * retrying… (2/3)"), null otherwise. Default no-op so non-UI listeners
+         * (e.g. the emulator smoke) are unaffected.
+         */
+        fun onStatusChanged(status: String?) {}
     }
 
     /**
@@ -113,6 +122,15 @@ object AgentController {
      */
     @Volatile
     var latestGesturesNormalized: List<GestureMark> = emptyList()
+        private set
+
+    /**
+     * Transient connection status (Phase 6.3a): non-null while the loop is backing
+     * off / retrying a flaky model stream, surfaced as a badge in the chat's
+     * Agent's-view. In-memory only; cleared on success and when the loop ends.
+     */
+    @Volatile
+    var transientStatus: String? = null
         private set
 
     private val history = mutableListOf<HistoryEntry>()
@@ -292,6 +310,7 @@ object AgentController {
         latestScreenshotBase64 = null
         latestTapNormalized = null
         latestGesturesNormalized = emptyList()
+        transientStatus = null
         synchronized(transcript) { transcript.clear() }
         // Start a fresh session so the next task is saved separately and the old
         // one (already persisted by the UI) is left intact.
@@ -349,6 +368,7 @@ object AgentController {
         latestScreenshotBase64 = null
         latestTapNormalized = null
         latestGesturesNormalized = emptyList()
+        transientStatus = null
         currentSessionId = payload.id
         sessionCreatedAt = payload.createdAt
         sessionTitle = payload.title
@@ -405,10 +425,7 @@ object AgentController {
                 if (cancelRequested) return finish(stopReasonLabel())
 
                 val turn = try {
-                    backend.streamTurn(
-                        BackendRequest(model, AgentTools.SYSTEM_PROMPT, AgentTools.specs(), snapshotHistory()),
-                        sink,
-                    )
+                    streamTurnWithRetry(backend, model, sink)
                 } catch (error: BackendStreamException) {
                     if (cancelRequested) return finish(stopReasonLabel())
                     return fail(str(R.string.agent_note_stream_error, error.message ?: ""))
@@ -482,6 +499,7 @@ object AgentController {
                 finish(stopReasonLabel())
             }
         } finally {
+            clearTransientStatus()
             backend.close()
             this.backend = null
             isRunning = false
@@ -592,6 +610,85 @@ object AgentController {
 
     private fun userMessage(text: String): AgentMessage =
         AgentMessage(AgentRole.USER, listOf(AgentContent.Text(text)))
+
+    /**
+     * Phase 6.3a: stream a turn, retrying transient failures (rate-limit / 5xx /
+     * connection drops) with exponential backoff. Retries only on a *clean* attempt
+     * — one that streamed no partial output — so a mid-stream failure never
+     * double-emits text; those, and permanent errors, propagate to the caller's
+     * existing fail paths. Wakes promptly on Stop. Per [RetryPolicy.MAX_ATTEMPTS].
+     */
+    private fun streamTurnWithRetry(backend: AgentBackend, model: String, sink: BackendSink): CompletedTurn {
+        var attempt = 0
+        while (true) {
+            attempt++
+            var emitted = false
+            val guarded = object : BackendSink {
+                override fun onTextDelta(text: String) {
+                    emitted = true
+                    sink.onTextDelta(text)
+                }
+
+                override fun onThinkingDelta(text: String) {
+                    emitted = true
+                    sink.onThinkingDelta(text)
+                }
+            }
+            try {
+                val turn = backend.streamTurn(
+                    BackendRequest(model, AgentTools.SYSTEM_PROMPT, AgentTools.specs(), snapshotHistory()),
+                    guarded,
+                )
+                clearTransientStatus()
+                return turn
+            } catch (error: Exception) {
+                val retryable = !cancelRequested && !emitted &&
+                    attempt < RetryPolicy.MAX_ATTEMPTS && RetryPolicy.isTransient(error)
+                if (!retryable) {
+                    clearTransientStatus()
+                    throw error
+                }
+                setTransientStatus(retryStatus(error, attempt + 1))
+                if (!interruptibleWait(RetryPolicy.backoffMs(attempt))) {
+                    clearTransientStatus()
+                    throw error
+                }
+            }
+        }
+    }
+
+    private fun retryStatus(error: Throwable, nextAttempt: Int): String {
+        val rateLimited = (error.message ?: "").contains("429") ||
+            (error.message ?: "").contains("rate", ignoreCase = true)
+        val res = if (rateLimited) R.string.agent_status_rate_limited else R.string.agent_status_retrying
+        return str(res, nextAttempt, RetryPolicy.MAX_ATTEMPTS)
+    }
+
+    /** Sleep [totalMs] in small slices; returns false if [cancelRequested] trips. */
+    private fun interruptibleWait(totalMs: Long): Boolean {
+        val deadline = System.currentTimeMillis() + totalMs
+        while (System.currentTimeMillis() < deadline) {
+            if (cancelRequested) return false
+            try {
+                Thread.sleep(100)
+            } catch (_: InterruptedException) {
+                return false
+            }
+        }
+        return !cancelRequested
+    }
+
+    private fun setTransientStatus(status: String) {
+        transientStatus = status
+        listener?.onStatusChanged(status)
+    }
+
+    private fun clearTransientStatus() {
+        if (transientStatus != null) {
+            transientStatus = null
+            listener?.onStatusChanged(null)
+        }
+    }
 
     private fun finish(reason: String) {
         when (reason) {
