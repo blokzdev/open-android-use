@@ -113,6 +113,33 @@ object ActionExecutor {
         return result ?: HttpServer.failure("setText timed out")
     }
 
+    /**
+     * Phase 6.5c-2b login tap-to-fill: request input focus on the first password
+     * field so the platform surfaces the user's own autofill / password-manager
+     * suggestion chip — the human taps it and the secret flows manager→field,
+     * brokered by the OS. We only focus; we **never** read the field's text.
+     * Best-effort: returns false if there is no password field or focus is refused
+     * (the handoff still works — the human can type it in manually).
+     */
+    fun focusFirstSecureField(service: CompanionService): Boolean {
+        val result = service.onMainThread {
+            val root = service.rootInActiveWindow ?: return@onMainThread false
+            val node = findPasswordNode(root) ?: return@onMainThread false
+            node.performAction(AccessibilityNodeInfo.ACTION_FOCUS) ||
+                node.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS)
+        }
+        return result == true
+    }
+
+    private fun findPasswordNode(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        if (node.isPassword && node.isEditable) return node
+        for (index in 0 until node.childCount) {
+            val child = node.getChild(index) ?: continue
+            findPasswordNode(child)?.let { return it }
+        }
+        return null
+    }
+
     private fun global(service: CompanionService, action: String): JSONObject {
         val globalAction = when (action) {
             "back" -> AccessibilityService.GLOBAL_ACTION_BACK
