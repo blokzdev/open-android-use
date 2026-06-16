@@ -156,6 +156,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
     private var input by mutableStateOf("")
     private var agentView by mutableStateOf<ImageBitmap?>(null)
     private var tapPoint by mutableStateOf<Pair<Float, Float>?>(null)
+    private var gestures by mutableStateOf<List<GestureMark>>(emptyList())
     private var expandView by mutableStateOf(false)
     private var recentSessions by mutableStateOf<List<SessionMeta>>(emptyList())
     /** Full session list for the tablet/foldable two-pane History pane (4.6e). */
@@ -249,6 +250,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
         messages = AgentController.transcriptSnapshot()
         AgentController.latestScreenshotBase64?.let { decodeAgentView(it) }
         tapPoint = AgentController.latestTapNormalized
+        gestures = AgentController.latestGesturesNormalized
         recentSessions = sessions.list()
         sessionList = recentSessions
         if (hasKey) {
@@ -267,6 +269,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
             input = input,
             agentView = agentView,
             tapPoint = tapPoint,
+            gestures = gestures,
             modelLabel = settings.model,
             localOnly = settings.localOnlyMode,
             recentSessions = recentSessions,
@@ -282,6 +285,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
                 messages = emptyList()
                 agentView = null
                 tapPoint = null
+                gestures = emptyList()
                 recentSessions = sessions.list()
                 sessionList = recentSessions
             },
@@ -353,7 +357,10 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
     override fun onScreenshotCaptured(pngBase64: String) {
         // Already off the main thread (loop thread): decode here, post the bitmap.
         decodeAgentView(pngBase64)
-        mainHandler.post { tapPoint = AgentController.latestTapNormalized }
+        mainHandler.post {
+            tapPoint = AgentController.latestTapNormalized
+            gestures = AgentController.latestGesturesNormalized
+        }
     }
 
     private fun decodeAgentView(b64: String) {
@@ -420,6 +427,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
         messages = AgentController.transcriptSnapshot()
         agentView = null
         tapPoint = null
+        gestures = emptyList()
     }
 
     /** Export the whole conversation as a Markdown file shared via FileProvider. */
@@ -529,6 +537,7 @@ private fun ChatScreen(
     input: String,
     agentView: ImageBitmap?,
     tapPoint: Pair<Float, Float>?,
+    gestures: List<GestureMark>,
     modelLabel: String,
     localOnly: Boolean,
     recentSessions: List<SessionMeta>,
@@ -616,7 +625,14 @@ private fun ChatScreen(
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
             if (running || agentView != null) {
-                AgentViewCard(agentView, tapPoint, running, onStop, onExpandView)
+                // The current step, in words, from the latest non-error tool line (6.1 labels).
+                val currentAction = if (running) {
+                    messages.lastOrNull { it.kind == AgentController.KIND_TOOL && !ToolChipLabel.isError(it.text) }
+                        ?.let { ToolChipLabel.describe(it.text) }
+                } else {
+                    null
+                }
+                AgentViewCard(agentView, tapPoint, gestures, currentAction, running, onStop, onExpandView)
             }
             if (messages.isEmpty()) {
                 EmptyState(recentSessions, onResumeSession, onPrompt = onInputChange)
@@ -752,6 +768,8 @@ private fun ModelChip(model: String, onClick: () -> Unit) {
 private fun AgentViewCard(
     view: ImageBitmap?,
     tapPoint: Pair<Float, Float>?,
+    gestures: List<GestureMark>,
+    currentAction: String?,
     running: Boolean,
     onStop: () -> Unit,
     onExpand: () -> Unit,
@@ -760,18 +778,27 @@ private fun AgentViewCard(
         Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
             val statusDesc = stringResource(if (running) R.string.chat_status_working else R.string.chat_status_idle)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    stringResource(R.string.chat_agent_view_title),
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier
-                        .weight(1f)
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        stringResource(R.string.chat_agent_view_title),
+                        style = MaterialTheme.typography.titleSmall,
                         // Announce agent start/stop to screen readers (the running
                         // state is otherwise conveyed only by the spinner).
-                        .semantics {
+                        modifier = Modifier.semantics {
                             liveRegion = LiveRegionMode.Polite
                             stateDescription = statusDesc
                         },
-                )
+                    )
+                    if (currentAction != null) {
+                        // The live "what it's doing now" caption, from 6.1's labeled tool line.
+                        Text(
+                            stringResource(R.string.chat_current_action, currentAction),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                        )
+                    }
+                }
                 if (running) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                     Spacer(Modifier.width(8.dp))
@@ -791,19 +818,47 @@ private fun AgentViewCard(
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.fillMaxSize(),
                     )
-                    if (tapPoint != null) {
-                        val (fx, fy) = tapPoint
-                        // Decorative tap marker — keep it out of the a11y tree.
+                    // Prefer the per-action gesture list; fall back to the single tap point
+                    // (e.g. a restored session) so behavior never regresses.
+                    val marks = gestures.ifEmpty {
+                        tapPoint?.let { (fx, fy) -> listOf(GestureMark(fx, fy, fx, fy)) } ?: emptyList()
+                    }
+                    if (marks.isNotEmpty()) {
+                        // Decorative gesture overlay — keep it out of the a11y tree.
                         Canvas(Modifier.fillMaxSize().clearAndSetSemantics {}) {
-                            // Map the normalized point onto the Fit-scaled image rect.
+                            // Map normalized points onto the Fit-scaled image rect.
                             val s = minOf(size.width / view.width, size.height / view.height)
                             val dw = view.width * s
                             val dh = view.height * s
                             val ox = (size.width - dw) / 2f
                             val oy = (size.height - dh) / 2f
-                            val center = Offset(ox + fx * dw, oy + fy * dh)
-                            drawCircle(Color(0xFF5EEAD4), radius = 11.dp.toPx(), center = center, style = Stroke(width = 3.dp.toPx()))
-                            drawCircle(Color(0x335EEAD4), radius = 11.dp.toPx(), center = center)
+                            fun map(fx: Float, fy: Float) = Offset(ox + fx * dw, oy + fy * dh)
+                            val teal = Color(0xFF5EEAD4)
+                            val fill = Color(0x335EEAD4)
+                            val stroke = 3.dp.toPx()
+                            for (mark in marks) {
+                                val end = map(mark.toX, mark.toY)
+                                if (mark.isSwipe) {
+                                    // Swipe/drag: line from origin to end, with an arrowhead.
+                                    val start = map(mark.fromX, mark.fromY)
+                                    drawLine(teal, start, end, strokeWidth = stroke)
+                                    drawCircle(fill, radius = 6.dp.toPx(), center = start)
+                                    val angle = kotlin.math.atan2((end.y - start.y).toDouble(), (end.x - start.x).toDouble())
+                                    val head = 10.dp.toPx()
+                                    for (spread in listOf(Math.PI - 0.5, Math.PI + 0.5)) {
+                                        val a = angle + spread
+                                        val tip = Offset(
+                                            end.x + (kotlin.math.cos(a) * head).toFloat(),
+                                            end.y + (kotlin.math.sin(a) * head).toFloat(),
+                                        )
+                                        drawLine(teal, end, tip, strokeWidth = stroke)
+                                    }
+                                } else {
+                                    // Tap/long-press: the existing ring + soft fill.
+                                    drawCircle(teal, radius = 11.dp.toPx(), center = end, style = Stroke(width = stroke))
+                                    drawCircle(fill, radius = 11.dp.toPx(), center = end)
+                                }
+                            }
                         }
                     }
                 }

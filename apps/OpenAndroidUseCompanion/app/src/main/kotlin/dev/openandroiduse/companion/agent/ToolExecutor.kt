@@ -46,7 +46,13 @@ class ToolExecutor(
     var lastTapNormalized: Pair<Float, Float>? = null
         private set
 
+    private val gestureMarks = mutableListOf<GestureMark>()
+
+    /** The current action's gestures in normalized screenshot space; read by AgentController. */
+    val lastGesturesNormalized: List<GestureMark> get() = gestureMarks.toList()
+
     fun callTool(name: String, args: JSONObject): Outcome = try {
+        gestureMarks.clear()
         when (name) {
             "list_apps" -> listApps()
             "get_app_state" -> getAppState(args.optString("app"))
@@ -264,21 +270,32 @@ class ToolExecutor(
         TouchPauseMonitor.noteAgentAction()
         when (action.optString("type")) {
             "tap", "longPress" -> {
-                GestureTrail.tap(action.optInt("x"), action.optInt("y"))
-                noteTap(action.optInt("x"), action.optInt("y"))
+                val x = action.optInt("x")
+                val y = action.optInt("y")
+                GestureTrail.tap(x, y)
+                noteTap(x, y)
+                addGesture(GestureMark.tap(x, y, lastScale, lastShotWidth, lastShotHeight))
             }
             "swipe" -> {
-                GestureTrail.swipe(
-                    action.optInt("fromX"), action.optInt("fromY"),
-                    action.optInt("toX"), action.optInt("toY"),
-                )
-                noteTap(action.optInt("toX"), action.optInt("toY"))
+                val fromX = action.optInt("fromX")
+                val fromY = action.optInt("fromY")
+                val toX = action.optInt("toX")
+                val toY = action.optInt("toY")
+                GestureTrail.swipe(fromX, fromY, toX, toY)
+                noteTap(toX, toY)
+                addGesture(GestureMark.swipe(fromX, fromY, toX, toY, lastScale, lastShotWidth, lastShotHeight))
             }
         }
         val result = ActionExecutor.execute(service, action.toString())
         TouchPauseMonitor.noteAgentAction()
         if (result.optBoolean("ok")) return null
         return error(result.optString("error", "action failed"))
+    }
+
+    /** Adds a gesture to the current action's overlay list, when a screenshot exists. */
+    private fun addGesture(mark: GestureMark) {
+        if (lastShotWidth <= 0 || lastShotHeight <= 0) return
+        gestureMarks.add(mark)
     }
 
     /** Records where a gesture landed (device px) as a normalized screenshot fraction. */

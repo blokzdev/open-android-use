@@ -106,6 +106,15 @@ object AgentController {
     var latestTapNormalized: Pair<Float, Float>? = null
         private set
 
+    /**
+     * The latest action's gestures (taps + swipes) in normalized screenshot space,
+     * for the chat's "Agent's view" overlay. In-memory only; paired with
+     * [latestScreenshotBase64] and cleared on reset.
+     */
+    @Volatile
+    var latestGesturesNormalized: List<GestureMark> = emptyList()
+        private set
+
     private val history = mutableListOf<HistoryEntry>()
     private var worker: Thread? = null
 
@@ -282,6 +291,7 @@ object AgentController {
         history.clear()
         latestScreenshotBase64 = null
         latestTapNormalized = null
+        latestGesturesNormalized = emptyList()
         synchronized(transcript) { transcript.clear() }
         // Start a fresh session so the next task is saved separately and the old
         // one (already persisted by the UI) is left intact.
@@ -338,6 +348,7 @@ object AgentController {
         }
         latestScreenshotBase64 = null
         latestTapNormalized = null
+        latestGesturesNormalized = emptyList()
         currentSessionId = payload.id
         sessionCreatedAt = payload.createdAt
         sessionTitle = payload.title
@@ -531,6 +542,7 @@ object AgentController {
         outcome.screenshotPngBase64?.let { png ->
             latestScreenshotBase64 = png
             latestTapNormalized = executor.lastTapNormalized
+            latestGesturesNormalized = executor.lastGesturesNormalized
             listener?.onScreenshotCaptured(png)
         }
         return AgentContent.ToolResult(

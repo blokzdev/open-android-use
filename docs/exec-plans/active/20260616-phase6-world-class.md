@@ -35,8 +35,9 @@ ends, land quick wins, add advanced features, elevate UX, and modernize — so o
 - **6.1 — Element-labeled actions + refusal clarity.** ✅ (this PR) `ActionSummary` resolves
   `element_index` → label; consent sheet / log / chips / transcript show "Tap 'Send'"; refusals
   show their reason.
-- **6.2 — Richer live feedback:** Agent's-view action timeline/breadcrumb, `GestureTrail` overlay
-  on the live screenshot, inline status badge (retrying/paused/rate-limited).
+- **6.2 — Richer live feedback:** ✅ gesture overlay on the Agent's-view (tap ripples + swipe/drag
+  arrows via `GestureMark`) + a live action caption from 6.1's labels. (Status badge → 6.3; a full
+  timeline stays folded into the chat's tool chips.)
 - **6.3 — Reliability:** snapshot diffing ("what changed") in `get_app_state`, stuck/no-progress
   detection, transient-error retry/backoff around `backend.streamTurn`.
 - **6.4 — Perception richness:** focus-change, scroll-state, modal awareness, adaptive tree budget
@@ -61,4 +62,5 @@ ends, land quick wins, add advanced features, elevate UX, and modernize — so o
 ## Progress
 
 - [x] 6.1 — element-labeled actions + refusal clarity (`ActionSummary` + `ToolExecutor.describeAction`).
-- [ ] 6.2–6.9 (planned per the loop; 6.1–6.5 are the substance, 6.6–6.9 polish/reach).
+- [x] 6.2 — gesture overlay (`GestureMark`) + live action caption in the Agent's-view.
+- [ ] 6.3–6.9 (planned per the loop; 6.3–6.5 are the substance, 6.6–6.9 polish/reach).
