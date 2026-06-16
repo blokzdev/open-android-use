@@ -58,6 +58,10 @@ data class AppSnapshot(
     val elements: List<ElementRecord> = emptyList(),
     val focusedSummary: String = "",
     val coordinateScale: Double = 1.0,
+    // Phase 6.5c-1: true when the screenshot was deliberately withheld because this
+    // is a sensitive screen (vision mode). The redacted tree still flows; renderedText
+    // tells the model why vision went dark so it doesn't loop "I can't see".
+    val screenshotWithheld: Boolean = false,
 ) {
     /** Port of appSnapshot.renderedText() — the text the model reads. */
     fun renderedText(): String {
@@ -71,6 +75,10 @@ data class AppSnapshot(
         if (focusedSummary.isNotBlank()) {
             lines.add("")
             lines.add("The focused UI element is $focusedSummary.")
+        }
+        if (screenshotWithheld) {
+            lines.add("")
+            lines.add(Redaction.SCREENSHOT_WITHHELD_NOTE)
         }
         return lines.joinToString("\n")
     }
@@ -110,17 +118,23 @@ object SnapshotFlattener {
         val frame = nodeFrame(node, scale)
         val include = interesting(node) && frame != null
         if (include) {
+            val password = node.optBoolean("password")
+            val creditCard = node.optBoolean("creditCard")
             builder.add(
                 ElementRecord(
                     resourceId = node.optString("resourceId"),
                     name = label(node),
                     controlType = shortClass(node.optString("className")),
-                    value = node.optString("text"),
+                    // Phase 6.5c-1: never store a raw secret as the value. The emitted
+                    // `text` is already redacted upstream (SnapshotBuilder) and the
+                    // rendered tree-line name derives from it; this is the data-model
+                    // boundary backstop and does not change the line text.
+                    value = Redaction.redactedValue(password, creditCard, node.optString("text")),
                     frame = frame,
                     actions = actions(node),
                     focused = node.optBoolean("focused"),
-                    password = node.optBoolean("password"),
-                    creditCard = node.optBoolean("creditCard"),
+                    password = password,
+                    creditCard = creditCard,
                 ),
                 depth,
                 selected = node.optBoolean("checked") || node.optBoolean("selected"),

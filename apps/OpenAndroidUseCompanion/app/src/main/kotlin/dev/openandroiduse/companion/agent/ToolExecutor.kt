@@ -383,16 +383,22 @@ class ToolExecutor(
         if (!tree.optBoolean("ok")) return null
         val snapshotPkg = tree.optString("package").ifEmpty { pkg }
         val flattened = SnapshotFlattener.flatten(tree.optJSONObject("tree"), downscaled.scale)
+        // Phase 6.5c-1: on a password/payment screen, withhold the screenshot in
+        // vision mode — the redacted tree still flows so the agent keeps structure,
+        // but the surrounding pixels (which the framework does NOT redact) never
+        // upload. The CoordinateScale is unchanged so element coordinates still map.
+        val withheld = SensitiveScreenDetector.isSensitive(flattened.elements)
         return AppSnapshot(
             // Android gives apps no window title; renderedText() falls back to
             // appName, so leave windowTitle empty rather than duplicate the label.
             appName = packageLabel(snapshotPkg),
             packageName = snapshotPkg,
-            screenshotPngBase64 = Base64.encodeToString(downscaled.png, Base64.NO_WRAP),
+            screenshotPngBase64 = if (withheld) "" else Base64.encodeToString(downscaled.png, Base64.NO_WRAP),
             treeLines = flattened.treeLines,
             elements = flattened.elements,
             focusedSummary = flattened.focusedSummary,
             coordinateScale = downscaled.scale,
+            screenshotWithheld = withheld,
         )
     }
 

@@ -658,6 +658,20 @@ device for 5.8.
   the block returns. Confirm an ordinary form (e.g. a shopping cart, a profile with "Add to cart" /
   "Dashboard" labels) is **not** blocked (no false positive from the card-token heuristic).
 
+- [ ] **V145. Sensitive-field value redaction (no leak to the model)**: open a real card-entry
+  screen, type digits into the "Card number" field, then ask the agent something that makes it call
+  `get_app_state` (e.g. "what's on this screen?"). Pass: the accessibility-tree text the agent
+  receives shows the card field's value as `[redacted]` (never the typed digits), while the field's
+  structure — control type, resource id, bounds, `set_value` action — is still present so the agent
+  can describe the screen. Repeat with a password field: its value is also `[redacted]`. Confirm an
+  ordinary text field (e.g. a search box) still shows its typed text normally.
+- [ ] **V146. Screenshot withheld on a sensitive screen (vision mode)**: with "Send screenshots
+  (vision)" on, navigate the agent onto a password/payment screen. Pass: the tool result for that
+  screen carries no screenshot image, and its text ends with the "(screenshot withheld: …)" note;
+  the agent still narrates the screen from the redacted tree and asks the human to enter the secret
+  rather than looping "I can't see". On a non-sensitive screen the screenshot is sent as usual. In
+  text-only mode (vision off) behavior is unchanged (no screenshot either way, tree still redacted).
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |
