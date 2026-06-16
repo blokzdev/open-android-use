@@ -97,7 +97,8 @@ ends, land quick wins, add advanced features, elevate UX, and modernize — so o
 - [x] 6.5a — credential-screen safety gate (`SensitiveScreenDetector` + `ToolExecutor` action gate).
 - [x] 6.5b — payment detection (label heuristic) folded into the gate + default-on `sensitiveScreenGuard` toggle.
 - [~] 6.5c — layered trust model for sensitive screens (spec:
-  `docs/design-docs/agent-security-trust-architecture.md`). 6.5c-0 (spec + doc alignment) ✅; 6.5c-1
-  redaction → 6.5c-2 handoff+tap-to-fill → 6.5c-3 scoped trust → 6.5c-4 injection hardening →
-  6.5c-5 risk-adaptive confirm + transparency.
+  `docs/design-docs/agent-security-trust-architecture.md`). 6.5c-0 (spec + doc alignment) ✅;
+  6.5c-1 redaction ✅; 6.5c-2 human handoff/takeover ✅ (login tap-to-fill split into a focused
+  follow-up 6.5c-2b); → 6.5c-3 scoped trust → 6.5c-4 injection hardening → 6.5c-5 risk-adaptive
+  confirm + transparency.
 - [ ] 6.6–6.9 polish/reach.

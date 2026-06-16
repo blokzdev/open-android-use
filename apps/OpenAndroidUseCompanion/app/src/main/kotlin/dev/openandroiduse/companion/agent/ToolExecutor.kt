@@ -463,6 +463,23 @@ class ToolExecutor(
     private fun current(app: String): AppSnapshot? = snapshots[app.trim().lowercase()]
 
     /**
+     * Phase 6.5c-2 decision seam: true when [name] is an action tool that the guard
+     * would block on the current (sensitive) screen — i.e. the agent must hand off to
+     * the human instead of acting. The loop consults this *before* executing so it can
+     * pause and show the takeover overlay; [callTool]'s in-line refusal stays as a
+     * backstop for any direct caller. Reads (list_apps/get_app_state) are never blocked.
+     */
+    fun sensitivityBlock(name: String, args: JSONObject): Boolean {
+        if (!sensitiveScreenGuard || name !in ACTION_TOOLS) return false
+        val snapshot = current(args.optString("app")) ?: return false
+        return SensitiveScreenDetector.isSensitive(snapshot)
+    }
+
+    /** The kind of secret on the current screen (for the handoff copy), or null. */
+    fun sensitivityKind(args: JSONObject): SensitiveScreenDetector.Kind? =
+        current(args.optString("app"))?.let { SensitiveScreenDetector.classify(it.elements) }
+
+    /**
      * Phase 6.1: a label-resolved, human-readable summary of an action for the
      * consent sheet, tool log, and transcript — resolves `element_index` to its
      * label via the relevant app's most-recent snapshot.
