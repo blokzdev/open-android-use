@@ -12,6 +12,7 @@ import dev.openandroiduse.companion.agent.llm.AgentRole
 import dev.openandroiduse.companion.agent.llm.AgentStopReason
 import dev.openandroiduse.companion.agent.llm.BackendRequest
 import dev.openandroiduse.companion.agent.llm.BackendStreamException
+import dev.openandroiduse.companion.agent.llm.EgressPolicy
 import dev.openandroiduse.companion.agent.llm.LlmProvider
 import dev.openandroiduse.companion.agent.llm.BackendSink
 import dev.openandroiduse.companion.agent.llm.ToolImage
@@ -234,7 +235,7 @@ object AgentController {
         // The loopback base-URL override is a debug-only test hook: honoring a
         // persisted pref in release would let anything that can write prefs
         // redirect the API-key-bearing client. Release ignores it entirely.
-        val baseUrl = if (BuildConfig.DEBUG) loopbackOrNull(settings.baseUrlOverride) else null
+        val baseUrl = if (BuildConfig.DEBUG) EgressPolicy.loopbackOrNull(settings.baseUrlOverride) else null
         worker = Thread(
             {
                 try {
@@ -250,12 +251,6 @@ object AgentController {
             "oau-agent-loop",
         ).also { it.start() }
         return true
-    }
-
-    /** Accepts only http loopback URLs; anything else (incl. https/remote) is rejected. */
-    private fun loopbackOrNull(url: String?): String? {
-        if (url == null) return null
-        return if (url.startsWith("http://127.0.0.1:") || url.startsWith("http://localhost:")) url else null
     }
 
     @Volatile
