@@ -55,6 +55,11 @@ Each entry: **idea** — why deferred · _priority_ · origin.
   checksum/signature enforcement). Deferred from 5.7: AGP makes verification-metadata brittle
   (large, platform-specific artifacts, frequent churn), so it needs a dedicated, careful pass.
   _Medium._ Origin: Phase 5.7 (user call).
+- **Wire the documented supply-chain CI** — `docs/SUPPLY_CHAIN_SECURITY.md` describes OSV scan,
+  SBOM, OpenSSF Scorecard, dependency-review, build-provenance, and action-SHA-pinning as the
+  repo's controls, but none are wired (only `android-runtime.yml` + `release.yml` exist;
+  `scripts/check-action-pinning.sh` isn't invoked by any workflow). Either add the workflows or
+  trim the doc to match reality. _Medium._ Origin: Phase 5.8 audit.
 - **Local-only mode follow-ups (Phase 5.7)** — (a) deep-link the confirm dialog straight to the
   on-device download card / show progress inline rather than relying on the existing
   card+banner; (b) auto-suggest local-only on first run for HIGH-tier devices; (c) re-evaluate
