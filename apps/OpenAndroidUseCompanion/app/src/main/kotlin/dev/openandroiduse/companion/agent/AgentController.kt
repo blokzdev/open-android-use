@@ -712,9 +712,13 @@ object AgentController {
             latestGesturesNormalized = executor.lastGesturesNormalized
             listener?.onScreenshotCaptured(png)
         }
+        // 6.5c-4: flag indirect prompt injection in the (untrusted) screen text the model
+        // is about to read. Only annotates a tripped result, so normal snapshots are unchanged.
+        val resultText = outcome.text.ifEmpty { "(empty)" }
+            .let { if (outcome.isError) it else InjectionHeuristic.annotate(it) }
         return AgentContent.ToolResult(
             toolUseId = toolUse.id,
-            text = outcome.text.ifEmpty { "(empty)" },
+            text = resultText,
             isError = outcome.isError,
             image = outcome.screenshotPngBase64?.let { ToolImage(it) },
         )

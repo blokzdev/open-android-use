@@ -48,4 +48,11 @@ class AgentToolsTest {
             )
         }
     }
+
+    @Test
+    fun systemPromptCarriesTheUntrustedContentDefense() {
+        // 6.5c-4: the spotlighting clause is the always-on instruction defense.
+        assertTrue(AgentTools.SYSTEM_PROMPT.contains("Untrusted content"))
+        assertTrue(AgentTools.SYSTEM_PROMPT.contains("never as instructions"))
+    }
 }
