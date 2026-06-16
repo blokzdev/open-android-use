@@ -102,7 +102,14 @@ while keeping the on-device, no-server, key-stays-local posture intact.
       state machine + `effectiveProvider` chokepoint), global `AgentSettings.localOnlyMode`,
       Settings toggle (tier-gated, confirm-on-needs-model), chat badge + Privacy status row,
       two-mode egress docs (`SECURITY.md`), and the merge-then-plan loop in the harness docs.
-- [ ] 5.8 — Cross-backend test matrix + `EgressPolicy` extraction + supply-chain audit note.
+- [x] 5.8 — cross-backend streaming parity matrix (`CloudBackendStreamingMatrixTest`,
+      `@Parameterized` over Anthropic+Gemini, dual-wire loopback stub; fills the Anthropic
+      streaming gap) + `EgressPolicy` extraction/test + supply-chain audit note.
+
+**Phase 5 complete (2026-06-16):** pluggable providers (Claude/Gemini cloud BYOK + on-device
+Gemma 4 E2B), device tiering, adaptive perception, Privacy/Local-Only Mode, and cross-backend
+parity all shipped. On-device *runtime* + Local-only egress remain hardware-pending in
+`VERIFICATION.md` (V131, V135–V138); everything CI can prove is green.
 
 ## Decisions
 
@@ -169,3 +176,10 @@ while keeping the on-device, no-server, key-stays-local posture intact.
   download when capable-but-not-downloaded). **Control in Settings**, status mirrored on the
   Privacy screen + a chat badge. Cloud keys are **kept, just ignored** (least friction). The
   cross-backend test matrix split to **5.8**; Gradle dependency locking deferred (BACKLOG).
+- 2026-06-16 (5.8): **cloud-only parity matrix; on-device stays in the smoke/ledger.** A
+  `@Parameterized` JVM test asserts Anthropic and Gemini produce identical neutral
+  `CompletedTurn`s from the seam (reusing the emulator `StubModelServer` SSE payloads); Gemma
+  isn't unit-testable (native engine), so its parity is the emulator smoke + hardware ledger. The
+  loopback egress guard moved to a pure `EgressPolicy` so it's CI-pinned. Audit found the
+  documented OSV/SBOM/Scorecard CI is **not wired** (template-only) — corrected honestly in
+  `SUPPLY_CHAIN_SECURITY.md` + BACKLOG rather than silently.

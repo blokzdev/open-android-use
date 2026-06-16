@@ -72,3 +72,24 @@ collide at packaging time). The required Apache-2.0 attribution for the bundled
 SDK is therefore preserved in the repository-root `NOTICE` file, and surfaced
 in-app on the About screen. Any future bundled dependency must be added to both
 this table and `NOTICE` in the same commit.
+
+## Phase 5.8 audit (English)
+
+A close-out audit of the Phase-5 provider surface (2026-06-16):
+
+- **What's true and enforced today:** every direct dependency is pinned to an exact version and
+  registered in the table above; provider SDKs are confined to the `agent`/`agent/llm` packages
+  (the control surface stays dependency-free); the on-device model is SHA-256 pinned; API keys are
+  AES/GCM in the Keystore (never logged, never in a URL); egress is confined to three hosts
+  (`api.anthropic.com`, `generativelanguage.googleapis.com`, `huggingface.co`), and the loopback
+  base-URL guard is now a unit-tested chokepoint (`agent/llm/EgressPolicy`). Release builds block
+  cleartext.
+- **Doc-vs-reality gap (honest correction):** the "默认控制项 / 当前对应关系" sections above
+  describe the template's *intended* repo-level controls (OSV scan, SBOM, Scorecard,
+  dependency-review, build-provenance, action-SHA-pinning). As of this audit those are **not wired**
+  — `.github/workflows/` contains only `android-runtime.yml` (test/companion/emulator-smoke) and
+  `release.yml`; `scripts/check-action-pinning.sh` exists but no workflow invokes it. Treat that
+  section as aspirational until the workflows land. Tracked in `docs/BACKLOG.md`.
+- **Deferred (prior decision):** Gradle dependency locking (`gradle.lockfile`) and
+  `gradle/verification-metadata.xml` (sha256 enforcement) — direct deps are pinned, and AGP makes
+  verification-metadata brittle, so this is a dedicated later pass. Tracked in `docs/BACKLOG.md`.
