@@ -29,7 +29,12 @@ import java.util.concurrent.atomic.AtomicReference
  */
 object HandoffSheet {
 
-    enum class Result { CONTINUE, STOP }
+    /**
+     * CONTINUE/STOP resume or end the task; GRANT_ONCE/GRANT_SESSION additionally trust the
+     * app (6.5c-3b) so the agent may act on its *non-secret* controls without asking again
+     * (once / for this task). Grant options are only offered for a non-secret-targeting action.
+     */
+    enum class Result { CONTINUE, STOP, GRANT_ONCE, GRANT_SESSION }
 
     // Humans type a password, so allow longer than the confirm sheet's 120s.
     private const val TIMEOUT_MS = 300_000L
@@ -48,8 +53,13 @@ object HandoffSheet {
         activeLatch?.countDown()
     }
 
-    /** Called on the agent loop thread. Returns [Result.CONTINUE] only on an explicit Continue tap. */
-    fun await(service: CompanionService, body: String): Result {
+    /**
+     * Called on the agent loop thread. Returns [Result.CONTINUE] only on an explicit Continue tap.
+     * When [allowGrants] is true (the blocked action does not target a secret field) the sheet also
+     * offers "Allow once" / "Allow this session" so the user can let the agent operate this app's
+     * non-secret controls without re-asking.
+     */
+    fun await(service: CompanionService, body: String, allowGrants: Boolean = false): Result {
         val latch = CountDownLatch(1)
         val outcome = AtomicReference(Result.STOP)
         var sheet: LinearLayout? = null
@@ -111,6 +121,32 @@ object HandoffSheet {
                 }
             })
             layout.addView(buttons)
+
+            // 6.5c-3b: scoped-trust offers — only when this action doesn't target a secret
+            // field (a grant relaxes only the screen-level gate, never element-level entry).
+            if (allowGrants) {
+                fun grantButton(labelRes: Int, result: Result) = Button(service).apply {
+                    text = service.getString(labelRes)
+                    minimumHeight = dp(48)
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    setOnClickListener {
+                        outcome.set(result)
+                        dismiss()
+                        latch.countDown()
+                    }
+                }
+                layout.addView(LinearLayout(service).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    addView(grantButton(R.string.handoff_allow_once, Result.GRANT_ONCE))
+                    addView(grantButton(R.string.handoff_allow_session, Result.GRANT_SESSION))
+                })
+                layout.addView(TextView(service).apply {
+                    text = service.getString(R.string.handoff_grant_hint)
+                    textSize = 11f
+                    setTextColor(0xFF777777.toInt())
+                    setPadding(0, dp(4), 0, 0)
+                })
+            }
 
             val params = WindowManager.LayoutParams(
                 WindowManager.LayoutParams.MATCH_PARENT,

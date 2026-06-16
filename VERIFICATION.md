@@ -690,6 +690,17 @@ device for 5.8.
   field is still focused and the user can type manually — the handoff is unbroken. The agent never
   reads the field's contents (confirm the model transcript shows `[redacted]`, not the password).
 
+- [ ] **V150. Scoped trust — Allow this session**: on a sensitive screen, when the agent needs a
+  **non-secret** control (e.g. a "Show password" toggle, a Next button, scrolling), the handoff overlay
+  also offers "Allow once" / "Allow this session". Tap **Allow this session** → the action runs and a
+  "Acting on a trusted app" note appears; subsequent non-secret actions on that app run **without** the
+  overlay for the rest of the task. Starting a **New conversation** clears the grant (the overlay returns).
+- [ ] **V151. A grant never reaches a secret field**: with a session grant active for an app, ask the
+  agent to type into / tap its password or card field. Pass: it **still hands off** (overlay shows, no
+  grant buttons offered for that action) and never types the secret — the grant relaxed only non-secret
+  controls. Confirm the audit (once the Privacy UI lands in 6.5c-3c) records the trusted non-secret
+  actions, never a field value.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |

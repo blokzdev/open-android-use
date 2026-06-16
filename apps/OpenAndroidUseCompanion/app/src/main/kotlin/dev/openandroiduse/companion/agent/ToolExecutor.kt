@@ -68,14 +68,16 @@ class ToolExecutor(
     /** Whether the most recent tool call was an action that changed the screen (null = no action). */
     val actionChanged: Boolean? get() = lastActionChanged
 
-    fun callTool(name: String, args: JSONObject): Outcome {
+    fun callTool(name: String, args: JSONObject, bypassSensitivityGuard: Boolean = false): Outcome {
         gestureMarks.clear()
         lastActionChanged = null
         // Phase 6.5: never act on a password/payment screen (unless the user turned the
         // guard off). Action tools gate on the last snapshot for this app; reads stay
         // open so the agent can still perceive, narrate, and ask the human to enter the
-        // secret themselves.
-        if (sensitiveScreenGuard && name in ACTION_TOOLS) {
+        // secret themselves. 6.5c-3b: the loop may bypass this gate for a verified per-app
+        // grant on a NON-secret control (it has already checked targetsSecretField); the
+        // gate stays as the backstop for every other / direct caller.
+        if (sensitiveScreenGuard && !bypassSensitivityGuard && name in ACTION_TOOLS) {
             val snapshot = current(args.optString("app"))
             if (snapshot != null && SensitiveScreenDetector.isSensitive(snapshot)) {
                 return error(SensitiveScreenDetector.REASON_SENSITIVE)
@@ -478,6 +480,22 @@ class ToolExecutor(
     /** The kind of secret on the current screen (for the handoff copy), or null. */
     fun sensitivityKind(args: JSONObject): SensitiveScreenDetector.Kind? =
         current(args.optString("app"))?.let { SensitiveScreenDetector.classify(it.elements) }
+
+    /**
+     * 6.5c-3b: true when this action targets an actual secret field on the current screen —
+     * so it must hand off even inside a trusted app (a grant never relaxes element-level
+     * secret entry). Resolves against the same cached snapshot the gate uses.
+     */
+    fun targetsSecretField(name: String, args: JSONObject): Boolean =
+        SensitiveScreenDetector.targetsSecretField(
+            name,
+            args.optString("element_index").ifBlank { null },
+            current(args.optString("app")),
+        )
+
+    /** The package of the current screen for [args]' app, for per-app grant keying. */
+    fun snapshotPackage(args: JSONObject): String? =
+        current(args.optString("app"))?.packageName?.ifEmpty { null }
 
     /**
      * Phase 6.1: a label-resolved, human-readable summary of an action for the

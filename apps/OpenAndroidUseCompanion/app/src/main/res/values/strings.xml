@@ -227,6 +227,10 @@
     <string name="handoff_body_both">This screen has password and payment fields. Please enter them yourself, then tap Continue — I never see or type your secrets.</string>
     <string name="handoff_continue">Continue</string>
     <string name="handoff_stop">Stop</string>
+    <string name="handoff_allow_once">Allow once</string>
+    <string name="handoff_allow_session">Allow this session</string>
+    <string name="handoff_grant_hint">Trust lets me act on this app\'s non-secret controls without asking. Secret fields always stay yours.</string>
+    <string name="agent_note_trusted_action">Acting on a trusted app (%1$s).</string>
     <string name="agent_note_handoff">Handed off to you for a password/payment field — waiting for you to enter it.</string>
     <string name="agent_note_handoff_done">You handled the secret entry; resuming.</string>
 
