@@ -682,6 +682,14 @@ device for 5.8.
   action (notification / in-control chip / overlay Stop). Pass: the parked agent wakes immediately and
   the task ends; no action is performed on the sensitive field.
 
+- [ ] **V149. Login tap-to-fill (best-effort OS chip)**: with a saved login in the device's autofill
+  provider / password manager, ask the agent to sign in to that app. Pass: at the password field the
+  agent **focuses** it (the keyboard/autofill suggestion chip appears) and the handoff overlay says
+  "I've opened it — tap your saved login to fill it…"; tapping the chip fills the field via the OS
+  (the agent never typed it), and Continue resumes. On a device with **no** saved credential, the
+  field is still focused and the user can type manually — the handoff is unbroken. The agent never
+  reads the field's contents (confirm the model transcript shows `[redacted]`, not the password).
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |

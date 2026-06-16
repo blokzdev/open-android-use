@@ -59,6 +59,14 @@ Each entry: **idea** — why deferred · _priority_ · origin.
   retries still fail; it drops nodes (changes tree content), so only behind the
   full dump. _Low._ Origin: PR #9.
 
+## Trust & safety follow-ups
+
+- **Opt-out toggle for login tap-to-fill (6.5c-2b)** — the agent best-effort focuses the password
+  field on an auth handoff so the user's OS autofill chip appears (it never reads/types the secret).
+  It's gated by the existing sensitive-screen guard and disclosed in the handoff copy, with no
+  dedicated toggle. If Play review or a user wants it off independently, add an `AgentSettings`
+  toggle + a Settings row (cheap, mirrors `sensitiveScreenGuard`). _Low._ Origin: Phase 6.5c-2b.
+
 ## On-device agent / chat
 
 - **Structured tool chips with element labels** — chips currently prettify the

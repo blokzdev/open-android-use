@@ -222,7 +222,7 @@
 
     <!-- Sensitive-screen handoff / takeover (Phase 6.5c-2) -->
     <string name="handoff_header">🔒 You take it from here</string>
-    <string name="handoff_body_password">This screen has a password field. Please sign in yourself, then tap Continue — I never see or type your password.</string>
+    <string name="handoff_body_password">This screen has a password field. I\'ve opened it — tap your saved login to fill it, or type it in yourself, then tap Continue. I never see or type your password.</string>
     <string name="handoff_body_payment">This screen has a payment field. Please enter your card details yourself, then tap Continue — I never see or type them.</string>
     <string name="handoff_body_both">This screen has password and payment fields. Please enter them yourself, then tap Continue — I never see or type your secrets.</string>
     <string name="handoff_continue">Continue</string>

@@ -12,7 +12,8 @@
 | --- | --- |
 | Cardinal rule: secrets never enter the model loop | **Policy adopted** (enforced by redaction + handoff once 6.5c-1/-2 land) |
 | L0 Privacy redaction (sensitive-field values, screenshot) | Specified — 6.5c-1 |
-| L1 Human handoff / takeover (+ login tap-to-fill) | Specified — 6.5c-2 |
+| L1 Human handoff / takeover | **Built** — 6.5c-2 |
+| L1 Login tap-to-fill (focus field → OS chip) | **Built** (best-effort) — 6.5c-2b |
 | L2 Scoped, revocable, decaying per-app trust + audit | Specified — 6.5c-3 |
 | L3 Untrusted-content isolation / spotlighting + injection-signal classifier | Specified — 6.5c-4 |
 | L4 Risk-adaptive confirmation + trust transparency | Specified — 6.5c-5 |

@@ -2,6 +2,7 @@ package dev.openandroiduse.companion.agent
 
 import android.content.Context
 import android.util.Log
+import dev.openandroiduse.companion.ActionExecutor
 import dev.openandroiduse.companion.BuildConfig
 import dev.openandroiduse.companion.CompanionService
 import dev.openandroiduse.companion.R
@@ -476,8 +477,18 @@ object AgentController {
                             // Continue ends this batch so the model re-observes the screen
                             // the human left; Stop ends the task (treated as an interrupt).
                             if (executor.sensitivityBlock(toolUse.name, argsOf(toolUse))) {
+                                val kind = executor.sensitivityKind(argsOf(toolUse))
+                                // 6.5c-2b login tap-to-fill: on an auth surface, focus the
+                                // credential field so the user's OS autofill / password-manager
+                                // chip appears for them to tap. The agent only focuses — it never
+                                // reads or types the secret. Best-effort (manual entry still works).
+                                if (kind == SensitiveScreenDetector.Kind.PASSWORD ||
+                                    kind == SensitiveScreenDetector.Kind.BOTH
+                                ) {
+                                    ActionExecutor.focusFirstSecureField(service)
+                                }
                                 log(KIND_NOTE, "🔒 " + str(R.string.agent_note_handoff))
-                                val decision = HandoffSheet.await(service, handoffBody(executor, toolUse))
+                                val decision = HandoffSheet.await(service, handoffBody(kind))
                                 if (decision == HandoffSheet.Result.STOP || cancelRequested) {
                                     interrupted = true
                                     break
@@ -596,8 +607,8 @@ object AgentController {
         )
 
     /** Auth-aware takeover copy for the handoff overlay (6.5c-2). */
-    private fun handoffBody(executor: ToolExecutor, toolUse: AgentContent.ToolUse): String =
-        when (executor.sensitivityKind(argsOf(toolUse))) {
+    private fun handoffBody(kind: SensitiveScreenDetector.Kind?): String =
+        when (kind) {
             SensitiveScreenDetector.Kind.PASSWORD -> str(R.string.handoff_body_password)
             SensitiveScreenDetector.Kind.PAYMENT -> str(R.string.handoff_body_payment)
             else -> str(R.string.handoff_body_both)
