@@ -176,6 +176,16 @@ object AgentController {
     @Volatile
     private var appContext: Context? = null
 
+    // Phase 6.5c-3b scoped trust. SESSION grants are in-memory and cleared on reset/task end,
+    // so trust never silently outlives a task; persistent grants (3c) come from [trustStore].
+    private val sessionGrants = mutableSetOf<String>()
+
+    @Volatile
+    private var trustStore: TrustStore? = null
+
+    @Volatile
+    private var auditLog: TrustAuditLog? = null
+
     /** Resolve a localized note string off the agent loop thread. */
     private fun str(resId: Int, vararg args: Any): String =
         (appContext ?: CompanionService.instance)?.getString(resId, *args) ?: ""
@@ -212,6 +222,8 @@ object AgentController {
     fun startTask(userText: String, settings: AgentSettings): Boolean {
         if (isRunning) return false
         appContext = settings.appContext
+        if (trustStore == null) trustStore = TrustStore(settings.appContext)
+        if (auditLog == null) auditLog = TrustAuditLog(settings.appContext)
         val service = CompanionService.instance ?: run {
             log(KIND_NOTE, str(R.string.agent_note_no_service))
             return false
@@ -319,6 +331,8 @@ object AgentController {
         latestTapNormalized = null
         latestGesturesNormalized = emptyList()
         transientStatus = null
+        // 6.5c-3b: session trust is task-scoped — a new conversation re-earns it.
+        synchronized(sessionGrants) { sessionGrants.clear() }
         synchronized(transcript) { transcript.clear() }
         // Start a fresh session so the next task is saved separately and the old
         // one (already persisted by the UI) is left intact.
@@ -472,31 +486,56 @@ object AgentController {
                                 results.add(deniedResult(toolUse))
                                 continue
                             }
-                            // Phase 6.5c-2: on a password/payment screen, hand off to the
-                            // human instead of acting — the agent never types the secret.
-                            // Continue ends this batch so the model re-observes the screen
-                            // the human left; Stop ends the task (treated as an interrupt).
+                            // Phase 6.5c-2/3b: on a password/payment screen, either act under a
+                            // per-app trust grant (non-secret control only) or hand off to the human.
+                            // The agent never types the secret. Continue ends the batch so the model
+                            // re-observes; Stop ends the task; Allow once/session grants trust.
                             if (executor.sensitivityBlock(toolUse.name, argsOf(toolUse))) {
-                                val kind = executor.sensitivityKind(argsOf(toolUse))
-                                // 6.5c-2b login tap-to-fill: on an auth surface, focus the
-                                // credential field so the user's OS autofill / password-manager
-                                // chip appears for them to tap. The agent only focuses — it never
-                                // reads or types the secret. Best-effort (manual entry still works).
+                                val args = argsOf(toolUse)
+                                val pkg = executor.snapshotPackage(args)
+                                // A grant relaxes only the SCREEN-level gate; an action aimed at a
+                                // real secret field always hands off, trusted app or not.
+                                val elementSecret = executor.targetsSecretField(toolUse.name, args)
+                                if (!elementSecret && pkg != null && isTrusted(pkg)) {
+                                    results.add(executeTool(executor, toolUse, bypassGuard = true))
+                                    recordTrustedAction(executor, toolUse, pkg, scopeFor(pkg))
+                                    continue
+                                }
+                                val kind = executor.sensitivityKind(args)
+                                // 6.5c-2b login tap-to-fill: focus the credential field so the user's
+                                // OS autofill chip appears (focus only — never reads/types the secret).
                                 if (kind == SensitiveScreenDetector.Kind.PASSWORD ||
                                     kind == SensitiveScreenDetector.Kind.BOTH
                                 ) {
                                     ActionExecutor.focusFirstSecureField(service)
                                 }
                                 log(KIND_NOTE, "🔒 " + str(R.string.agent_note_handoff))
-                                val decision = HandoffSheet.await(service, handoffBody(kind))
-                                if (decision == HandoffSheet.Result.STOP || cancelRequested) {
+                                when (HandoffSheet.await(service, handoffBody(kind), allowGrants = !elementSecret)) {
+                                    HandoffSheet.Result.STOP -> {
+                                        interrupted = true
+                                        break
+                                    }
+                                    HandoffSheet.Result.CONTINUE -> {
+                                        log(KIND_NOTE, str(R.string.agent_note_handoff_done))
+                                        results.add(handedOffResult(toolUse))
+                                        handedOff = true
+                                        break
+                                    }
+                                    HandoffSheet.Result.GRANT_SESSION -> {
+                                        if (pkg != null) synchronized(sessionGrants) { sessionGrants.add(pkg) }
+                                        results.add(executeTool(executor, toolUse, bypassGuard = true))
+                                        if (pkg != null) recordTrustedAction(executor, toolUse, pkg, GrantScope.SESSION)
+                                    }
+                                    HandoffSheet.Result.GRANT_ONCE -> {
+                                        results.add(executeTool(executor, toolUse, bypassGuard = true))
+                                        if (pkg != null) recordTrustedAction(executor, toolUse, pkg, GrantScope.ONCE)
+                                    }
+                                }
+                                if (cancelRequested) {
                                     interrupted = true
                                     break
                                 }
-                                log(KIND_NOTE, str(R.string.agent_note_handoff_done))
-                                results.add(handedOffResult(toolUse))
-                                handedOff = true
-                                break
+                                continue
                             }
                             results.add(executeTool(executor, toolUse))
                         }
@@ -606,6 +645,31 @@ object AgentController {
             isError = false,
         )
 
+    /** 6.5c-3b: true when [pkg] has an active session or persistent trust grant. */
+    private fun isTrusted(pkg: String): Boolean {
+        val session = synchronized(sessionGrants) { sessionGrants.contains(pkg) }
+        if (session) return true
+        return trustStore?.activeGrants(System.currentTimeMillis())?.contains(pkg) == true
+    }
+
+    private fun scopeFor(pkg: String): GrantScope =
+        if (synchronized(sessionGrants) { sessionGrants.contains(pkg) }) GrantScope.SESSION else GrantScope.PERSISTENT
+
+    /** Audit a trusted-app action (text-only) and keep a persistent grant from decaying. */
+    private fun recordTrustedAction(
+        executor: ToolExecutor,
+        toolUse: AgentContent.ToolUse,
+        pkg: String,
+        scope: GrantScope,
+    ) {
+        val now = System.currentTimeMillis()
+        trustStore?.touch(pkg, now) // no-op unless pkg has a persistent grant
+        auditLog?.record(
+            AuditEntry(pkg, toolUse.name, executor.describeAction(toolUse.name, argsOf(toolUse)), now, scope),
+        )
+        log(KIND_NOTE, str(R.string.agent_note_trusted_action, pkg))
+    }
+
     /** Auth-aware takeover copy for the handoff overlay (6.5c-2). */
     private fun handoffBody(kind: SensitiveScreenDetector.Kind?): String =
         when (kind) {
@@ -625,11 +689,15 @@ object AgentController {
         }
     }
 
-    private fun executeTool(executor: ToolExecutor, toolUse: AgentContent.ToolUse): AgentContent.ToolResult {
+    private fun executeTool(
+        executor: ToolExecutor,
+        toolUse: AgentContent.ToolUse,
+        bypassGuard: Boolean = false,
+    ): AgentContent.ToolResult {
         val args = argsOf(toolUse)
         val summary = executor.describeAction(toolUse.name, args)
         log(KIND_TOOL, "▸ ${toolUse.name} $summary".trimEnd())
-        val outcome = executor.callTool(toolUse.name, args)
+        val outcome = executor.callTool(toolUse.name, args, bypassSensitivityGuard = bypassGuard)
         if (outcome.isError) {
             log(KIND_TOOL, "✗ ${toolUse.name} failed — the agent will see the error and adapt")
         }
