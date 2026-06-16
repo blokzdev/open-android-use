@@ -623,6 +623,13 @@ smoke; the `EgressPolicy` loopback guard is unit-tested. On-device (Gemma) parit
 by the existing on-device hardware items (V131, V135–V138) — there is nothing new to check on a
 device for 5.8.
 
+### Phase 6 — world-class app
+
+- [ ] **V139. Labeled actions read correctly**: with confirmations on, run a task that taps/sets a
+  labelled control. Pass: the consent sheet and the chat tool chips name the element ("Tap 'Send'",
+  "Set 'Email' = …") rather than "[42]"; coordinate-only taps still read sensibly. A model refusal
+  shows its actual reason in the transcript.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |

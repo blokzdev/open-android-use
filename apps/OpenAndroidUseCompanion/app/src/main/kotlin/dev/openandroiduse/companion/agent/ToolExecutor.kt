@@ -405,6 +405,14 @@ class ToolExecutor(
 
     private fun current(app: String): AppSnapshot? = snapshots[app.trim().lowercase()]
 
+    /**
+     * Phase 6.1: a label-resolved, human-readable summary of an action for the
+     * consent sheet, tool log, and transcript — resolves `element_index` to its
+     * label via the relevant app's most-recent snapshot.
+     */
+    fun describeAction(name: String, args: JSONObject): String =
+        ActionSummary.describe(current(args.optString("app")), name, args)
+
     private fun remember(query: String, snapshot: AppSnapshot) {
         // Keyed by query/label/package only — matching the Go bridge. We do NOT
         // alias under "foreground": a later app:"foreground" action must take a

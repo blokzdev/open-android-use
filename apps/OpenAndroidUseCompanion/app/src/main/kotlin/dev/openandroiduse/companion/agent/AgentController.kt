@@ -411,14 +411,17 @@ object AgentController {
 
                 when (turn.stopReason) {
                     AgentStopReason.REFUSAL -> {
-                        log(KIND_NOTE, "⚠ " + str(R.string.agent_note_refusal, turn.refusalDetail))
+                        // Surface the model's actual reason (when present) so the user can
+                        // see why it declined, not just that it did.
+                        val reason = turn.refusalDetail.trim().let { if (it.isEmpty()) "" else " ($it)" }
+                        log(KIND_NOTE, "⚠ " + str(R.string.agent_note_refusal, reason))
                         return finish("refusal")
                     }
                     AgentStopReason.TOOL_USE -> {
                         val toolUses = turn.assistant.content.filterIsInstance<AgentContent.ToolUse>()
                         if (toolUses.isEmpty()) return finish("end_turn")
                         val denied = confirmActions && needsConfirmation(toolUses) &&
-                            !ConfirmationSheet.ask(service, batchSummary(toolUses))
+                            !ConfirmationSheet.ask(service, batchSummary(executor, toolUses))
                         val results = mutableListOf<AgentContent.ToolResult>()
                         var interrupted = false
                         for (toolUse in toolUses) {
@@ -495,9 +498,9 @@ object AgentController {
         JSONObject()
     }
 
-    private fun batchSummary(toolUses: List<AgentContent.ToolUse>): String =
+    private fun batchSummary(executor: ToolExecutor, toolUses: List<AgentContent.ToolUse>): String =
         toolUses.joinToString("\n") { toolUse ->
-            "• ${toolUse.name} ${summarizeArgs(toolUse.name, argsOf(toolUse))}".trimEnd()
+            "• ${toolUse.name} ${executor.describeAction(toolUse.name, argsOf(toolUse))}".trimEnd()
         }
 
     private fun deniedResult(toolUse: AgentContent.ToolUse): AgentContent.ToolResult =
@@ -519,7 +522,7 @@ object AgentController {
 
     private fun executeTool(executor: ToolExecutor, toolUse: AgentContent.ToolUse): AgentContent.ToolResult {
         val args = argsOf(toolUse)
-        val summary = summarizeArgs(toolUse.name, args)
+        val summary = executor.describeAction(toolUse.name, args)
         log(KIND_TOOL, "▸ ${toolUse.name} $summary".trimEnd())
         val outcome = executor.callTool(toolUse.name, args)
         if (outcome.isError) {
@@ -536,18 +539,6 @@ object AgentController {
             isError = outcome.isError,
             image = outcome.screenshotPngBase64?.let { ToolImage(it) },
         )
-    }
-
-    private fun summarizeArgs(name: String, args: JSONObject): String = when (name) {
-        "click" -> args.optString("element_index").ifBlank {
-            "(${args.optDouble("x", 0.0).toInt()}, ${args.optDouble("y", 0.0).toInt()})"
-        }
-        "get_app_state", "list_apps" -> args.optString("app")
-        "type_text" -> "\"${args.optString("text").take(40)}\""
-        "set_value" -> "element ${args.optString("element_index")}"
-        "press_key" -> args.optString("key")
-        "scroll" -> "${args.optString("direction")} ×${args.optDouble("pages", 1.0)}"
-        else -> ""
     }
 
     @Synchronized
