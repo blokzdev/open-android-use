@@ -633,6 +633,11 @@ device for 5.8.
   Agent's-view draws a ring at taps *and* an arrow showing swipe/drag direction (aligned to the
   control), and the caption under the title names the current step ("Scrolling down in 'Inbox'…").
   Both clear when the agent goes idle / a new conversation starts.
+- [ ] **V141. Transient retry/backoff + status badge**: induce a transient failure mid-task (toggle
+  airplane mode briefly, or force a 429). Pass: the agent waits and retries (up to 3) instead of
+  aborting, the Agent's-view shows a "retrying… (n/3)" badge during backoff, and the task resumes on
+  recovery with no duplicated assistant text. A permanent error (bad API key) fails fast with no
+  retry. Pressing Stop during a backoff wait ends the task promptly.
 
 ## Results log
 

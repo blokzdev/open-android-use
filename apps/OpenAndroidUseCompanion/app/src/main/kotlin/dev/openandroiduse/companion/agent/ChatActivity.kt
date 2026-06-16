@@ -157,6 +157,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
     private var agentView by mutableStateOf<ImageBitmap?>(null)
     private var tapPoint by mutableStateOf<Pair<Float, Float>?>(null)
     private var gestures by mutableStateOf<List<GestureMark>>(emptyList())
+    private var transientStatus by mutableStateOf<String?>(null)
     private var expandView by mutableStateOf(false)
     private var recentSessions by mutableStateOf<List<SessionMeta>>(emptyList())
     /** Full session list for the tablet/foldable two-pane History pane (4.6e). */
@@ -270,6 +271,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
             agentView = agentView,
             tapPoint = tapPoint,
             gestures = gestures,
+            transientStatus = transientStatus,
             modelLabel = settings.model,
             localOnly = settings.localOnlyMode,
             recentSessions = recentSessions,
@@ -286,6 +288,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
                 agentView = null
                 tapPoint = null
                 gestures = emptyList()
+                transientStatus = null
                 recentSessions = sessions.list()
                 sessionList = recentSessions
             },
@@ -363,6 +366,10 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
         }
     }
 
+    override fun onStatusChanged(status: String?) {
+        mainHandler.post { transientStatus = status }
+    }
+
     private fun decodeAgentView(b64: String) {
         runCatching {
             val bytes = Base64.decode(b64, Base64.NO_WRAP)
@@ -428,6 +435,7 @@ class ChatActivity : ComponentActivity(), AgentController.Listener {
         agentView = null
         tapPoint = null
         gestures = emptyList()
+        transientStatus = null
     }
 
     /** Export the whole conversation as a Markdown file shared via FileProvider. */
@@ -538,6 +546,7 @@ private fun ChatScreen(
     agentView: ImageBitmap?,
     tapPoint: Pair<Float, Float>?,
     gestures: List<GestureMark>,
+    transientStatus: String?,
     modelLabel: String,
     localOnly: Boolean,
     recentSessions: List<SessionMeta>,
@@ -632,7 +641,7 @@ private fun ChatScreen(
                 } else {
                     null
                 }
-                AgentViewCard(agentView, tapPoint, gestures, currentAction, running, onStop, onExpandView)
+                AgentViewCard(agentView, tapPoint, gestures, currentAction, transientStatus, running, onStop, onExpandView)
             }
             if (messages.isEmpty()) {
                 EmptyState(recentSessions, onResumeSession, onPrompt = onInputChange)
@@ -770,6 +779,7 @@ private fun AgentViewCard(
     tapPoint: Pair<Float, Float>?,
     gestures: List<GestureMark>,
     currentAction: String?,
+    transientStatus: String?,
     running: Boolean,
     onStop: () -> Unit,
     onExpand: () -> Unit,
@@ -803,6 +813,21 @@ private fun AgentViewCard(
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                     Spacer(Modifier.width(8.dp))
                     Button(onClick = onStop) { Text(stringResource(R.string.action_stop)) }
+                }
+            }
+            if (transientStatus != null) {
+                // Live connection status while the loop backs off / retries (6.3a).
+                Surface(
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                    shape = MaterialTheme.shapes.small,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                ) {
+                    Text(
+                        transientStatus,
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                    )
                 }
             }
             if (view != null) {
