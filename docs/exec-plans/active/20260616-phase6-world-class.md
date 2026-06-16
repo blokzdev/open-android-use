@@ -38,8 +38,8 @@ ends, land quick wins, add advanced features, elevate UX, and modernize — so o
 - **6.2 — Richer live feedback:** ✅ gesture overlay on the Agent's-view (tap ripples + swipe/drag
   arrows via `GestureMark`) + a live action caption from 6.1's labels. (Status badge → 6.3; a full
   timeline stays folded into the chat's tool chips.)
-- **6.3 — Reliability:** transient-error retry/backoff + status badge (6.3a ✅), then snapshot
-  diffing ("what changed") in action results + stuck/no-progress detection (6.3b).
+- **6.3 — Reliability:** transient-error retry/backoff + status badge (6.3a ✅); snapshot diffing
+  ("what changed") in action results + stuck/no-progress detection (6.3b ✅).
 - **6.4 — Perception richness:** focus-change, scroll-state, modal awareness, adaptive tree budget
   in the a11y-tree text (no schema change).
 - **6.5 — Safety depth:** sensitive-screen detection (password/payment → auto-decline),
@@ -64,5 +64,5 @@ ends, land quick wins, add advanced features, elevate UX, and modernize — so o
 - [x] 6.1 — element-labeled actions + refusal clarity (`ActionSummary` + `ToolExecutor.describeAction`).
 - [x] 6.2 — gesture overlay (`GestureMark`) + live action caption in the Agent's-view.
 - [x] 6.3a — transient-error retry/backoff (`RetryPolicy`) + live status badge.
-- [ ] 6.3b — snapshot diffing in action results + stuck/no-op detection.
+- [x] 6.3b — snapshot diffing (`SnapshotDiff`) in action results + stuck/no-op detection.
 - [ ] 6.4–6.9 (planned per the loop; 6.4–6.5 are the substance, 6.6–6.9 polish/reach).

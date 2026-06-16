@@ -72,6 +72,10 @@ object AgentController {
 
     private const val MAX_TOKENS = 64_000L
     private const val MAX_TOOL_TURNS = 60
+
+    // Phase 6.3b: consecutive action-turns with no screen change before the loop
+    // stops gracefully (vs. spinning a no-op to MAX_TOOL_TURNS).
+    private const val STUCK_THRESHOLD = 3
     private const val RECENT_IMAGE_WINDOW = 2
 
     /** Transcript kinds, mirrored by the chat UI. */
@@ -420,6 +424,7 @@ object AgentController {
         }
         try {
             var turns = 0
+            var noProgressTurns = 0
             while (turns < MAX_TOOL_TURNS) {
                 turns++
                 if (cancelRequested) return finish(stopReasonLabel())
@@ -471,6 +476,20 @@ object AgentController {
                         appendToolResults(results)
                         if (denied) {
                             log(KIND_NOTE, str(R.string.agent_note_denied))
+                        } else if (!interrupted) {
+                            // Phase 6.3b: stop gracefully if actions stop moving the screen,
+                            // rather than spinning the same no-op to the turn cap.
+                            when (executor.actionChanged) {
+                                true -> noProgressTurns = 0
+                                false -> {
+                                    noProgressTurns++
+                                    if (noProgressTurns >= STUCK_THRESHOLD) {
+                                        log(KIND_NOTE, "⚠ " + str(R.string.agent_note_stuck))
+                                        return finish("stuck")
+                                    }
+                                }
+                                null -> {} // no action ran this turn (reads only)
+                            }
                         }
                         if (interrupted) return finish(stopReasonLabel())
                     }
