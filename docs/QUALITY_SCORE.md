@@ -20,4 +20,4 @@
 | 架构文档 | B | 顶层结构、fixture bridge、app 模式和验证路径已经落文档。 | 后续补 release artifact、code signing / notarization 和 host 集成方式。 |
 | 测试 | B | `swift test` + smoke suite 已覆盖 9 个 tools 的回归，并新增了针对“前台焦点是否被抢占”的手工对比样本沉淀。 | 增加更多普通 app 的录制回归，减少只依赖 fixture 和一次性手工检查。 |
 | 可观测性 | C | 已有 `doctor`、`snapshot`、smoke 输出，以及一组仓库内留档的官方 `computer-use` / 本仓库实现对比样本。 | 补统一日志级别、失败上下文和 release artifact 里的诊断信息，把一次性样本收敛成可重复采集流程。 |
-| 安全 | B | 已明确本地-only、权限边界和 fixture test bridge 的作用域，并将内置 denylist 收缩到密码管理器。Android agent 已有敏感屏幕守卫（6.5a/6.5b），并落地了**长期安全/信任架构参考**（`docs/design-docs/agent-security-trust-architecture.md`，6.5c-0）：分级最小权限信任模型、"密钥永不进入模型回路"的红线、注入防御分层。 | 实现 6.5c 各层（redaction → handoff → 分级授权 → 注入硬化 → risk-adaptive confirm），把架构文档兑现成代码与设备验证。 |
+| 安全 | B+ | 本地-only、权限边界、fixture bridge 作用域清晰；**Phase 6.5c 信任模型完整落地（L0–L4，PR #49–#59）**：L0 敏感字段脱敏 + 截图抑制；L1 人工接管/takeover + 登录 tap-to-fill；L2 分级 per-app 授权（once/session/persistent，可撤销、自动衰减、审计）；L3 注入硬化（spotlighting + 启发式标注）；L4 风险自适应确认（授信下高风险动作仍确认）+ 透明度面板（审计查看器、活动回执、引导说明）。三层结构性不变量：脱敏与元素级密钥接管永不受授权影响。参考：`docs/design-docs/agent-security-trust-architecture.md`。 | 清掉 `VERIFICATION.md` V143–V159 真机验证；Phase 7 处理 release 签名 + R8 设备校验；按需引入模型级注入分类器 / 完整 CaMeL（BACKLOG）。 |

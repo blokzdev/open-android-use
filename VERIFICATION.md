@@ -735,6 +735,15 @@ device for 5.8.
   The **Injection protection** line is present and describes the untrusted-content handling. "Manage in
   Settings" opens Settings.
 
+- [ ] **V158. In-chat activity receipt**: run a task that takes a few actions (e.g. open an app, tap
+  around, type something), then let it finish. Pass: a single note appears at the end summarizing what
+  the agent did — e.g. "Done — this task: 3 taps · 1 scroll · 1 text entry" — counting only successful
+  *actions* (no reads), pluralized correctly, and **never** showing a typed value/secret. A read-only or
+  zero-action turn produces **no** receipt. The receipt is posted once (not duplicated on stop/error).
+- [ ] **V159. Onboarding trust explainer**: do a first run (fresh install / onboarding not completed).
+  Pass: the Privacy step shows the "Your secrets stay yours" point explaining hand-off of password &
+  payment fields and that granted app trust is limited/revocable/lapsing.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |

@@ -191,6 +191,11 @@ object AgentController {
     @Volatile
     private var lastPerceptionFlagged = false
 
+    // 6.5c-5b: per-run tally of executed tools (for the end-of-task activity receipt) and a
+    // one-shot guard so the receipt is posted exactly once from the terminal path.
+    private val actionTally = mutableMapOf<String, Int>()
+    private var receiptLogged = false
+
     /** Resolve a localized note string off the agent loop thread. */
     private fun str(resId: Int, vararg args: Any): String =
         (appContext ?: CompanionService.instance)?.getString(resId, *args) ?: ""
@@ -229,6 +234,9 @@ object AgentController {
         appContext = settings.appContext
         if (trustStore == null) trustStore = TrustStore(settings.appContext)
         if (auditLog == null) auditLog = TrustAuditLog(settings.appContext)
+        // 6.5c-5b: fresh tally + receipt guard for this run.
+        synchronized(actionTally) { actionTally.clear() }
+        receiptLogged = false
         val service = CompanionService.instance ?: run {
             log(KIND_NOTE, str(R.string.agent_note_no_service))
             return false
@@ -338,6 +346,8 @@ object AgentController {
         transientStatus = null
         // 6.5c-3b: session trust is task-scoped — a new conversation re-earns it.
         synchronized(sessionGrants) { sessionGrants.clear() }
+        synchronized(actionTally) { actionTally.clear() }
+        receiptLogged = false
         synchronized(transcript) { transcript.clear() }
         // Start a fresh session so the next task is saved separately and the old
         // one (already persisted by the UI) is left intact.
@@ -740,6 +750,9 @@ object AgentController {
         val outcome = executor.callTool(toolUse.name, args, bypassSensitivityGuard = bypassGuard)
         if (outcome.isError) {
             log(KIND_TOOL, "✗ ${toolUse.name} failed — the agent will see the error and adapt")
+        } else {
+            // 6.5c-5b: tally successful tools for the end-of-task activity receipt.
+            synchronized(actionTally) { actionTally[toolUse.name] = (actionTally[toolUse.name] ?: 0) + 1 }
         }
         outcome.screenshotPngBase64?.let { png ->
             latestScreenshotBase64 = png
@@ -887,9 +900,22 @@ object AgentController {
             "stopped" -> log(KIND_NOTE, str(R.string.agent_note_stopped))
             "max_tokens" -> log(KIND_NOTE, str(R.string.agent_note_max_tokens))
         }
+        logReceiptIfAny()
     }
 
     private fun fail(message: String) {
         log(KIND_NOTE, "⚠ $message")
+        logReceiptIfAny()
+    }
+
+    /**
+     * 6.5c-5b: post the end-of-task activity receipt once, summarizing what the agent *did*
+     * (taps/scrolls/text entries…). Skipped when no action ran (read-only/refusal turns).
+     */
+    private fun logReceiptIfAny() {
+        if (receiptLogged) return
+        receiptLogged = true
+        val tally = synchronized(actionTally) { actionTally.toMap() }
+        ActivityReceipt.summarize(tally)?.let { log(KIND_NOTE, str(R.string.agent_note_receipt, it)) }
     }
 }

@@ -199,6 +199,8 @@
     <string name="onboarding_privacy_on_device_body">The agent runs here. The control endpoint binds to this device only (127.0.0.1).</string>
     <string name="onboarding_privacy_leaves_body">Only your task and screen context, sent to the model provider you choose (api.anthropic.com) to decide the next action.</string>
     <string name="onboarding_privacy_key_body">Stored encrypted in the Android Keystore — it never leaves the device except to the provider.</string>
+    <string name="onboarding_privacy_trust_title">Your secrets stay yours</string>
+    <string name="onboarding_privacy_trust_body">On a password or payment screen the agent hands off to you and never types the secret. Any trust you grant an app is limited, revocable, and lapses on its own.</string>
     <string name="onboarding_apikey_title">Add your API key</string>
     <string name="onboarding_apikey_body">Paste an Anthropic API key to let the agent run. You can skip this and add it later — you\'ll be prompted when you start a task.</string>
     <string name="onboarding_apikey_label">Anthropic API key (sk-ant-…)</string>
@@ -263,6 +265,7 @@
     <string name="handoff_grant_hint">Trust lets me act on this app\'s non-secret controls without asking. Secret fields always stay yours.</string>
     <string name="agent_note_trusted_action">Acting on a trusted app (%1$s).</string>
     <string name="agent_note_risk_confirm">Confirming a higher-risk action with you first.</string>
+    <string name="agent_note_receipt">Done — this task: %1$s.</string>
     <string name="agent_note_handoff">Handed off to you for a password/payment field — waiting for you to enter it.</string>
     <string name="agent_note_handoff_done">You handled the secret entry; resuming.</string>
 
