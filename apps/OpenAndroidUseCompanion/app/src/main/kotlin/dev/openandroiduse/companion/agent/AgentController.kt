@@ -186,6 +186,11 @@ object AgentController {
     @Volatile
     private var auditLog: TrustAuditLog? = null
 
+    // 6.5c-5: whether the most recent perception result tripped the injection heuristic,
+    // so the next action is risk-confirmed even under a grant.
+    @Volatile
+    private var lastPerceptionFlagged = false
+
     /** Resolve a localized note string off the agent loop thread. */
     private fun str(resId: Int, vararg args: Any): String =
         (appContext ?: CompanionService.instance)?.getString(resId, *args) ?: ""
@@ -497,6 +502,10 @@ object AgentController {
                                 // real secret field always hands off, trusted app or not.
                                 val elementSecret = executor.targetsSecretField(toolUse.name, args)
                                 if (!elementSecret && pkg != null && isTrusted(pkg)) {
+                                    if (!riskGatePasses(service, executor, toolUse, confirmActions)) {
+                                        results.add(deniedResult(toolUse))
+                                        continue
+                                    }
                                     results.add(executeTool(executor, toolUse, bypassGuard = true))
                                     recordTrustedAction(executor, toolUse, pkg, scopeFor(pkg))
                                     continue
@@ -540,6 +549,12 @@ object AgentController {
                                     interrupted = true
                                     break
                                 }
+                                continue
+                            }
+                            // 6.5c-5: even on a non-sensitive screen, an irreversible/flagged action
+                            // gets a one-tap confirm when per-action confirmation is otherwise off.
+                            if (!riskGatePasses(service, executor, toolUse, confirmActions)) {
+                                results.add(deniedResult(toolUse))
                                 continue
                             }
                             results.add(executeTool(executor, toolUse))
@@ -650,6 +665,26 @@ object AgentController {
             isError = false,
         )
 
+    /**
+     * 6.5c-5 risk gate: an irreversible/externally-visible action (send/pay/delete/post…) or an
+     * action on an injection-flagged screen is confirmed with a one-tap prompt — **even under a
+     * per-app grant**. Skipped when [confirmActions] is on (the per-batch confirm already covered
+     * this turn). Returns true to proceed, false if the user declined.
+     */
+    private fun riskGatePasses(
+        service: CompanionService,
+        executor: ToolExecutor,
+        toolUse: AgentContent.ToolUse,
+        confirmActions: Boolean,
+    ): Boolean {
+        if (confirmActions) return true
+        val label = executor.describeAction(toolUse.name, argsOf(toolUse))
+        val needsConfirm = RiskClassifier.isHighRisk(toolUse.name, label) || lastPerceptionFlagged
+        if (!needsConfirm) return true
+        log(KIND_NOTE, "⚠ " + str(R.string.agent_note_risk_confirm))
+        return ConfirmationSheet.ask(service, label)
+    }
+
     /** 6.5c-3b: true when [pkg] has an active session or persistent trust grant. */
     private fun isTrusted(pkg: String): Boolean {
         val session = synchronized(sessionGrants) { sessionGrants.contains(pkg) }
@@ -714,8 +749,11 @@ object AgentController {
         }
         // 6.5c-4: flag indirect prompt injection in the (untrusted) screen text the model
         // is about to read. Only annotates a tripped result, so normal snapshots are unchanged.
-        val resultText = outcome.text.ifEmpty { "(empty)" }
-            .let { if (outcome.isError) it else InjectionHeuristic.annotate(it) }
+        // 6.5c-5: remember the flag so the next action is risk-confirmed.
+        val rawText = outcome.text.ifEmpty { "(empty)" }
+        val flagged = !outcome.isError && InjectionHeuristic.isSuspicious(rawText)
+        lastPerceptionFlagged = flagged
+        val resultText = if (flagged) InjectionHeuristic.WARNING + rawText else rawText
         return AgentContent.ToolResult(
             toolUseId = toolUse.id,
             text = resultText,

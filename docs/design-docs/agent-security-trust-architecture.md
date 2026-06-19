@@ -16,7 +16,8 @@
 | L1 Login tap-to-fill (focus field → OS chip) | **Built** (best-effort) — 6.5c-2b |
 | L2 Scoped, revocable, decaying per-app trust + audit | Specified — 6.5c-3 |
 | L3 Untrusted-content isolation / spotlighting + injection-signal classifier | **Built** (v1 heuristic) — 6.5c-4 |
-| L4 Risk-adaptive confirmation + trust transparency | Specified — 6.5c-5 |
+| L4 Risk-adaptive confirmation (high-risk/injection-flagged → confirm even under a grant) | **Built** — 6.5c-5a |
+| L4 Trust transparency (audit viewer, Trust & Safety surface, activity receipts) | Specified — 6.5c-5b |
 | Provider model hardening | **Relied upon** (Claude/Gemini); weaker on-device (Gemma) — documented limitation |
 | Full CaMeL (provable data-flow control) | **Principles adopted; full system deferred** — see §7 + `docs/BACKLOG.md` |
 
