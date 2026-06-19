@@ -725,6 +725,16 @@ device for 5.8.
   grant relaxes the sensitive-screen gate but not the risk gate). Declining skips the action; the
   model adapts. An action taken right after an injection-flagged screen (V154) also confirms.
 
+- [ ] **V156. Recent agent activity viewer**: grant an app trust (session/persistent) and let the agent
+  take a few non-secret actions on it, then open Privacy → **Trust & Safety → Recent agent activity**.
+  Pass: each action is listed with the app's label, a short summary (e.g. "Tap 'Next'"), and a relative
+  time; **no field value / secret ever appears**. **Clear activity log** (confirm) empties the list and
+  the Snackbar **Undo** restores it; the list refreshes in place.
+- [ ] **V157. Trust & Safety status lines**: in Privacy → Trust & Safety, the **Password & payment guard**
+  line reads "On" by default; toggle the guard **off** in Settings and reopen Privacy → it reads "Off".
+  The **Injection protection** line is present and describes the untrusted-content handling. "Manage in
+  Settings" opens Settings.
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |
