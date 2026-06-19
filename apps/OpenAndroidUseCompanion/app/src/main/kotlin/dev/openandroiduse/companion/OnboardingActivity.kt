@@ -334,6 +334,8 @@ private fun PrivacyStep() {
     PrivacyPoint(stringResource(R.string.privacy_leaves_title), stringResource(R.string.onboarding_privacy_leaves_body))
     PrivacyPoint(stringResource(R.string.privacy_key_title), stringResource(R.string.onboarding_privacy_key_body))
     PrivacyPoint(stringResource(R.string.privacy_kill_title), stringResource(R.string.privacy_kill_body))
+    // 6.5c-5b: introduce the trust model before first use.
+    PrivacyPoint(stringResource(R.string.onboarding_privacy_trust_title), stringResource(R.string.onboarding_privacy_trust_body))
 }
 
 @Composable

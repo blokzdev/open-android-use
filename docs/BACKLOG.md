@@ -67,6 +67,17 @@ Each entry: **idea** — why deferred · _priority_ · origin.
   dedicated toggle. If Play review or a user wants it off independently, add an `AgentSettings`
   toggle + a Settings row (cheap, mirrors `sensitiveScreenGuard`). _Low._ Origin: Phase 6.5c-2b.
 
+## Transparency follow-ups (Phase 6.5c-5b deferrals)
+
+- **Grant-decay notification nudge.** The Trusted-apps list already shows a live "Lapses in N days"
+  countdown (6.5c-3c), so an active push notification is redundant for now and needs a scheduled
+  trigger (WorkManager / on-launch check). Cheap infra-wise (reuse `AgentNotification`'s LOW channel +
+  a new id; POST_NOTIFICATIONS already declared) but low marginal value. _Low._ Origin: Phase 6.5c-5b.
+- **"View details" deep-link on the activity-receipt note → Privacy → Recent agent activity.** Needs
+  `NoteCard` to carry an `onViewDetails` callback + a way to tag the receipt note (the text-based
+  `NoteClassifier` doesn't distinguish it). The audit is independently reachable in Privacy, so the
+  plain receipt shipped first. _Low._ Origin: Phase 6.5c-5b.
+
 ## Build / release / distribution
 
 - **Release APK is unsigned + R8-unvalidated — crashes on launch (Phase 7).** The manual `build-apk.yml`
