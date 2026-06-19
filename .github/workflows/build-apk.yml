@@ -43,6 +43,10 @@ jobs:
 
       # Minified (R8) release APK. Unsigned — release signing is founder-held and
       # lands in the distribution phase (Phase 7).
+      # CAVEAT: this artifact is NOT yet usable — it is unsigned AND the R8-minified
+      # build has not been device-validated (it crashes on launch on a real device, an
+      # open keep-rule gap; see docs/BACKLOG.md "Build / release / distribution"). For
+      # on-device testing use build_type=debug (un-minified + debug-signed).
       - name: assemble minified release APK
         if: ${{ inputs.build_type == 'release' || inputs.build_type == 'both' }}
         run: (cd apps/OpenAndroidUseCompanion && gradle assembleRelease --no-daemon)

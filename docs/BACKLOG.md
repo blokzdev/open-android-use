@@ -67,6 +67,21 @@ Each entry: **idea** — why deferred · _priority_ · origin.
   dedicated toggle. If Play review or a user wants it off independently, add an `AgentSettings`
   toggle + a Settings row (cheap, mirrors `sensitiveScreenGuard`). _Low._ Origin: Phase 6.5c-2b.
 
+## Build / release / distribution
+
+- **Release APK is unsigned + R8-unvalidated — crashes on launch (Phase 7).** The manual `build-apk.yml`
+  **release** variant (`app/build.gradle.kts` `release { isMinifyEnabled = true }`, no `signingConfig`)
+  produces `app-release-unsigned.apk`, which installs (after an installer re-signs it) but **closes
+  instantly on launch** — the classic symptom of an **R8 keep-rule gap**, since the minified build has
+  never been device-validated (the build comment defers on-device R8 validation to "the Phase 6 gate";
+  it slipped to Phase 7). Two separate fixes, both scheduled for **Phase 7 distribution**: (1) a
+  secrets-driven `signingConfig` in `app/build.gradle.kts` with a **debug-sign fallback** so CI/local
+  builds keep working, plus `build-apk.yml` wiring + a founder-held keystore in GitHub secrets; and
+  (2) an **on-device R8 validation pass** that runs the signed minified build on real hardware and adds
+  the missing keep-rules (capture the `adb logcat -b crash` `FATAL EXCEPTION` to pin the exact class).
+  **Until then: use the `debug` `build_type` for on-device testing** (un-minified + debug-signed; works).
+  _Medium (blocks distribution, not dev)._ Origin: founder S20 install, 2026-06-19.
+
 ## On-device agent / chat
 
 - **Structured tool chips with element labels** — chips currently prettify the
