@@ -103,6 +103,7 @@ ends, land quick wins, add advanced features, elevate UX, and modernize — so o
   (persistent "Always allow" + Privacy "Trusted apps" list with revoke/decay countdown; audit
   *viewing* UI folded into 6.5c-5); **6.5c-4 injection hardening ✅** (spotlighting system-prompt
   clause + pure `InjectionHeuristic` annotating flagged perception); **6.5c-5a risk-adaptive confirm ✅**
-  (pure `RiskClassifier`; high-risk/injection-flagged actions confirm even under a grant); → 6.5c-5b
-  transparency (audit viewer + Trust & Safety surface + activity receipts + onboarding).
+  (pure `RiskClassifier`; high-risk/injection-flagged actions confirm even under a grant); 6.5c-5b
+  transparency: **5b-1 audit viewer + Trust & Safety surface ✅** (Privacy "Recent agent activity" +
+  guard/injection status) → 5b-2 in-chat activity receipt + onboarding trust explainer (closes 6.5c).
 - [ ] 6.6–6.9 polish/reach.

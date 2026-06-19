@@ -2,6 +2,7 @@ package dev.openandroiduse.companion
 
 import android.content.Intent
 import android.os.Bundle
+import android.text.format.DateUtils
 import android.text.format.Formatter
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -38,6 +39,7 @@ import dev.openandroiduse.companion.agent.AgentSettings
 import dev.openandroiduse.companion.agent.ConversationExport
 import dev.openandroiduse.companion.agent.SessionStore
 import dev.openandroiduse.companion.agent.SessionTitle
+import dev.openandroiduse.companion.agent.TrustAuditLog
 import dev.openandroiduse.companion.agent.TrustPolicy
 import dev.openandroiduse.companion.agent.TrustStore
 import dev.openandroiduse.companion.ui.ResponsiveContent
@@ -64,12 +66,14 @@ class PrivacyActivity : ComponentActivity() {
     private lateinit var settings: AgentSettings
     private lateinit var sessions: SessionStore
     private lateinit var trust: TrustStore
+    private lateinit var audit: TrustAuditLog
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         settings = AgentSettings(this)
         sessions = SessionStore(this)
         trust = TrustStore(this)
+        audit = TrustAuditLog(this)
         enableEdgeToEdge()
         setContent {
             OpenAndroidUseTheme(themeMode = settings.themeMode, dynamicColor = settings.dynamicColor) {
@@ -108,6 +112,13 @@ class PrivacyActivity : ComponentActivity() {
                         trust.revokeAll();
                         { saved.forEach { trust.grant(it.packageName, now) } }
                     },
+                    sensitiveScreenGuard = settings.sensitiveScreenGuard,
+                    loadActivity = ::loadActivity,
+                    onClearActivity = {
+                        val saved = audit.all()
+                        audit.clear();
+                        { saved.asReversed().forEach { audit.record(it) } }
+                    },
                 )
             }
         }
@@ -122,6 +133,18 @@ class PrivacyActivity : ComponentActivity() {
                 packageManager.getApplicationLabel(info).toString()
             }.getOrDefault(grant.packageName)
             TrustedAppItem(grant.packageName, label, TrustPolicy.daysUntilDecay(grant, now))
+        }
+    }
+
+    /** Recent trusted-app actions, resolved to app labels + relative time (6.5c-5b). Newest first, capped. */
+    private fun loadActivity(): List<ActivityItem> {
+        val now = System.currentTimeMillis()
+        return audit.all().take(ACTIVITY_LIMIT).map { e ->
+            val label = runCatching {
+                packageManager.getApplicationLabel(packageManager.getApplicationInfo(e.packageName, 0)).toString()
+            }.getOrDefault(e.packageName)
+            val whenText = DateUtils.getRelativeTimeSpanString(e.at, now, DateUtils.MINUTE_IN_MILLIS).toString()
+            ActivityItem(label, e.summary.ifBlank { e.tool }, whenText)
         }
     }
 
@@ -169,6 +192,9 @@ private fun PrivacyScreen(
     loadTrustedApps: () -> List<TrustedAppItem>,
     onRevokeApp: (String) -> (() -> Unit),
     onRevokeAllApps: () -> (() -> Unit),
+    sensitiveScreenGuard: Boolean,
+    loadActivity: () -> List<ActivityItem>,
+    onClearActivity: () -> (() -> Unit),
 ) {
     val snackbarHost = remember { SnackbarHostState() }
     Scaffold(
@@ -202,8 +228,18 @@ private fun PrivacyScreen(
 
             HorizontalDivider()
 
-            // --- Trusted apps (Phase 6.5c-3c) ---
+            // --- Trust & Safety (Phase 6.5c-5b): status + trusted apps + activity ---
+            Text(stringResource(R.string.privacy_trustsafety_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.markHeading())
+            PrivacyPoint(
+                stringResource(R.string.privacy_guard_title),
+                stringResource(if (sensitiveScreenGuard) R.string.privacy_guard_on else R.string.privacy_guard_off),
+            )
+            PrivacyPoint(stringResource(R.string.privacy_injection_title), stringResource(R.string.privacy_injection_body))
+            OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.privacy_trustsafety_manage))
+            }
             TrustedAppsSection(loadTrustedApps, onRevokeApp, onRevokeAllApps, snackbarHost)
+            RecentActivitySection(loadActivity, onClearActivity, snackbarHost)
 
             HorizontalDivider()
 
@@ -248,6 +284,56 @@ private fun PrivacyScreen(
 
 /** A persistent trust grant resolved for the Privacy "Trusted apps" list (6.5c-3c). */
 data class TrustedAppItem(val packageName: String, val label: String, val daysUntilDecay: Long)
+
+/** One audited trusted-app action resolved for the Privacy "Recent agent activity" list (6.5c-5b). */
+data class ActivityItem(val label: String, val summary: String, val whenText: String)
+
+/** Cap on the rendered audit rows (the store keeps more; this bounds the scroll). */
+private const val ACTIVITY_LIMIT = 30
+
+@Composable
+private fun RecentActivitySection(
+    loadActivity: () -> List<ActivityItem>,
+    onClearActivity: () -> (() -> Unit),
+    host: SnackbarHostState,
+) {
+    val refresh = remember { mutableStateOf(0) }
+    val items = remember(refresh.value) { loadActivity() }
+
+    Text(
+        stringResource(R.string.privacy_activity_title),
+        style = MaterialTheme.typography.titleMedium,
+        modifier = Modifier.markHeading(),
+    )
+    Text(stringResource(R.string.privacy_activity_intro), style = MaterialTheme.typography.bodyMedium)
+
+    if (items.isEmpty()) {
+        Text(stringResource(R.string.privacy_activity_empty), style = MaterialTheme.typography.bodyMedium)
+        return
+    }
+    items.forEach { item ->
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Text(item.label, style = MaterialTheme.typography.titleSmall)
+            Text(
+                "${item.summary} · ${item.whenText}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+    DangerControl(
+        label = stringResource(R.string.privacy_activity_clear),
+        confirmTitle = stringResource(R.string.privacy_activity_clear_q),
+        confirmBody = stringResource(R.string.privacy_activity_clear_body),
+        successMessage = stringResource(R.string.privacy_activity_clear_toast),
+        host = host,
+        onConfirmed = {
+            val undo = onClearActivity()
+            refresh.value++;
+            { undo(); refresh.value = refresh.value + 1 }
+        },
+    )
+}
 
 @Composable
 private fun TrustedAppsSection(

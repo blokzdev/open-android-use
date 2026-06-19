@@ -164,6 +164,22 @@
     <string name="privacy_trusted_revoke_all_body">Every app will need to re-earn trust from a takeover prompt.</string>
     <string name="privacy_trusted_revoke_all_toast">All trust revoked</string>
 
+    <!-- Trust & Safety surface (Phase 6.5c-5b) -->
+    <string name="privacy_trustsafety_title">Trust &amp; Safety</string>
+    <string name="privacy_trustsafety_manage">Manage in Settings</string>
+    <string name="privacy_guard_title">Password &amp; payment guard</string>
+    <string name="privacy_guard_on">On — the agent hands password and payment fields off to you and never types them.</string>
+    <string name="privacy_guard_off">Off — the agent may act on password and payment screens. Turn it back on in Settings.</string>
+    <string name="privacy_injection_title">Injection protection</string>
+    <string name="privacy_injection_body">On-screen text is treated as untrusted data, never instructions. Suspicious text aimed at the agent is flagged, and it follows only your messages.</string>
+    <string name="privacy_activity_title">Recent agent activity</string>
+    <string name="privacy_activity_intro">What the agent did on trusted apps — tool and label only, never your field contents.</string>
+    <string name="privacy_activity_empty">No agent activity yet.</string>
+    <string name="privacy_activity_clear">Clear activity log</string>
+    <string name="privacy_activity_clear_q">Clear the activity log?</string>
+    <string name="privacy_activity_clear_body">Removes the saved record of what the agent did on trusted apps. This doesn\'t change any grants.</string>
+    <string name="privacy_activity_clear_toast">Activity log cleared</string>
+
     <!-- OnboardingActivity -->
     <string name="onboarding_step">Set up · Step %1$d of %2$d</string>
     <string name="onboarding_back">Back</string>
