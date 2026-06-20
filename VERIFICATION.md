@@ -744,6 +744,13 @@ device for 5.8.
   Pass: the Privacy step shows the "Your secrets stay yours" point explaining hand-off of password &
   payment fields and that granted app trust is limited/revocable/lapsing.
 
+- [ ] **V160. Gemini multi-turn tool use (thought_signature round-trip)**: in Settings pick the **Gemini**
+  provider with a valid key, then run a multi-step task ("what should I do on this phone?" / "open Settings
+  and tell me the battery level") that makes the agent call `get_app_state` and then act. Pass: the task
+  proceeds across **≥3 tool turns** with **no** `ClientException: 400 … missing a thought_signature`
+  error; the agent reads the screen and acts normally. Re-confirm the **Claude** provider still works on
+  the same task (regression check).
+
 ## Results log
 
 | Date | Device / Android version | Items run | Notes |

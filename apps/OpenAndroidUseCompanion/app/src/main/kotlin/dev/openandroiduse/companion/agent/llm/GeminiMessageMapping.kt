@@ -69,8 +69,27 @@ object GeminiMessageMapping {
             AgentRole.USER ->
                 Content.builder().role("user").parts(message.content.flatMap { userParts(it) }).build()
             AgentRole.ASSISTANT ->
-                Content.builder().role("model").parts(message.content.mapNotNull { modelPart(it) }).build()
+                // Phase 5.2 fix: an assistant turn that issued function calls carries its original
+                // model `Content` (with the per-call `thoughtSignature` Gemini 2.5 requires echoed
+                // back) in replayPayload — return it verbatim. Only history rebuilt from a persisted,
+                // text-only transcript (no function calls → no signature needed) falls through to the
+                // neutral rebuild.
+                (message.replayPayload as? Content)
+                    ?: Content.builder().role("model").parts(message.content.mapNotNull { modelPart(it) }).build()
         }
+    }
+
+    /**
+     * The assistant model [Content] to stash in `replayPayload` for byte-exact replay: the narration
+     * text (if any) plus the model's **raw** functionCall [Part]s — which carry their `thoughtSignature`
+     * inside them, so the signature round-trips without this code ever reading or rebuilding it.
+     */
+    fun replayContent(text: String, functionCallParts: List<Part>): Content {
+        val parts = buildList {
+            if (text.isNotBlank()) add(Part.fromText(text))
+            addAll(functionCallParts)
+        }
+        return Content.builder().role("model").parts(parts).build()
     }
 
     private fun userParts(content: AgentContent): List<Part> = when (content) {
