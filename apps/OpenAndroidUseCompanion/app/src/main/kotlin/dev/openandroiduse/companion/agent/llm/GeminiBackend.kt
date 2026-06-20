@@ -20,8 +20,10 @@ import com.google.genai.types.ThinkingConfig
  *
  * [streamTurn] blocks the worker thread and [cancel] force-closes the in-flight
  * stream from the stop-button thread — the same cancellation mechanism the loop
- * has always used. Gemini has no extended-thinking signature to round-trip, so
- * the assistant message carries `replayPayload = null`.
+ * has always used. With thinking enabled, Gemini 2.5 attaches a `thoughtSignature`
+ * to each `functionCall` part that the API requires echoed back on later requests;
+ * the assistant message stashes the raw model `Content` in `replayPayload` so those
+ * signatures round-trip verbatim (mirroring the Anthropic thinking-signature path).
  */
 class GeminiBackend(apiKey: String, baseUrl: String?) : AgentBackend {
 
@@ -42,6 +44,9 @@ class GeminiBackend(apiKey: String, baseUrl: String?) : AgentBackend {
         val contents = GeminiMessageMapping.toContents(request.messages)
         val text = StringBuilder()
         val functionCalls = mutableListOf<FunctionCall>()
+        // The raw functionCall parts carry Gemini 2.5's `thoughtSignature`; keep them so the assistant
+        // turn can be replayed verbatim (see replayPayload below).
+        val functionCallParts = mutableListOf<Part>()
         var finishReason: FinishReason? = null
 
         try {
@@ -59,7 +64,10 @@ class GeminiBackend(apiKey: String, baseUrl: String?) : AgentBackend {
                                 text.append(delta)
                             }
                         }
-                        part.functionCall().ifPresent { functionCalls.add(it) }
+                        part.functionCall().ifPresent {
+                            functionCalls.add(it)
+                            functionCallParts.add(part)
+                        }
                     }
                     chunk.finishReason()?.let { finishReason = it }
                 }
@@ -72,8 +80,15 @@ class GeminiBackend(apiKey: String, baseUrl: String?) : AgentBackend {
             if (text.isNotEmpty()) add(AgentContent.Text(text.toString()))
             addAll(GeminiMessageMapping.toToolUses(functionCalls))
         }
+        // Stash the model turn (narration + signed functionCall parts) for verbatim replay, so the
+        // required `thoughtSignature` is echoed back on the next request. Null when no call was made.
+        val replay = if (functionCallParts.isEmpty()) {
+            null
+        } else {
+            GeminiMessageMapping.replayContent(text.toString(), functionCallParts)
+        }
         return CompletedTurn(
-            assistant = AgentMessage(AgentRole.ASSISTANT, content, replayPayload = null),
+            assistant = AgentMessage(AgentRole.ASSISTANT, content, replayPayload = replay),
             stopReason = mapStopReason(functionCalls.isNotEmpty(), finishReason),
             refusalDetail = finishReason?.toString().orEmpty(),
         )
@@ -115,6 +130,9 @@ class GeminiBackend(apiKey: String, baseUrl: String?) : AgentBackend {
             FinishReason.Known.RECITATION,
             FinishReason.Known.IMAGE_SAFETY,
             FinishReason.Known.IMAGE_PROHIBITED_CONTENT,
+            // A malformed tool call would otherwise end the turn silently; surface it as a refusal
+            // so the reason reaches the transcript instead of the agent appearing to just stop.
+            FinishReason.Known.MALFORMED_FUNCTION_CALL,
             -> AgentStopReason.REFUSAL
             else -> AgentStopReason.END_TURN
         }

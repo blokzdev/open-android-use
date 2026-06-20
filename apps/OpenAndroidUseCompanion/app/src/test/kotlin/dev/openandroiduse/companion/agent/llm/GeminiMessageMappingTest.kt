@@ -1,8 +1,11 @@
 package dev.openandroiduse.companion.agent.llm
 
+import com.google.genai.types.Content
 import com.google.genai.types.FunctionCall
+import com.google.genai.types.Part
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -122,5 +125,36 @@ class GeminiMessageMappingTest {
         // Parallel calls to the same tool stay distinguishable, and the name round-trips.
         assertEquals("click", GeminiMessageMapping.nameFromToolUseId(toolUses[1].id))
         assertTrue(toolUses[0].argsJson.contains("\"app\""))
+    }
+
+    @Test
+    fun assistantReplayPayloadContentIsReturnedVerbatim() {
+        // An assistant turn that issued a function call carries its original model Content in
+        // replayPayload (the Parts hold Gemini 2.5's thoughtSignature). toContents must return that
+        // exact object — never rebuild — so the signature is preserved by identity (cf. Anthropic).
+        val replay = GeminiMessageMapping.replayContent(
+            "Checking the screen.",
+            listOf(Part.fromFunctionCall("get_app_state", mapOf("app" to "foreground"))),
+        )
+        val neutral = AgentMessage(
+            AgentRole.ASSISTANT,
+            listOf(
+                AgentContent.Text("Checking the screen."),
+                AgentContent.ToolUse("get_app_state@0", "get_app_state", """{"app":"foreground"}"""),
+            ),
+            replayPayload = replay,
+        )
+        val contents = GeminiMessageMapping.toContents(listOf(neutral))
+        assertSame(replay, contents.single())
+    }
+
+    @Test
+    fun assistantWithoutReplayPayloadStillRebuildsFromNeutralBlocks() {
+        // Resumed (text-only) history has no replayPayload → the neutral rebuild path still works.
+        val content = GeminiMessageMapping.toContents(
+            listOf(AgentMessage(AgentRole.ASSISTANT, listOf(AgentContent.Text("Done.")))),
+        ).single()
+        assertEquals("model", content.role().orElseThrow())
+        assertEquals("Done.", content.parts().orElseThrow()[0].text().orElseThrow())
     }
 }

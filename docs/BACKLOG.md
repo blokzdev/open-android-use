@@ -95,6 +95,12 @@ Each entry: **idea** — why deferred · _priority_ · origin.
 
 ## On-device agent / chat
 
+- **Gemini parallel same-tool call disambiguation** — Gemini matches a function *response* to its call
+  by **name**, and `GeminiMessageMapping.nameFromToolUseId` drops the `@index` for the response. Two
+  parallel calls to the *same* tool in one turn would send two identically-named `functionResponse`s,
+  which Gemini can't tell apart. Rare given the narrate-then-one-action loop, but if we ever batch
+  same-tool calls it would misalign. Fix would need Gemini's response-id support (or splitting such
+  batches across turns). _Low._ Origin: Gemini thought-signature fix audit (2026-06-19).
 - **Structured tool chips with element labels** — chips currently prettify the
   pre-formatted `KIND_TOOL` transcript string (e.g. "Tap [42]"); showing the
   tapped element's *label* ("Tap Settings") needs richer data threaded from the
